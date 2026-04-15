@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Makes the FAB perfectly circular -->
+    <style name="ShapeAppearance.FadeBARBer.FAB.Circle" parent="">
+        <item name="cornerSize">50%</item>
+    </style>
+</resources>
