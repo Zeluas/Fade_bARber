@@ -7,11 +7,12 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <FrameLayout
-        android:id="@+id/fragment_container"
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginBottom="?attr/actionBarSize" />
+        android:layout_marginBottom="?attr/actionBarSize"
+        android:theme="@style/ViewPagerEdgeEffect" />
 
     <com.google.android.material.bottomappbar.BottomAppBar
         android:id="@+id/bottomAppBar"
@@ -22,12 +23,7 @@
         app:contentInsetEnd="0dp"
         app:contentInsetLeft="0dp"
         app:contentInsetRight="0dp"
-        app:contentInsetStart="0dp"
-        app:fabAlignmentMode="center"
-        app:fabCradleMargin="10dp"
-        app:fabCradleRoundedCornerRadius="10dp"
-        app:fabCradleVerticalOffset="0dp"
-        app:paddingBottomSystemWindowInsets="false">
+        app:contentInsetStart="0dp" >
 
         <com.google.android.material.bottomnavigation.BottomNavigationView
             android:id="@+id/bottomNavigation"
@@ -36,9 +32,9 @@
             android:layout_gravity="center"
             android:background="@android:color/transparent"
             app:elevation="0dp"
-            app:itemActiveIndicatorStyle="@null"
-            app:itemIconTint="@color/bottom_nav_color"
-            app:itemTextColor="@color/bottom_nav_color"
+            app:itemBackground="@drawable/bottom_nav_item_background"
+            app:itemIconTint="@color/bottom_nav_color_state"
+            app:itemTextColor="@color/bottom_nav_color_state"
             app:labelVisibilityMode="labeled"
             app:menu="@menu/bottom_nav_menu" />
 
@@ -48,9 +44,9 @@
         android:id="@+id/fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="70dp"
-        android:contentDescription="@string/plus_button_description"
+        android:layout_marginBottom="0dp"
         android:src="@drawable/ic_plus"
+        android:tooltipText="Book Now"
         app:backgroundTint="@color/primary_color"
         app:fabCustomSize="65dp"
         app:fabSize="auto"
@@ -64,10 +60,10 @@
         android:id="@+id/tv_book_now"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingTop="30dp"
+        android:paddingTop="28dp"
         android:text="@string/book_now"
         android:textColor="#808080"
-        android:textSize="15sp"
+        android:textSize="13sp"
         android:textStyle="bold"
         app:layout_anchor="@id/fab"
         app:layout_anchorGravity="bottom|center_horizontal" />

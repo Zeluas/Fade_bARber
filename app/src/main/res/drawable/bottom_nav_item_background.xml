@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true">
+        <layer-list>
+            <!-- Background behind the icon (pill-like background) -->
+            <item
+                android:id="@+id/pill_background"
+                android:top="5dp"
+                android:bottom="20dp"
+                android:left="15dp"
+                android:right="15dp">
+                <scale
+                    android:scaleWidth="100%"
+                    android:scaleHeight="100%"
+                    android:scaleGravity="center">
+                    <shape>
+                        <solid android:color="@color/trans_primary_color" />
+                        <corners android:radius="16dp" />
+                    </shape>
+                </scale>
+            </item>
+
+            <!-- Pill underline under the label -->
+            <item
+                android:id="@+id/pill_underline"
+                android:gravity="bottom|center_horizontal"
+                android:bottom="2dp">
+                <scale
+                    android:scaleWidth="100%"
+                    android:scaleHeight="0%"
+                    android:scaleGravity="center_horizontal">
+                    <shape>
+                        <solid android:color="@color/primary_color" />
+                        <size
+                            android:width="40dp"
+                            android:height="3dp" />
+                        <corners android:radius="2dp" />
+                    </shape>
+                </scale>
+            </item>
+        </layer-list>
+    </item>
+    <item android:drawable="@android:color/transparent" />
+</selector>

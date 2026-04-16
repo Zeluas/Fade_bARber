@@ -1,18 +1,101 @@
 package com.zejyv.azizul.uitm.fadebarber;
 
+import android.animation.ValueAnimator;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
+import android.util.TypedValue;
+import android.view.MenuItem;
+import android.view.View;
 
-import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.viewpager2.widget.ViewPager2;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
 
 public class MainActivity extends AppCompatActivity {
+
+    private ViewPager2 viewPager;
+    private BottomNavigationView bottomNavigationView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_customer);
+
+        viewPager = findViewById(R.id.viewPager);
+        bottomNavigationView = findViewById(R.id.bottomNavigation);
+
+        MainPagerAdapter adapter = new MainPagerAdapter(this);
+        viewPager.setAdapter(adapter);
+
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            animateBottomNavigationItem(itemId);
+            if (itemId == R.id.navigation_home) {
+                viewPager.setCurrentItem(0);
+                return true;
+            } else if (itemId == R.id.navigation_notifications) {
+                viewPager.setCurrentItem(1);
+                return true;
+            } else if (itemId == R.id.navigation_profile) {
+                viewPager.setCurrentItem(2);
+                return true;
+            }
+            return false;
+        });
+
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                switch (position) {
+                    case 0:
+                        bottomNavigationView.setSelectedItemId(R.id.navigation_home);
+                        break;
+                    case 1:
+                        bottomNavigationView.setSelectedItemId(R.id.navigation_notifications);
+                        break;
+                    case 2:
+                        bottomNavigationView.setSelectedItemId(R.id.navigation_profile);
+                        break;
+                }
+            }
+        });
+    }
+
+    private void animateBottomNavigationItem(int itemId) {
+        final View itemView = bottomNavigationView.findViewById(itemId);
+        if (itemView == null) return;
+
+        itemView.post(() -> {
+            Drawable background = itemView.getBackground();
+            if (background instanceof StateListDrawable) {
+                Drawable current = background.getCurrent();
+                if (current instanceof LayerDrawable) {
+                    LayerDrawable layerDrawable = (LayerDrawable) current;
+
+                    // 1. Animate Pill Underline Width (using ScaleDrawable level)
+                    Drawable underline = layerDrawable.findDrawableByLayerId(R.id.pill_underline);
+                    if (underline != null) {
+                        ValueAnimator scaleAnimator = ValueAnimator.ofInt(0, 10000);
+                        scaleAnimator.setDuration(150);
+                        scaleAnimator.addUpdateListener(animation -> underline.setLevel((int) animation.getAnimatedValue()));
+                        scaleAnimator.start();
+                    }
+
+                    // 2. Animate Pill Background Scale (using ScaleDrawable level)
+                    Drawable pillBg = layerDrawable.findDrawableByLayerId(R.id.pill_background);
+                    if (pillBg != null) {
+                        ValueAnimator scaleAnimator = ValueAnimator.ofInt(0, 10000);
+                        scaleAnimator.setDuration(150);
+                        scaleAnimator.addUpdateListener(animation -> pillBg.setLevel((int) animation.getAnimatedValue()));
+                        scaleAnimator.start();
+                    }
+                }
+            }
+        });
     }
 }
