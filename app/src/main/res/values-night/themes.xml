@@ -1,6 +1,6 @@
 <resources>
     <!-- Base application theme. -->
-    <style name="Base.Theme.FadeBARBer" parent="Theme.MaterialComponents.Light.NoActionBar">
+    <style name="Base.Theme.FadeBARber" parent="Theme.MaterialComponents.Light.NoActionBar">
         <!-- Force light colors even in night mode -->
         <item name="android:windowBackground">@color/white</item>
         <item name="android:statusBarColor">@color/black</item>
@@ -10,7 +10,7 @@
         <item name="android:windowIsTranslucent">true</item>
     </style>
 
-    <style name="Theme.FadeBARBer" parent="Base.Theme.FadeBARBer" />
+    <style name="Theme.FadeBARber" parent="Base.Theme.FadeBARber" />
 
     <style name="Widget.App.BottomNavigationView" parent="Widget.MaterialComponents.BottomNavigationView">
         <item name="labelVisibilityMode">labeled</item>

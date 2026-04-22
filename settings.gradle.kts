@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Fade bARBer"
+rootProject.name = "Fade bARber"
 include(":app")
  
