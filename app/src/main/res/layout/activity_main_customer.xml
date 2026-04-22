@@ -5,6 +5,8 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/white"
+    android:forceDarkAllowed="false"
     tools:context=".MainActivity">
 
     <androidx.viewpager2.widget.ViewPager2
@@ -47,13 +49,15 @@
         android:layout_marginBottom="0dp"
         android:src="@drawable/ic_plus"
         android:tooltipText="Book Now"
-        app:backgroundTint="@color/primary_color"
+        android:backgroundTint="@color/primary_color"
+        app:backgroundTint="@color/black"
         app:fabCustomSize="65dp"
         app:fabSize="auto"
         app:layout_anchor="@id/bottomAppBar"
         app:layout_anchorGravity="top|center_horizontal"
         app:maxImageSize="40dp"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.FAB.Circle"
+        app:borderWidth="0.7dp"
         app:tint="@color/white" />
 
     <TextView

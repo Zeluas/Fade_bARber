@@ -1,20 +1,17 @@
 package com.zejyv.azizul.uitm.fadebarber;
 
 import android.animation.ValueAnimator;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
-import android.util.TypedValue;
-import android.view.MenuItem;
 import android.view.View;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.android.material.navigation.NavigationBarView;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -38,6 +35,25 @@ public class MainActivity extends AppCompatActivity {
             if (itemId == R.id.navigation_home) {
                 viewPager.setCurrentItem(0);
                 return true;
+            } else if (itemId == R.id.navigation_try_on) {
+                Intent intent = new Intent(MainActivity.this, TryOnActivity.class);
+                startActivity(intent);
+
+                // Delay and revert to last visited page
+                int lastPosition = viewPager.getCurrentItem();
+                bottomNavigationView.postDelayed(() -> {
+                    int lastItemId;
+                    if (lastPosition == 1) {
+                        lastItemId = R.id.navigation_notifications;
+                    } else if (lastPosition == 2) {
+                        lastItemId = R.id.navigation_profile;
+                    } else {
+                        lastItemId = R.id.navigation_home;
+                    }
+                    bottomNavigationView.setSelectedItemId(lastItemId);
+                }, 1500);
+
+                return true;
             } else if (itemId == R.id.navigation_notifications) {
                 viewPager.setCurrentItem(1);
                 return true;
@@ -46,6 +62,11 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
             return false;
+        });
+
+        bottomNavigationView.post(() -> animateBottomNavigationItem(R.id.navigation_home));
+        bottomNavigationView.setOnItemReselectedListener(item -> {
+            // Prevent re-triggering logic on re-selection
         });
 
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -64,6 +85,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+
     }
 
     private void animateBottomNavigationItem(int itemId) {
@@ -77,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
                 if (current instanceof LayerDrawable) {
                     LayerDrawable layerDrawable = (LayerDrawable) current;
 
-                    // 1. Animate Pill Underline Width (using ScaleDrawable level)
+                    // 1. Animate Pill Underline Width
                     Drawable underline = layerDrawable.findDrawableByLayerId(R.id.pill_underline);
                     if (underline != null) {
                         ValueAnimator scaleAnimator = ValueAnimator.ofInt(0, 10000);
@@ -86,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
                         scaleAnimator.start();
                     }
 
-                    // 2. Animate Pill Background Scale (using ScaleDrawable level)
+                    // 2. Animate Pill Background Scale
                     Drawable pillBg = layerDrawable.findDrawableByLayerId(R.id.pill_background);
                     if (pillBg != null) {
                         ValueAnimator scaleAnimator = ValueAnimator.ofInt(0, 10000);

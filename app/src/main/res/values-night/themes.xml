@@ -1,12 +1,13 @@
 <resources>
     <!-- Base application theme. -->
-    <style name="Base.Theme.FadeBARBer" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+    <style name="Base.Theme.FadeBARBer" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Force light colors even in night mode -->
+        <item name="android:windowBackground">@color/white</item>
         <item name="android:statusBarColor">@color/black</item>
         <item name="android:navigationBarColor">@color/black</item>
-        <item name="android:windowLightStatusBar" >false</item>
-        <item name="android:windowLightNavigationBar" >false</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowIsTranslucent">true</item>
     </style>
 
     <style name="Theme.FadeBARBer" parent="Base.Theme.FadeBARBer" />
