@@ -3,4 +3,24 @@
     <string name="plus_button_description">Add new</string>
     <string name="book_now">Book Now</string>
     <string name="choose_your_hairstyle">Choose Your Hairstyle</string>
+    <string name="title_try_on">Try-On</string>
+    <string name="style_buzz_cut">Buzz Cut</string>
+    <string name="style_fade">Fade</string>
+    <string name="style_pompadour">Pompadour</string>
+    <string name="style_undercut">Undercut</string>
+    <string name="style_crew_cut">Crew Cut</string>
+    <string name="style_mohawk">Mohawk</string>
+    <string name="style_side_part">Side Part</string>
+    <string name="style_top_knot">Top Knot</string>
+    <string name="welcome_user">Welcome back, (User)</string>
+    <string name="booking_status_label">Booking Status:</string>
+    <string name="ready_to_serve">Ready to be serve</string>
+    <string name="booking_detail_label">Your Booking Detail</string>
+    <string name="date_label">Date</string>
+    <string name="time_label">Time</string>
+    <string name="hairstylist_label">Hairstylist</string>
+    <string name="label_placeholder">Placeholder</string>
+    <string name="time_placeholder">08:46 P.M.</string>
+    <string name="date_placeholder">04/05/26</string>
+    <string name="haircut_name_placeholder">HairCut Name</string>
 </resources>
