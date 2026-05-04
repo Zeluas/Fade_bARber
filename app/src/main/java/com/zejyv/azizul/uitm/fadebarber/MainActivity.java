@@ -2,15 +2,18 @@ package com.zejyv.azizul.uitm.fadebarber;
 
 import android.animation.ValueAnimator;
 import android.content.Intent;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
@@ -28,6 +31,19 @@ public class MainActivity extends AppCompatActivity {
 
         MainPagerAdapter adapter = new MainPagerAdapter(this);
         viewPager.setAdapter(adapter);
+
+        // Add badge to Activity menu
+        BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.navigation_notifications);
+        badge.setVisible(true);
+        badge.setNumber(3);
+        badge.setBackgroundColor(Color.parseColor("#D81B60"));
+        badge.setBadgeTextColor(Color.WHITE);
+
+        // Reposition badge
+        int verticalOffset = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4, getResources().getDisplayMetrics());
+        int horizontalOffset = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4, getResources().getDisplayMetrics());
+        badge.setVerticalOffset(verticalOffset);
+        badge.setHorizontalOffset(horizontalOffset);
 
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();

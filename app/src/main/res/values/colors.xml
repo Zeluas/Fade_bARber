@@ -9,4 +9,12 @@
     <color name="green">#05B109</color>
     <color name="trans_white">#40FFFFFF</color>
     <color name="stroke_white">#80FFFFFF</color>
+    <color name="warning_red">#48FF5656</color>
+    <color name="success_green">#4856FF56</color>
+    <color name="info_blue">#4856A2FF</color>
+    <color name="alert_yellow">#48FFD556</color>
+    <color name="warning_red_icon">#FF3030</color>
+    <color name="success_green_icon">#007600</color>
+    <color name="info_blue_icon">#004CA2</color>
+    <color name="alert_yellow_icon">#FFC829</color>
 </resources>
