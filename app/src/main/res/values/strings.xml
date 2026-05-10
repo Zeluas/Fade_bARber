@@ -23,4 +23,7 @@
     <string name="time_placeholder">08:46 P.M.</string>
     <string name="date_placeholder">04/05/26</string>
     <string name="haircut_name_placeholder">HairCut Name</string>
+    <string name="edit_booking">Edit Booking</string>
+    <string name="chosen_haircut">Chosen Haircut</string>
+    <string name="cancel_booking">Cancel Booking</string>
 </resources>

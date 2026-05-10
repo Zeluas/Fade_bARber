@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/ll_home_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/back_primary_color"
@@ -50,6 +51,7 @@
         android:fillViewport="true">
 
         <LinearLayout
+            android:id="@+id/ll_home_scroll_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:clipToPadding="false"
@@ -58,6 +60,7 @@
 
             <!-- Horizontal Container 1: Booking Status & Time -->
             <LinearLayout
+                android:id="@+id/ll_booking_status_time_row"
                 android:layout_width="match_parent"
                 android:layout_height="110dp"
                 android:orientation="horizontal">
@@ -73,6 +76,7 @@
                     app:cardUseCompatPadding="true">
 
                     <LinearLayout
+                        android:id="@+id/ll_status_box_container"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
@@ -131,6 +135,7 @@
                             android:background="#66000000" />
 
                         <LinearLayout
+                            android:id="@+id/ll_datetime_overlay_container"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:orientation="vertical"
@@ -141,12 +146,14 @@
                                 android:layout_height="match_parent">
 
                                 <LinearLayout
+                                    android:id="@+id/ll_time_date_inner"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_gravity="top|start"
                                     android:orientation="vertical">
 
                                     <LinearLayout
+                                        android:id="@+id/ll_clock_row"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:orientation="horizontal">
@@ -218,11 +225,13 @@
                 app:cardUseCompatPadding="true">
 
                 <LinearLayout
+                    android:id="@+id/ll_bookingdetail"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
                     <LinearLayout
+                        android:id="@+id/ll_booking_header"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_booking_header"
@@ -240,6 +249,7 @@
                     </LinearLayout>
 
                     <LinearLayout
+                        android:id="@+id/ll_booking_details_row"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:baselineAligned="false"
@@ -248,85 +258,141 @@
 
                         <!-- Left Vertical Layout: Details -->
                         <LinearLayout
+                            android:id="@+id/ll_booking_details_left_col"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/date_label"
-                                android:textColor="@color/black"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
+                            <LinearLayout
+                                android:id="@+id/ll_booking_info_labels"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_marginBottom="10dp"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginBottom="4dp"
-                                android:text="@string/label_placeholder"
-                                android:textSize="16sp" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/date_label"
+                                    android:textColor="@color/black"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:text="@string/time_label"
-                                android:textColor="@color/black"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="4dp"
+                                    android:text="@string/label_placeholder"
+                                    android:textSize="16sp" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginBottom="4dp"
-                                android:text="@string/label_placeholder"
-                                android:textSize="16sp" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="12dp"
+                                    android:text="@string/time_label"
+                                    android:textColor="@color/black"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:text="@string/hairstylist_label"
-                                android:textColor="@color/black"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="4dp"
+                                    android:text="@string/label_placeholder"
+                                    android:textSize="16sp" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="12dp"
+                                    android:text="@string/hairstylist_label"
+                                    android:textColor="@color/black"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/label_placeholder"
+                                    android:textSize="16sp" />
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_cancel_booking"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="4dp"
-                                android:text="@string/label_placeholder"
-                                android:textSize="16sp" />
+                                android:layout_marginRight="6dp"
+                                android:paddingVertical="15dp"
+                                android:text="@string/cancel_booking"
+                                android:textColor="@color/warning_red_icon"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                app:backgroundTint="#FFFFFF"
+                                app:cornerRadius="24dp"
+                                app:rippleColor="#FF7979"
+                                app:strokeColor="@color/warning_red_icon"
+                                app:strokeWidth="2dp" />
 
                         </LinearLayout>
 
                         <!-- Right Vertical Layout: Hairstyle View -->
                         <LinearLayout
+                            android:id="@+id/ll_booking_details_right_col"
                             android:layout_width="0dp"
                             android:layout_height="match_parent"
                             android:layout_weight="1"
-                            android:gravity="center"
                             android:orientation="vertical">
 
-                            <com.google.android.material.imageview.ShapeableImageView
-                                android:id="@+id/iv_hairPreview"
-                                android:layout_width="120dp"
-                                android:layout_height="120dp"
-                                android:padding="2dp"
-                                app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                                app:strokeColor="@color/black"
-                                app:strokeWidth="1dp" />
+                            <LinearLayout
+                                android:id="@+id/ll_hair_preview_container"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_marginBottom="10dp"
+                                android:layout_weight="1"
+                                android:gravity="center"
+                                android:orientation="vertical">
 
-                            <TextView
-                                android:id="@+id/tv_haircut_name_home"
-                                android:layout_width="wrap_content"
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="4dp"
+                                    android:text="@string/chosen_haircut"
+                                    android:textColor="@color/black"
+                                    android:textStyle="bold" />
+
+                                <com.google.android.material.imageview.ShapeableImageView
+                                    android:id="@+id/iv_hairPreview"
+                                    android:layout_width="120dp"
+                                    android:layout_height="120dp"
+                                    android:padding="2dp"
+                                    app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
+                                    app:strokeColor="@color/black"
+                                    app:strokeWidth="1dp" />
+
+                                <TextView
+                                    android:id="@+id/tv_haircut_name_home"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="3dp"
+                                    android:text="HairCut Name"
+                                    android:textColor="@color/black"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_edit_booking"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
-                                android:text="HairCut Name"
-                                android:textColor="@color/black"
-                                android:textStyle="bold" />
+                                android:layout_marginLeft="6dp"
+                                android:paddingVertical="15dp"
+                                android:text="@string/edit_booking"
+                                android:textColor="@color/white"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                app:backgroundTint="@color/primary_color"
+                                app:cornerRadius="24dp" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
@@ -343,11 +409,13 @@
                 app:cardUseCompatPadding="true">
 
                 <LinearLayout
+                    android:id="@+id/ll_hairstylist_list_box"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
                     <LinearLayout
+                        android:id="@+id/ll_hairstylist_header"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_booking_header"
@@ -365,6 +433,7 @@
 
                     <!-- Stylist 1 -->
                     <LinearLayout
+                        android:id="@+id/ll_stylist_item_1"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
@@ -381,6 +450,7 @@
                             app:strokeWidth="1dp" />
 
                         <LinearLayout
+                            android:id="@+id/ll_stylist_info_1"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
@@ -426,6 +496,7 @@
 
                     <!-- Stylist 2 -->
                     <LinearLayout
+                        android:id="@+id/ll_stylist_item_2"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
@@ -442,6 +513,7 @@
                             app:strokeWidth="1dp" />
 
                         <LinearLayout
+                            android:id="@+id/ll_stylist_info_2"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
@@ -488,6 +560,7 @@
 
                     <!-- Stylist 3 -->
                     <LinearLayout
+                        android:id="@+id/ll_stylist_item_3"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
@@ -504,6 +577,7 @@
                             app:strokeWidth="1dp" />
 
                         <LinearLayout
+                            android:id="@+id/ll_stylist_info_3"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
@@ -554,11 +628,13 @@
                 app:cardUseCompatPadding="true">
 
                 <LinearLayout
+                    android:id="@+id/ll_cut_history_box"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
                     <LinearLayout
+                        android:id="@+id/ll_cut_history_header"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_booking_header"
@@ -576,6 +652,7 @@
 
                     <!-- History Item 1 -->
                     <LinearLayout
+                        android:id="@+id/ll_history_item_1"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
@@ -592,6 +669,7 @@
                             app:strokeWidth="1dp" />
 
                         <LinearLayout
+                            android:id="@+id/ll_history_info_row_1"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
@@ -602,6 +680,7 @@
 
                             <!-- Col 1: Name & Haircut -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col1_1"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1.2"
@@ -621,6 +700,7 @@
 
                             <!-- Col 2: Price & Duration -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col2_1"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -640,6 +720,7 @@
 
                             <!-- Col 3: Date & Time -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col3_1"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -659,6 +740,7 @@
 
                             <!-- Col 4: Rating -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col4_1"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="0.6"
@@ -684,6 +766,7 @@
 
                     <!-- History Item 2 -->
                     <LinearLayout
+                        android:id="@+id/ll_history_item_2"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
@@ -700,6 +783,7 @@
                             app:strokeWidth="1dp" />
 
                         <LinearLayout
+                            android:id="@+id/ll_history_info_row_2"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
@@ -710,6 +794,7 @@
 
                             <!-- Col 1: Name & Haircut -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col1_2"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1.2"
@@ -729,6 +814,7 @@
 
                             <!-- Col 2: Price & Duration -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col2_2"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -748,6 +834,7 @@
 
                             <!-- Col 3: Date & Time -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col3_2"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -767,6 +854,7 @@
 
                             <!-- Col 4: Rating -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col4_2"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="0.6"
@@ -792,6 +880,7 @@
 
                     <!-- History Item 3 -->
                     <LinearLayout
+                        android:id="@+id/ll_history_item_3"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
@@ -808,6 +897,7 @@
                             app:strokeWidth="1dp" />
 
                         <LinearLayout
+                            android:id="@+id/ll_history_info_row_3"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
@@ -818,6 +908,7 @@
 
                             <!-- Col 1: Name & Haircut -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col1_3"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1.2"
@@ -837,6 +928,7 @@
 
                             <!-- Col 2: Price & Duration -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col2_3"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -856,6 +948,7 @@
 
                             <!-- Col 3: Date & Time -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col3_3"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -875,6 +968,7 @@
 
                             <!-- Col 4: Rating -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col4_3"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="0.6"
@@ -900,6 +994,7 @@
 
                     <!-- History Item 4 -->
                     <LinearLayout
+                        android:id="@+id/ll_history_item_4"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
@@ -916,6 +1011,7 @@
                             app:strokeWidth="1dp" />
 
                         <LinearLayout
+                            android:id="@+id/ll_history_info_row_4"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
@@ -926,6 +1022,7 @@
 
                             <!-- Col 1: Name & Haircut -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col1_4"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1.2"
@@ -945,6 +1042,7 @@
 
                             <!-- Col 2: Price & Duration -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col2_4"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -964,6 +1062,7 @@
 
                             <!-- Col 3: Date & Time -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col3_4"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -983,6 +1082,7 @@
 
                             <!-- Col 4: Rating -->
                             <LinearLayout
+                                android:id="@+id/ll_history_col4_4"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="0.6"
