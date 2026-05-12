@@ -2,6 +2,7 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.FadeBARber" parent="Theme.MaterialComponents.Light.NoActionBar">
         <!-- Force light colors even in night mode -->
+        <item name="colorPrimary">@color/primary_color</item>
         <item name="android:windowBackground">@color/white</item>
         <item name="android:statusBarColor">@color/black</item>
         <item name="android:navigationBarColor">@color/black</item>
