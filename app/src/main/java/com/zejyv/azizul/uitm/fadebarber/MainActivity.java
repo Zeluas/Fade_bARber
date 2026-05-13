@@ -102,6 +102,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        findViewById(R.id.fab).setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, BookingActivity.class);
+            startActivity(intent);
+        });
 
     }
 

@@ -47,17 +47,18 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="0dp"
+        android:backgroundTint="@color/primary_color"
         android:src="@drawable/ic_plus"
         android:tooltipText="Book Now"
-        android:backgroundTint="@color/primary_color"
         app:backgroundTint="@color/black"
+        app:borderWidth="0.7dp"
         app:fabCustomSize="65dp"
         app:fabSize="auto"
         app:layout_anchor="@id/bottomAppBar"
         app:layout_anchorGravity="top|center_horizontal"
         app:maxImageSize="40dp"
+        app:rippleColor="@color/white"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.FAB.Circle"
-        app:borderWidth="0.7dp"
         app:tint="@color/white" />
 
     <TextView

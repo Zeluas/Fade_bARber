@@ -4,9 +4,9 @@
     <color name="white">#FFFFFFFF</color>
     <color name="primary_color">#248300</color>
     <color name="trans_primary_color">#40248300</color>
+    <color name="softer_primary_color">#8cb77b</color>
     <color name="secondary_color">#FFCE1B</color>
     <color name="back_primary_color">#e3e3e3</color>
-    <color name="green">#05B109</color>
     <color name="trans_white">#40FFFFFF</color>
     <color name="stroke_white">#80FFFFFF</color>
     <color name="warning_red">#48FF5656</color>
@@ -17,4 +17,5 @@
     <color name="success_green_icon">#007600</color>
     <color name="info_blue_icon">#004CA2</color>
     <color name="alert_yellow_icon">#FFBD00</color>
+    <color name="grey_grey">#686868</color>
 </resources>

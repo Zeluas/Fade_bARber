@@ -85,17 +85,18 @@
             android:insetBottom="0dp"
             android:padding="0dp"
             android:tooltipText="Capture Now"
+            app:backgroundTint="@color/primary_color"
             app:icon="@drawable/ic_photo_camera"
             app:iconGravity="textStart"
             app:iconPadding="0dp"
             app:iconSize="32dp"
             app:iconTint="@color/white"
-            app:backgroundTint="@color/primary_color"
             app:layout_constraintBottom_toTopOf="@id/carousel_container"
             app:layout_constraintEnd_toEndOf="parent"
+            app:rippleColor="@color/white"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.FAB.Circle"
-            app:strokeWidth="0.7dp"
-            app:strokeColor="@color/black" />
+            app:strokeColor="@color/black"
+            app:strokeWidth="0.7dp" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/carousel_container"

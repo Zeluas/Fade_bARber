@@ -27,6 +27,7 @@ import android.animation.ObjectAnimator;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.animation.BounceInterpolator;
+import androidx.appcompat.widget.TooltipCompat;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.concurrent.ExecutionException;
@@ -71,6 +72,18 @@ public class TryOnActivity extends AppCompatActivity {
         carouselScroll = findViewById(R.id.carousel_scroll);
         tvChooseHairstyle = findViewById(R.id.tv_choose_hairstyle);
         tvChooseHairstyleCollapsed = findViewById(R.id.tv_choose_hairstyle_collapsed);
+
+        // Change icon if opened from BookingActivity
+        boolean fromBooking = getIntent().getBooleanExtra("FROM_BOOKING", false);
+        if (fromBooking) {
+            com.google.android.material.button.MaterialButton fabCapture = findViewById(R.id.fab_capture);
+            fabCapture.setIconResource(R.drawable.ic_check_circle);
+            fabCapture.setContentDescription("confirm hairstyle");
+            TooltipCompat.setTooltipText(fabCapture, "Select Hairstyle");
+            // Scale icon only by increasing iconSize (original is 32dp)
+            int iconSizePx = (int) (32 * getResources().getDisplayMetrics().density * 1.5f);
+            fabCapture.setIconSize(iconSizePx);
+        }
 
         reminderRunnable = this::startReminderAnimation;
 

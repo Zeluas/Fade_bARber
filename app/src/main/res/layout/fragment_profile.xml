@@ -56,20 +56,18 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="12dp"
                 android:layout_marginTop="12dp"
-                app:cardBackgroundColor="@android:color/transparent"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp"
-                app:strokeWidth="3dp"
-                app:strokeColor="@color/primary_color">
+                app:cardElevation="6dp" >
 
                 <LinearLayout
                     android:id="@+id/ll_profile_header"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@color/back_primary_color"
+                    android:background="@drawable/bg_profile_gradient"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:paddingHorizontal="12dp" >
+
 
                     <com.google.android.material.imageview.ShapeableImageView
                         android:id="@+id/iv_profile_large"
@@ -78,7 +76,7 @@
                         android:background="@color/white"
                         android:padding="2dp"
                         app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                        app:strokeColor="@color/primary_color"
+                        app:strokeColor="@color/black"
                         app:strokeWidth="1dp" />
 
                     <LinearLayout
@@ -87,7 +85,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
                         android:layout_weight="1"
-                        android:background="@drawable/bg_profile_gradient"
+
                         android:baselineAligned="false"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
@@ -116,6 +114,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="User ID: 123456"
+                                android:textColor="@color/grey_grey"
                                 android:textSize="12sp" />
                         </LinearLayout>
 
@@ -159,8 +158,11 @@
 
             <View
                 android:id="@+id/v_header_divider"
-                android:layout_width="match_parent"
-                android:layout_height="20dp" />
+                android:layout_width="75dp"
+                android:layout_height="5dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginVertical="10dp"
+                android:background="@drawable/bg_pill_primary" />
 
             <!-- Item: Cut History -->
             <com.google.android.material.card.MaterialCardView
