@@ -1,202 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cv_time_picker_root"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    app:cardBackgroundColor="@color/white"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="8dp"
-    app:cardUseCompatPadding="true">
+    app:cardCornerRadius="16dp">
 
     <LinearLayout
+        android:id="@+id/ll_main_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:minWidth="280dp"
         android:orientation="vertical">
 
+        <!-- Header -->
         <LinearLayout
             android:id="@+id/ll_dialog_header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/primary_color"
-            android:paddingVertical="12dp">
+            android:background="@drawable/bg_booking_header"
+            android:paddingVertical="8dp">
 
             <TextView
+                android:id="@+id/tv_dialog_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:text="Select time"
+                android:layout_marginStart="12dp"
+                android:text="Choose Available Slot"
                 android:textColor="@color/white"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:id="@+id/ll_dialog_content"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Numbers 1-12 in 6 rows, 2 columns -->
-            <GridLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:columnCount="2"
-                android:rowCount="6">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_hour_1"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="1"
-                    android:textColor="@color/primary_color"
-                    app:cornerRadius="24dp"
-                    app:strokeColor="@color/primary_color"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_hour_2"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="2"
-                    android:textColor="@color/primary_color"
-                    app:cornerRadius="24dp"
-                    app:strokeColor="@color/primary_color"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_hour_3"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="3"
-                    android:textColor="@color/primary_color"
-                    app:cornerRadius="24dp"
-                    app:strokeColor="@color/primary_color"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_hour_4"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="4"
-                    android:textColor="@color/primary_color"
-                    app:cornerRadius="24dp"
-                    app:strokeColor="@color/primary_color"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_hour_5"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="5"
-                    android:textColor="@color/primary_color"
-                    app:cornerRadius="24dp"
-                    app:strokeColor="@color/primary_color"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_hour_6"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="6"
-                    android:textColor="@color/primary_color"
-                    app:cornerRadius="24dp"
-                    app:strokeColor="@color/primary_color"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_hour_7"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="7"
-                    android:textColor="@color/primary_color"
-                    app:cornerRadius="24dp"
-                    app:strokeColor="@color/primary_color"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_hour_8"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="8"
-                    android:textColor="@color/primary_color"
-                    app:cornerRadius="24dp"
-                    app:strokeColor="@color/primary_color"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_hour_9"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="9"
-                    android:textColor="@color/primary_color"
-                    app:cornerRadius="24dp"
-                    app:strokeColor="@color/primary_color"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_hour_10"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="10"
-                    android:textColor="@color/primary_color"
-                    app:cornerRadius="24dp"
-                    app:strokeColor="@color/primary_color"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_hour_11"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="11"
-                    android:textColor="@color/primary_color"
-                    app:cornerRadius="24dp"
-                    app:strokeColor="@color/primary_color"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_hour_12"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:text="12"
-                    android:textColor="@color/primary_color"
-                    app:cornerRadius="24dp"
-                    app:strokeColor="@color/primary_color"
-                    app:strokeWidth="1dp" />
-            </GridLayout>
-
-            <!-- AM/PM Buttons -->
+            <!-- Time of Day and AM/PM Buttons -->
             <LinearLayout
+                android:id="@+id/ll_time_selection_header"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="16dp"
-                android:orientation="horizontal">
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_pill_stroke"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp">
+
+                <TextView
+                    android:id="@+id/tv_time_of_day_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:text="Time of Day: "
+                    android:textColor="@color/black"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_am"
@@ -223,22 +87,272 @@
                     app:strokeWidth="1dp" />
             </LinearLayout>
 
-            <!-- Cancel/OK Buttons -->
+            <!-- Boxed Slot Selection -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cv_slot_selection_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/primary_color"
+                app:strokeWidth="2.5dp">
+
+                <LinearLayout
+                    android:id="@+id/ll_slot_selection_inner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <!-- Time Slot Section -->
+                    <LinearLayout
+                        android:id="@+id/ll_time_slot_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tv_time_slot_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Time Slot"
+                            android:textColor="@color/black"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <View
+                            android:id="@+id/v_time_slot_indicator"
+                            android:layout_width="match_parent"
+                            android:layout_height="5dp"
+                            android:layout_marginTop="4dp"
+                            android:background="@drawable/bg_pill_primary" />
+                    </LinearLayout>
+
+                    <!-- Hour Selection (3 rows, 4 columns) -->
+                    <GridLayout
+                        android:id="@+id/gl_hour_selection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:columnCount="4"
+                        android:rowCount="3">
+
+                        <!-- Hour 1 - Disabled (Shop Closing) -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_hour_1"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="65dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:enabled="true"
+                            android:padding="0dp"
+                            android:text="01:00"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="1dp" />
+
+                        <!-- Hour 2 - Disabled (Shop Closing) -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_hour_2"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="65dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:enabled="true"
+                            android:padding="0dp"
+                            android:text="02:00"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="1dp" />
+
+                        <!-- Hour 3 - Disabled (Shop Closing) -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_hour_3"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="65dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:enabled="true"
+                            android:padding="0dp"
+                            android:text="03:00"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="1dp" />
+
+                        <!-- Hour 4 - Disabled (Shop Closing) -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_hour_4"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="65dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:enabled="true"
+                            android:padding="0dp"
+                            android:text="04:00"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="1dp" />
+
+                        <!-- Hour 5 - Disabled (Shop Closing) -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_hour_5"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="65dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:enabled="true"
+                            android:padding="0dp"
+                            android:text="05:00"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="1dp" />
+
+                        <!-- Hour 6 - Disabled (Shop Closing) -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_hour_6"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="65dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:enabled="true"
+                            android:padding="0dp"
+                            android:text="06:00"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="1dp" />
+
+                        <!-- Hour 7 - Disabled (Shop Closing) -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_hour_7"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="65dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:enabled="true"
+                            android:padding="0dp"
+                            android:text="07:00"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="1dp" />
+
+                        <!-- Hour 8 - Disabled (Shop Closing) -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_hour_8"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="65dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:enabled="true"
+                            android:padding="0dp"
+                            android:text="08:00"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="1dp" />
+
+                        <!-- Hour 9 - Disabled (Shop Closing) -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_hour_9"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="65dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:enabled="true"
+                            android:padding="0dp"
+                            android:text="09:00"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="1dp" />
+
+                        <!-- Hour 10 -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_hour_10"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="65dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:padding="0dp"
+                            android:text="10:00"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="1dp" />
+
+                        <!-- Hour 11 -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_hour_11"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="65dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:padding="0dp"
+                            android:text="11:00"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="1dp" />
+
+                        <!-- Hour 12 - Disabled (Rest Hour) -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_hour_12"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="65dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:enabled="true"
+                            android:padding="0dp"
+                            android:text="12:00"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="1dp" />
+                    </GridLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Action Buttons -->
             <LinearLayout
+                android:id="@+id/ll_action_buttons"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:gravity="end"
+                android:gravity="end|center_vertical"
                 android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_cancel"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Cancel"
-                    android:textColor="@color/grey_grey"
-                    app:rippleColor="@color/back_primary_color" />
+                    android:textColor="@color/warning_red_icon"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="#FFFFFF"
+                    app:cornerRadius="24dp"
+                    app:rippleColor="#FF7979"
+                    app:strokeColor="@color/warning_red_icon"
+                    app:strokeWidth="2dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_ok"

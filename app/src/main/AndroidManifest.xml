@@ -18,21 +18,18 @@
         android:theme="@style/Theme.FadeBARber">
 
         <activity
-            android:name=".SplashScreenActivity"
-            android:exported="true">
+            android:name=".MainActivity"
+            android:exported="true" />
+
+        <activity
+            android:name=".AuthActivity"
+            android:exported="true"
+            android:theme="@style/Theme.App.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".MainActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".AuthActivity"
-            android:exported="false" />
 
         <activity
             android:name=".BookingActivity"

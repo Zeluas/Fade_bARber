@@ -57,7 +57,6 @@
         app:layout_anchor="@id/bottomAppBar"
         app:layout_anchorGravity="top|center_horizontal"
         app:maxImageSize="40dp"
-        app:rippleColor="@color/white"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.FAB.Circle"
         app:tint="@color/white" />
 

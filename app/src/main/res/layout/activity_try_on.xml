@@ -93,7 +93,6 @@
             app:iconTint="@color/white"
             app:layout_constraintBottom_toTopOf="@id/carousel_container"
             app:layout_constraintEnd_toEndOf="parent"
-            app:rippleColor="@color/white"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.FAB.Circle"
             app:strokeColor="@color/black"
             app:strokeWidth="0.7dp" />
