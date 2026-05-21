@@ -150,7 +150,7 @@
                                 android:textStyle="bold"
                                 app:cornerRadius="16dp"
                                 app:strokeColor="@color/primary_color"
-                                app:strokeWidth="2.5dp" />
+                                app:strokeWidth="1.5dp" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
