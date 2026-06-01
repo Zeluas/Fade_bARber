@@ -5,6 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/trans_primary_color"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     tools:context=".AuthActivity">
 
     <!-- Header Row (Logo and App Title) - Centered in available space above card -->
@@ -54,6 +56,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:orientation="vertical">
 
             <!-- Nested Form Header with Animated Background -->
@@ -61,7 +65,9 @@
                 android:id="@+id/layout_auth_header_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@color/primary_color">
+                android:background="@color/primary_color"
+                android:clipChildren="false"
+                android:clipToPadding="false">
 
                 <!-- Bubble Background -->
                 <com.zejyv.azizul.uitm.fadebarber.FloatingBubblesView
@@ -85,6 +91,8 @@
                     android:id="@+id/ll_header_content"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
                     android:orientation="vertical"
                     android:padding="20dp"
                     app:layout_constraintTop_toTopOf="parent">
@@ -92,7 +100,9 @@
                     <!-- Title and Back Button Row -->
                     <RelativeLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
+                        android:layout_height="wrap_content"
+                        android:clipChildren="false"
+                        android:clipToPadding="false">
 
                         <ImageView
                             android:id="@+id/iv_auth_back"
@@ -114,6 +124,8 @@
                             android:layout_height="wrap_content"
                             android:layout_centerInParent="true"
                             android:gravity="center"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
                             android:orientation="horizontal">
 
                             <TextView
@@ -130,6 +142,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
+                                android:clipChildren="false"
+                                android:clipToPadding="false"
                                 android:orientation="horizontal"
                                 android:visibility="gone"
                                 tools:visibility="visible">
@@ -167,6 +181,9 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:orientation="vertical"
                 android:padding="20dp">
 
@@ -175,6 +192,8 @@
                     android:id="@+id/fl_form_content"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
                     android:minHeight="150dp">
 
                     <!-- Login Form -->
@@ -182,8 +201,20 @@
                         android:id="@+id/ll_login_step"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:clipChildren="true"
+                        android:clipToPadding="true"
                         android:orientation="vertical"
                         android:visibility="visible">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginBottom="4dp"
+                            android:text="Email"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
                         <EditText
                             android:id="@+id/et_login_email"
@@ -198,6 +229,16 @@
                             android:paddingHorizontal="20dp"
                             android:paddingVertical="12dp"
                             android:textColor="@color/black"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginBottom="4dp"
+                            android:text="Password"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
                             android:textStyle="bold" />
 
                         <EditText
@@ -220,9 +261,12 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="start"
+                            android:layout_marginStart="4dp"
                             android:buttonTint="@color/primary_color"
+                            android:scaleX="1.1"
+                            android:scaleY="1.1"
                             android:text="Remember Me"
-                            android:textSize="14sp" />
+                            android:textSize="16sp" />
                     </LinearLayout>
 
                     <!-- Signup Step 1: Email & Username -->
@@ -241,6 +285,16 @@
                             android:text="Let's start with your account info"
                             android:textSize="14sp" />
 
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginBottom="4dp"
+                            android:text="Email Address"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
                         <EditText
                             android:id="@+id/et_signup_email"
                             android:layout_width="match_parent"
@@ -249,11 +303,21 @@
                             android:background="@drawable/bg_pill_stroke"
                             android:gravity="center_vertical|start"
                             android:hint="Email Address"
-                            android:inputType="textEmailAddress"
                             android:imeOptions="actionNext"
+                            android:inputType="textEmailAddress"
                             android:paddingHorizontal="20dp"
                             android:paddingVertical="12dp"
                             android:textColor="@color/black"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginBottom="4dp"
+                            android:text="Username"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
                             android:textStyle="bold" />
 
                         <EditText
@@ -263,8 +327,8 @@
                             android:background="@drawable/bg_pill_stroke"
                             android:gravity="center_vertical|start"
                             android:hint="Username"
-                            android:inputType="text"
                             android:imeOptions="actionDone"
+                            android:inputType="text"
                             android:paddingHorizontal="20dp"
                             android:paddingVertical="12dp"
                             android:textColor="@color/black"
@@ -287,6 +351,16 @@
                             android:text="Tell us who you are"
                             android:textSize="14sp" />
 
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginBottom="4dp"
+                            android:text="Full Name"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
                         <EditText
                             android:id="@+id/et_signup_name"
                             android:layout_width="match_parent"
@@ -295,11 +369,21 @@
                             android:background="@drawable/bg_pill_stroke"
                             android:gravity="center_vertical|start"
                             android:hint="Full Name"
-                            android:inputType="textPersonName"
                             android:imeOptions="actionNext"
+                            android:inputType="textPersonName"
                             android:paddingHorizontal="20dp"
                             android:paddingVertical="12dp"
                             android:textColor="@color/black"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginBottom="4dp"
+                            android:text="Phone Number"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
                             android:textStyle="bold" />
 
                         <EditText
@@ -309,8 +393,8 @@
                             android:background="@drawable/bg_pill_stroke"
                             android:gravity="center_vertical|start"
                             android:hint="Phone Number"
-                            android:inputType="phone"
                             android:imeOptions="actionDone"
+                            android:inputType="phone"
                             android:paddingHorizontal="20dp"
                             android:paddingVertical="12dp"
                             android:textColor="@color/black"
@@ -333,6 +417,16 @@
                             android:text="Secure your account"
                             android:textSize="14sp" />
 
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginBottom="4dp"
+                            android:text="Password"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
                         <EditText
                             android:id="@+id/et_signup_password"
                             android:layout_width="match_parent"
@@ -341,11 +435,21 @@
                             android:background="@drawable/bg_pill_stroke"
                             android:gravity="center_vertical|start"
                             android:hint="Password"
-                            android:inputType="textPassword"
                             android:imeOptions="actionNext"
+                            android:inputType="textPassword"
                             android:paddingHorizontal="20dp"
                             android:paddingVertical="12dp"
                             android:textColor="@color/black"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginBottom="4dp"
+                            android:text="Confirm Password"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
                             android:textStyle="bold" />
 
                         <EditText
@@ -355,8 +459,8 @@
                             android:background="@drawable/bg_pill_stroke"
                             android:gravity="center_vertical|start"
                             android:hint="Confirm Password"
-                            android:inputType="textPassword"
                             android:imeOptions="actionDone"
+                            android:inputType="textPassword"
                             android:paddingHorizontal="20dp"
                             android:paddingVertical="12dp"
                             android:textColor="@color/black"
@@ -368,6 +472,7 @@
                         android:id="@+id/ll_signup_success"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="center"
                         android:gravity="center"
                         android:orientation="vertical"
                         android:visibility="gone">
@@ -398,6 +503,51 @@
                             android:gravity="center"
                             android:text="You can now log in with your new account."
                             android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <!-- Signup Step 5: Failed -->
+                    <LinearLayout
+                        android:id="@+id/ll_signup_failed"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <com.google.android.material.imageview.ShapeableImageView
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:layout_marginBottom="16dp"
+                            android:background="@drawable/bg_ic_circular"
+                            android:backgroundTint="@color/warning_red"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_warning_circle"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.FAB.Circle"
+                            app:tint="@color/warning_red_icon" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Registration Failed"
+                            android:textColor="@color/warning_red_icon"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_signup_error_details"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:background="@drawable/bg_error_details"
+                            android:fontFamily="monospace"
+                            android:gravity="start"
+                            android:minHeight="100dp"
+                            android:padding="12sp"
+                            android:text="Error details will appear here..."
+                            android:textColor="@color/black"
+                            android:textSize="12sp"
+                            android:visibility="gone" />
                     </LinearLayout>
                 </FrameLayout>
 
@@ -434,5 +584,110 @@
         app:rippleColor="@color/trans_primary_color"
         app:strokeColor="@color/primary_color"
         app:strokeWidth="2dp" />
+
+    <!-- Exit Confirmation Overlay -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_exit_confirmation"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#B3000000"
+        android:clickable="true"
+        android:elevation="20dp"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/mcv_exit_dialog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="40dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:strokeColor="@color/primary_color"
+            app:strokeWidth="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Dialog Header -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/primary_color">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:padding="16dp"
+                        android:text="Confirm Exit?"
+                        android:textColor="@color/white"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="24dp"
+                        android:gravity="center"
+                        android:text="Are you sure you want to exit the app?"
+                        android:textColor="@color/black"
+                        android:textSize="14sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_exit_cancel"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:paddingVertical="12dp"
+                            android:text="CANCEL"
+                            android:textColor="@color/primary_color"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            app:backgroundTint="@color/white"
+                            app:cornerRadius="24dp"
+                            app:rippleColor="@color/trans_primary_color"
+                            app:strokeColor="@color/primary_color"
+                            app:strokeWidth="2dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_exit_confirm"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:backgroundTint="@color/warning_red_icon"
+                            android:paddingVertical="12dp"
+                            android:text="EXIT"
+                            android:textColor="@color/white"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="24dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

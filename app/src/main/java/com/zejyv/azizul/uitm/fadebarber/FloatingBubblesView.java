@@ -5,6 +5,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.View;
+
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
@@ -16,7 +18,6 @@ public class FloatingBubblesView extends View {
     private final List<Bubble> bubbles = new ArrayList<>();
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Random random = new Random();
-    private final int bubbleCount = 5;
 
     public FloatingBubblesView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -26,14 +27,23 @@ public class FloatingBubblesView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        bubbles.clear();
-        for (int i = 0; i < bubbleCount; i++) {
-            bubbles.add(new Bubble(w, h));
+        if (bubbles.isEmpty()) {
+            int bubbleCount = 5;
+            for (int i = 0; i < bubbleCount; i++) {
+                bubbles.add(new Bubble(w, h));
+            }
+        } else {
+            // Update bubble positions if they are out of new bounds, 
+            // but don't reset everything to preserve current animation state
+            for (Bubble bubble : bubbles) {
+                if (bubble.x > w) bubble.x = random.nextInt(w);
+                if (bubble.y > h) bubble.y = h;
+            }
         }
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
+    protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
         for (Bubble bubble : bubbles) {
             bubble.update(getWidth(), getHeight());

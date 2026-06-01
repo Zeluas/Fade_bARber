@@ -9,43 +9,87 @@
 
     <!-- Top Bar -->
     <com.google.android.material.card.MaterialCardView
+        android:id="@+id/mcv_top_bar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:cardBackgroundColor="@android:color/transparent"
-        app:cardCornerRadius="0dp"
+        android:layout_height="140dp"
+        app:cardBackgroundColor="@color/primary_color"
         app:cardElevation="0dp"
-        app:cardMaxElevation="0dp">
+        app:cardMaxElevation="0dp"
+        app:cardPreventCornerOverlap="false"
+        app:cardUseCompatPadding="true"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.TopBar">
 
-        <FrameLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/cl_top_bar_content"
             android:layout_width="match_parent"
-            android:layout_height="70dp"
-            android:background="@drawable/bg_top_bar">
+            android:layout_height="match_parent">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <!-- Bubble Background -->
+            <com.zejyv.azizul.uitm.fadebarber.FloatingBubblesView
+                android:id="@+id/floating_bubbles_home"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <!-- Grey Tint Overlay -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:background="#5E000000"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <LinearLayout
+                android:id="@+id/ll_top_bar_text_container"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical|start"
-                android:layout_marginStart="12dp"
-                android:text="@string/welcome_user"
-                android:textColor="@color/white"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/iv_profile"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <TextView
+                    android:id="@+id/tv_welcome_home"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/welcome_user"
+                    android:textColor="@color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_ai_jab"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/white"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
             <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/iv_profile"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_gravity="center_vertical|end"
                 android:layout_marginEnd="16dp"
                 android:background="@color/white"
                 android:padding="2dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
                 app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
                 app:strokeColor="@color/black"
                 app:strokeWidth="1dp" />
-        </FrameLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
 
     <ScrollView
+        android:id="@+id/sv_home_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true">
