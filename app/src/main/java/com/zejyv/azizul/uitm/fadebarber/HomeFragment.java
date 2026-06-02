@@ -11,13 +11,9 @@ import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AlphaAnimation;
-import android.view.animation.AnimationSet;
-import android.view.animation.TranslateAnimation;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -27,34 +23,35 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.card.MaterialCardView;
-import com.google.ai.client.generativeai.GenerativeModel;
-import com.google.ai.client.generativeai.java.GenerativeModelFutures;
-import com.google.ai.client.generativeai.type.Content;
-import com.google.ai.client.generativeai.type.GenerateContentResponse;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import java.util.Calendar;
 import java.util.Random;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
+/**
+ * HomeFragment: The main dashboard for the Fade bARber app.
+ * Features dynamic UI updates based on time of day, AI-generated jabs/roasts,
+ * and a collapsible top bar that responds to scrolling.
+ */
 public class HomeFragment extends Fragment {
 
     private Handler handler;
     private MaterialCardView mcvTopBar;
     private ScrollView svHomeContent;
-    private TextView tvWelcome, tvAiJab;
-    private ImageView ivProfile;
+    private TextView tvAiJab;
+    
+    // UI State flags
     private boolean isExpanded = true;
     private boolean isAnimating = false;
     private boolean isLockedAtMin = false;
+    
+    // AI Jab related state
     private static String sessionAiJab = null;
     private long lastJabTime = 0;
-    private static final long JAB_COOLDOWN = 30000; // 30 seconds
+    private static final long JAB_COOLDOWN = 30000; // 30 seconds cooldown for AI jab generation
     private Runnable typingRunnable;
-    private boolean isTyping = false;
 
+    /**
+     * Runnable to periodically update the time-based theme (e.g., background and greeting).
+     */
     private final Runnable updateTimeThemeRunnable = new Runnable() {
         @Override
         public void run() {
@@ -68,6 +65,7 @@ public class HomeFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_home, container, false);
     }
 
@@ -76,14 +74,13 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         handler = new Handler(Looper.getMainLooper());
 
+        // Initialize UI components
         mcvTopBar = view.findViewById(R.id.mcv_top_bar);
         svHomeContent = view.findViewById(R.id.sv_home_content);
-        tvWelcome = view.findViewById(R.id.tv_welcome_home);
         tvAiJab = view.findViewById(R.id.tv_ai_jab);
-        ivProfile = view.findViewById(R.id.iv_profile);
         LinearLayout llTextContainer = view.findViewById(R.id.ll_top_bar_text_container);
 
-        // Enable smooth layout transitions for text container
+        // Configure smooth layout transitions for the top bar's text container
         if (llTextContainer != null) {
             LayoutTransition transition = llTextContainer.getLayoutTransition();
             if (transition == null) {
@@ -91,45 +88,24 @@ public class HomeFragment extends Fragment {
                 llTextContainer.setLayoutTransition(transition);
             }
             transition.enableTransitionType(LayoutTransition.CHANGING);
-            transition.setDuration(300); // Smooth movement
+            transition.setDuration(300); // Duration for text movement during resize
         }
 
-        // Delay initial animations by 1 second
-        handler.postDelayed(this::setupInitialAnimations, 1000);
-
-        // Pre-fetch AI jab on startup if not already fetched
+        // Initialize AI jab if not already present in the current session
         if (sessionAiJab == null) {
             Calendar calendar = Calendar.getInstance();
             int hour = calendar.get(Calendar.HOUR_OF_DAY);
-            boolean isOpen = hour >= 10 && hour < 24;
+            boolean isOpen = hour >= 10 && hour < 24; // Shop hours: 10 AM to 12 AM
             updateAiJab(isOpen, false);
         }
-        
+
         setupScrollingLogic();
         setupClickLogic();
     }
 
-    private void setupInitialAnimations() {
-        // Fade slide in from top for welcome text
-        AnimationSet welcomeAnim = new AnimationSet(true);
-        welcomeAnim.addAnimation(new AlphaAnimation(0f, 1f));
-        welcomeAnim.addAnimation(new TranslateAnimation(0, 0, -50, 0));
-        welcomeAnim.setDuration(1000);
-        tvWelcome.startAnimation(welcomeAnim);
-
-        // Same animation for AI jab
-        AnimationSet jabAnim = new AnimationSet(true);
-        jabAnim.addAnimation(new AlphaAnimation(0f, 1f));
-        jabAnim.addAnimation(new TranslateAnimation(0, 0, -50, 0));
-        jabAnim.setDuration(1000);
-        tvAiJab.startAnimation(jabAnim);
-
-        // Fade in for profile image
-        AlphaAnimation profileAnim = new AlphaAnimation(0f, 1f);
-        profileAnim.setDuration(1200);
-        ivProfile.startAnimation(profileAnim);
-    }
-
+    /**
+     * Configures the scroll listener to dynamically resize the top bar and hide/show the AI jab.
+     */
     private void setupScrollingLogic() {
         svHomeContent.getViewTreeObserver().addOnScrollChangedListener(() -> {
             if (isAnimating || !isAdded()) return;
@@ -139,7 +115,7 @@ public class HomeFragment extends Fragment {
             if (child == null) return;
             
             int maxScroll = child.getHeight() - svHomeContent.getHeight();
-            int threshold = maxScroll / 2;
+            int threshold = maxScroll / 2; // Threshold for full collapse
 
             if (threshold <= 0) return;
 
@@ -150,8 +126,9 @@ public class HomeFragment extends Fragment {
             int endHeight = dpToPx(70);
             
             if (!isLockedAtMin) {
+                // Interpolate height between 100dp and 70dp
                 int currentHeight = (int) (startHeight - (startHeight - endHeight) * ratio);
-                
+
                 if (currentHeight <= endHeight) {
                     currentHeight = endHeight;
                     isLockedAtMin = true;
@@ -161,7 +138,7 @@ public class HomeFragment extends Fragment {
                 params.height = currentHeight;
                 mcvTopBar.setLayoutParams(params);
 
-                // Gradually hide AI jab
+                // Gradually hide AI jab based on scroll progress
                 float jabAlpha = 1f - ratio;
                 tvAiJab.setAlpha(jabAlpha);
                 if (jabAlpha < 0.1f) {
@@ -172,7 +149,7 @@ public class HomeFragment extends Fragment {
                     isExpanded = true;
                 }
             } else {
-                // Keep it at 70dp even when scrolling back up
+                // Maintain collapsed state even when scrolling beyond the threshold
                 ViewGroup.LayoutParams params = mcvTopBar.getLayoutParams();
                 if (params.height != endHeight) {
                     params.height = endHeight;
@@ -184,25 +161,31 @@ public class HomeFragment extends Fragment {
         });
     }
 
+    /**
+     * Handles clicks on the top bar to manually expand it and refresh the AI jab.
+     */
     private void setupClickLogic() {
         mcvTopBar.setOnClickListener(v -> {
             long currentTime = System.currentTimeMillis();
             if (currentTime - lastJabTime < JAB_COOLDOWN) {
+                // Show cooldown message if clicked too frequently
                 long timeLeft = (JAB_COOLDOWN - (currentTime - lastJabTime)) / 1000;
-                Toast.makeText(getContext(), "Jab cooldown: " + timeLeft + "s remaining", Toast.LENGTH_SHORT).show();
+                String message = getString(R.string.jab_cooldown, (int) timeLeft);
+                Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
             } else {
                 lastJabTime = currentTime;
                 Calendar calendar = Calendar.getInstance();
                 int hour = calendar.get(Calendar.HOUR_OF_DAY);
                 boolean isOpen = hour >= 10 && hour < 24;
-                updateAiJab(isOpen, true); // Force new jab on click
+                updateAiJab(isOpen, true); // Force a new jab on click
             }
 
+            // Expand top bar if it's currently collapsed
             if (!isExpanded && !isAnimating) {
-                isLockedAtMin = false; // Reset lock on manual expand
+                isLockedAtMin = false;
                 animateTopBar(dpToPx(70), dpToPx(100), 500);
-                
-                // Auto scroll to top on expand
+
+                // Scroll back to top for better visibility of expanded content
                 if (svHomeContent != null) {
                     svHomeContent.smoothScrollTo(0, 0);
                 }
@@ -210,6 +193,9 @@ public class HomeFragment extends Fragment {
         });
     }
 
+    /**
+     * Animates the height change of the top bar.
+     */
     private void animateTopBar(int from, int to, int duration) {
         isAnimating = true;
         ValueAnimator animator = ValueAnimator.ofInt(from, to);
@@ -234,11 +220,18 @@ public class HomeFragment extends Fragment {
         animator.start();
     }
 
+    /**
+     * Converts DP units to pixels based on the device's screen density.
+     */
     private int dpToPx(int dp) {
-        if (!isAdded()) return dp * 3; // Fallback
+        if (!isAdded()) return dp * 3; // Approximate fallback for detached state
         return (int) (dp * getResources().getDisplayMetrics().density);
     }
 
+    /**
+     * Fetches or updates the AI jab (roast).
+     * Currently uses fallback jabs to save API usage, but includes logic for Gemini AI.
+     */
     private void updateAiJab(boolean isOpen, boolean forceNew) {
         if (tvAiJab == null) return;
 
@@ -247,6 +240,11 @@ public class HomeFragment extends Fragment {
             return;
         }
 
+        // Use pre-defined fallback jabs for multilingual support and stability
+        useFallbackJab(isOpen);
+    }
+    
+    /*
         // Use API Key from local.properties via BuildConfig
         String apiKey = BuildConfig.GEMINI_API_KEY;
         Log.d("HomeFragment", "API Key length: " + apiKey.length());
@@ -284,23 +282,26 @@ public class HomeFragment extends Fragment {
                 handler.post(() -> useFallbackJab(isOpen));
             }
         }, executor);
-    }
-
+        */
+    
+    /**
+     * Starts the typewriter effect for displaying the jab text.
+     */
     private void startTypingAnimation(final String text) {
         if (handler == null || tvAiJab == null) return;
-        
+
         if (typingRunnable != null) {
             handler.removeCallbacks(typingRunnable);
         }
 
         final String oldText = tvAiJab.getText().toString();
+        // If there's already text, backspace it first
         if (!oldText.isEmpty() && !oldText.equals(text)) {
             startBackspaceAnimation(oldText, text);
             return;
         }
 
-        isTyping = true;
-        final int typeDelay = 50; // ms per char
+        final int typeDelay = 50; // Delay per character in milliseconds
 
         typingRunnable = new Runnable() {
             int index = 0;
@@ -315,16 +316,18 @@ public class HomeFragment extends Fragment {
                     cursorVisible = !cursorVisible;
                     handler.postDelayed(this, typeDelay);
                 } else {
-                    isTyping = false;
-                    tvAiJab.setText(text); // Final text without cursor
+                    tvAiJab.setText(text); // Final text display
                 }
             }
         };
         handler.post(typingRunnable);
     }
 
+    /**
+     * Backspace effect before typing a new message.
+     */
     private void startBackspaceAnimation(final String oldText, final String newText) {
-        final int totalDuration = 1000; // 1 second total
+        final int totalDuration = 1000;
         final int charCount = oldText.length();
         final int delay = charCount > 0 ? totalDuration / charCount : 0;
 
@@ -346,14 +349,22 @@ public class HomeFragment extends Fragment {
         handler.post(typingRunnable);
     }
 
+    /**
+     * Selects a random jab from local resources based on the shop's open/closed status.
+     */
     private void useFallbackJab(boolean isOpen) {
-        String[] fallbackJabs = isOpen ? new String[]{
-                "Shop is OPEN. You're READY. Stop looking at the mirror and come over!",
-                "Doors are open! Your hair is screaming for help. Don't leave it hanging."
-        } : new String[]{
-                "We're CLOSED. Even your hair needs some sleep. See you tomorrow!",
-                "Shop's shut! That mess on your head will have to wait until we open."
-        };
+        String[] fallbackJabs;
+        if (isOpen) {
+            fallbackJabs = new String[]{
+                    getString(R.string.jab_open_1),
+                    getString(R.string.jab_open_2)
+            };
+        } else {
+            fallbackJabs = new String[]{
+                    getString(R.string.jab_closed_1),
+                    getString(R.string.jab_closed_2)
+            };
+        }
         sessionAiJab = fallbackJabs[new Random().nextInt(fallbackJabs.length)];
         startTypingAnimation(sessionAiJab);
     }
@@ -374,6 +385,9 @@ public class HomeFragment extends Fragment {
         }
     }
 
+    /**
+     * Updates UI elements based on the current time of day (Theme, background image, greeting).
+     */
     private void updateTimeTheme() {
         View view = getView();
         if (view == null || !isAdded()) return;
@@ -388,20 +402,21 @@ public class HomeFragment extends Fragment {
         Calendar calendar = Calendar.getInstance();
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
 
-        // Update AM/PM with dots
+        // Update AM/PM display
         if (tvAmPm != null) {
-            String amPm = calendar.get(Calendar.AM_PM) == Calendar.AM ? "A.M." : "P.M.";
+            String amPm = calendar.get(Calendar.AM_PM) == Calendar.AM ? 
+                    getString(R.string.am_label) : getString(R.string.pm_label);
             tvAmPm.setText(amPm);
         }
 
-        // Shop Status Logic: Open 10 AM to 12 AM (midnight)
+        // Update Shop Open/Closed status visual
         if (tvShopStatus != null) {
             boolean isOpen = hour >= 10 && hour < 24;
-            // updateAiJab(isOpen, false); // Removed from here to prevent constant updates
-            String status = isOpen ? "OPEN" : "CLOSED";
+            String status = isOpen ? getString(R.string.shop_status_open) : getString(R.string.shop_status_closed);
             int color = isOpen ? Color.parseColor("#05B109") : Color.RED;
 
-            SpannableStringBuilder builder = new SpannableStringBuilder("The Shop is now ");
+            SpannableStringBuilder builder = new SpannableStringBuilder(getString(R.string.shop_status_prefix));
+            builder.append(" "); // Explicitly add a space to prevent trimming issues
             int start = builder.length();
             builder.append(status);
             builder.setSpan(new ForegroundColorSpan(color), start, builder.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -412,26 +427,27 @@ public class HomeFragment extends Fragment {
         String timeName;
         int bgResId;
 
+        // Determine theme based on hour of the day
         if (hour < 6) {
-            timeName = "Midnight";
+            timeName = getString(R.string.time_midnight);
             bgResId = R.drawable.bg_time_midnight;
         } else if (hour < 8) {
-            timeName = "Sunrise";
+            timeName = getString(R.string.time_sunrise);
             bgResId = R.drawable.bg_time_sunrise;
         } else if (hour < 12) {
-            timeName = "Morning";
+            timeName = getString(R.string.time_morning);
             bgResId = R.drawable.bg_time_morning;
         } else if (hour < 14) {
-            timeName = "Noon";
+            timeName = getString(R.string.time_noon);
             bgResId = R.drawable.bg_time_noon;
         } else if (hour < 18) {
-            timeName = "Evening";
+            timeName = getString(R.string.time_evening);
             bgResId = R.drawable.bg_time_evening;
         } else if (hour < 20) {
-            timeName = "Sunset";
+            timeName = getString(R.string.time_sunset);
             bgResId = R.drawable.bg_time_sunset;
         } else {
-            timeName = "Night";
+            timeName = getString(R.string.time_night);
             bgResId = R.drawable.bg_time_night;
         }
 

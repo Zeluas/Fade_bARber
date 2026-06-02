@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewTreeObserver;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -14,65 +13,114 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.splashscreen.SplashScreen;
 
+/**
+ * AuthActivity handles the user authentication process including Login and a multi-step Signup.
+ * Features:
+ * - Login form with 'Remember Me'
+ * - 3-step Signup process (Account -> Identity -> Security)
+ * - Animated transitions between forms
+ * - Dynamic header suppression based on screen space
+ * - Custom exit confirmation dialog
+ * - Optimized flat layout for performance
+ * - Full localization support via strings.xml
+ */
 public class AuthActivity extends AppCompatActivity {
 
+    // --- State Management ---
     private enum AuthMode { LOGIN, SIGNUP }
     private AuthMode currentMode = AuthMode.LOGIN;
-    private int signupStep = 1; // 1: Account Info, 2: Identity, 3: Password, 4: Success, 5: Failed
+    private int signupStep = 1; // 1: Account, 2: Identity, 3: Credentials, 4: Success, 5: Failed
     private boolean isHeaderSuppressed = false;
 
-    private TextView tvFormTitle, tvStepNumber, tvSignupErrorDetails;
-    private View llStepIndicator;
-    private LinearLayout llLoginStep, llSignupStep1, llSignupStep2, llSignupStep3, llSignupSuccess, llSignupFailed, llAuthHeader;
-    private Button btnAuthAction, btnSwitchAuthMode;
-    private ImageView ivAuthBack;
-    private View mcvAuthContainer, layoutExitConfirmation, mcvExitDialog;
-    private Button btnExitCancel, btnExitConfirm;
-    private CheckBox cbRememberMe;
-
-    private String prevTitle = "Login";
-    private String prevActionText = "LOGIN";
+    // Previous state trackers for animation direction and delta checks
+    private String prevTitle = "";
+    private String prevActionText = "";
     private int prevStep = 1;
     private AuthMode prevMode = AuthMode.LOGIN;
+
+    // --- UI Components ---
     
-    // Fields
+    // Containers & Layouts
+    private LinearLayout llAuthHeader;
+    private View mcvAuthContainer;
+    private View layoutExitConfirmation, mcvExitDialog;
+    private View llStepIndicator;
+    private LinearLayout llLoginStep, llSignupStep1, llSignupStep2, llSignupStep3, llSignupSuccess, llSignupFailed;
+    
+    // Text Views
+    private TextView tvFormTitle, tvStepNumber, tvSignupErrorDetails;
+    
+    // Buttons & Icons
+    private Button btnAuthAction, btnSwitchAuthMode, btnExitCancel, btnExitConfirm;
+    private ImageView ivAuthBack;
+    private CheckBox cbRememberMe;
+    
+    // Input Fields - Login
     private EditText etLoginEmail, etLoginPassword;
+    
+    // Input Fields - Signup
     private EditText etSignupEmail, etSignupUsername, etSignupName, etSignupPhone, etSignupPassword, etSignupConfirm;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Install Splash Screen before super.onCreate() as per API 31+
         SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_auth);
 
-        // Initialize views
-        tvFormTitle = findViewById(R.id.tv_form_title);
-        tvStepNumber = findViewById(R.id.tv_step_number);
-        tvSignupErrorDetails = findViewById(R.id.tv_signup_error_details);
+        initializeViews();
+        setupListeners();
+        setupImeActions();
+        setupBackPressed();
+
+        // Monitor layout changes to suppress header if card overlaps on small screens or when keyboard is shown
+        mcvAuthContainer.getViewTreeObserver().addOnGlobalLayoutListener(this::checkHeaderOverlap);
+
+        // Initialize state trackers for the first time
+        prevTitle = getString(R.string.auth_login_title);
+        prevActionText = getString(R.string.login_btn_text);
+
+        // Initial UI state setup (no animation)
+        updateUI(false);
+    }
+
+    /**
+     * Initializes all view references from the layout.
+     */
+    private void initializeViews() {
+        // Containers
+        llAuthHeader = findViewById(R.id.ll_auth_header);
+        mcvAuthContainer = findViewById(R.id.mcv_auth_container);
+        layoutExitConfirmation = findViewById(R.id.layout_exit_confirmation);
+        mcvExitDialog = findViewById(R.id.mcv_exit_dialog);
         llStepIndicator = findViewById(R.id.ll_step_indicator);
+        
+        // Form steps
         llLoginStep = findViewById(R.id.ll_login_step);
         llSignupStep1 = findViewById(R.id.ll_signup_step_1);
         llSignupStep2 = findViewById(R.id.ll_signup_step_2);
         llSignupStep3 = findViewById(R.id.ll_signup_step_3);
         llSignupSuccess = findViewById(R.id.ll_signup_success);
         llSignupFailed = findViewById(R.id.ll_signup_failed);
-        llAuthHeader = findViewById(R.id.ll_auth_header);
-        mcvAuthContainer = findViewById(R.id.mcv_auth_container);
-        layoutExitConfirmation = findViewById(R.id.layout_exit_confirmation);
-        mcvExitDialog = findViewById(R.id.mcv_exit_dialog);
-        btnExitCancel = findViewById(R.id.btn_exit_cancel);
-        btnExitConfirm = findViewById(R.id.btn_exit_confirm);
-        cbRememberMe = findViewById(R.id.cb_remember_me);
-        
+
+        // Interactive Elements
+        tvFormTitle = findViewById(R.id.tv_form_title);
+        tvStepNumber = findViewById(R.id.tv_step_number);
+        tvSignupErrorDetails = findViewById(R.id.tv_signup_error_details);
         btnAuthAction = findViewById(R.id.btn_auth_action);
         btnSwitchAuthMode = findViewById(R.id.btn_switch_auth_mode);
         ivAuthBack = findViewById(R.id.iv_auth_back);
+        cbRememberMe = findViewById(R.id.cb_remember_me);
+        btnExitCancel = findViewById(R.id.btn_exit_cancel);
+        btnExitConfirm = findViewById(R.id.btn_exit_confirm);
 
+        // Edit Texts
         etLoginEmail = findViewById(R.id.et_login_email);
         etLoginPassword = findViewById(R.id.et_login_password);
         etSignupEmail = findViewById(R.id.et_signup_email);
@@ -81,17 +129,13 @@ public class AuthActivity extends AppCompatActivity {
         etSignupPhone = findViewById(R.id.et_signup_phone);
         etSignupPassword = findViewById(R.id.et_signup_password);
         etSignupConfirm = findViewById(R.id.et_signup_confirm);
-
-        setupListeners();
-        setupImeActions();
-        setupBackPressed();
-
-        mcvAuthContainer.getViewTreeObserver().addOnGlobalLayoutListener(this::checkHeaderOverlap);
-
-        updateUI(false);
     }
 
+    /**
+     * Sets up click listeners for all interactive elements.
+     */
     private void setupListeners() {
+        // Toggle between Login and Signup modes
         btnSwitchAuthMode.setOnClickListener(v -> {
             if (currentMode == AuthMode.LOGIN) {
                 currentMode = AuthMode.SIGNUP;
@@ -104,6 +148,7 @@ public class AuthActivity extends AppCompatActivity {
             updateUI(true);
         });
 
+        // Main action button (LOGIN, NEXT, or CONFIRM)
         btnAuthAction.setOnClickListener(v -> {
             if (currentMode == AuthMode.LOGIN) {
                 handleLogin();
@@ -112,12 +157,17 @@ public class AuthActivity extends AppCompatActivity {
             }
         });
 
+        // Back button in signup steps
         ivAuthBack.setOnClickListener(v -> handleBackStep());
 
+        // Exit confirmation dialog buttons
         btnExitCancel.setOnClickListener(v -> hideExitDialog());
         btnExitConfirm.setOnClickListener(v -> finish());
     }
 
+    /**
+     * Shows the custom exit confirmation dialog with animation.
+     */
     private void showExitDialog() {
         layoutExitConfirmation.setVisibility(View.VISIBLE);
         layoutExitConfirmation.setAlpha(0f);
@@ -128,11 +178,18 @@ public class AuthActivity extends AppCompatActivity {
         mcvExitDialog.animate().scaleX(1f).scaleY(1f).setDuration(300).start();
     }
 
+    /**
+     * Hides the custom exit confirmation dialog with animation.
+     */
     private void hideExitDialog() {
         mcvExitDialog.animate().scaleX(0f).scaleY(0f).setDuration(200).start();
-        layoutExitConfirmation.animate().alpha(0f).setDuration(200).withEndAction(() -> layoutExitConfirmation.setVisibility(View.GONE)).start();
+        layoutExitConfirmation.animate().alpha(0f).setDuration(200)
+                .withEndAction(() -> layoutExitConfirmation.setVisibility(View.GONE)).start();
     }
 
+    /**
+     * Configures the system back button behavior.
+     */
     private void setupBackPressed() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -148,6 +205,9 @@ public class AuthActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Sets up keyboard 'Done' actions for various input fields.
+     */
     private void setupImeActions() {
         etLoginPassword.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -182,60 +242,70 @@ public class AuthActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Handles navigation to the previous step or mode.
+     */
     private void handleBackStep() {
         if (currentMode == AuthMode.SIGNUP) {
-            if (signupStep == 4 || signupStep == 5) { // Result screen, return to login
+            if (signupStep == 4 || signupStep == 5) { // Return from Result screens
                 currentMode = AuthMode.LOGIN;
                 hideKeyboard();
                 clearFocus();
-                updateUI(true);
-            } else if (signupStep > 1) {
+            } else if (signupStep > 1) { // Back to previous signup step
                 signupStep--;
-                updateUI(true);
-            } else {
+            } else { // Back to login from first signup step
                 currentMode = AuthMode.LOGIN;
                 hideKeyboard();
                 clearFocus();
-                updateUI(true);
             }
+            updateUI(true);
         }
     }
 
+    /**
+     * Processes login logic.
+     */
     private void handleLogin() {
         String email = etLoginEmail.getText().toString().trim();
         if (!email.isEmpty()) {
+            // Success: Navigate to Main
             Intent intent = new Intent(this, MainActivity.class);
             startActivity(intent);
             finish();
         } else {
-            Toast.makeText(this, "Please enter your email", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.login_error_empty_email), Toast.LENGTH_SHORT).show();
         }
     }
 
+    /**
+     * Orchestrates the multi-step signup progression and validation.
+     */
     private void handleSignupNext() {
         switch (signupStep) {
-            case 1:
-                if (validateStep1()) { signupStep = 2; updateUI(true); etSignupName.requestFocus(); }
+            case 1: // Account Info Step
+                if (validateAccountInfo()) { 
+                    signupStep = 2; 
+                    updateUI(true); 
+                    etSignupName.requestFocus(); 
+                }
                 break;
-            case 2:
-                if (validateNameAndPhone()) { signupStep = 3; updateUI(true); etSignupPassword.requestFocus(); }
+            case 2: // Identity Info Step
+                if (validateIdentityInfo()) { 
+                    signupStep = 3; 
+                    updateUI(true); 
+                    etSignupPassword.requestFocus(); 
+                }
                 break;
-            case 3:
-                if (validatePasswords()) {
+            case 3: // Security Step (Credentials)
+                if (validateCredentials()) {
                     hideKeyboard();
                     clearFocus();
-                    // Simulate registration
-                    if (etSignupPassword.getText().toString().equals("asd")) {
-                        signupStep = 5; // Failed
-                        tvSignupErrorDetails.setText("QA Test: Registration failed because password was 'asd'.");
-                    } else {
-                        signupStep = 4; // Success
-                    }
+                    simulateRegistration();
                     updateUI(true);
                 }
                 break;
-            case 4:
-            case 5:
+            case 4: // Success Screen -> Back to Login
+            case 5: // Failed Screen -> Back to Login
                 currentMode = AuthMode.LOGIN;
                 hideKeyboard();
                 clearFocus();
@@ -244,12 +314,29 @@ public class AuthActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Simulates the registration process result.
+     */
+    private void simulateRegistration() {
+        // QA Hook: Simulate failure if password is 'asd'
+        if (etSignupPassword.getText().toString().equals("asd")) {
+            signupStep = 5; // Failed state
+            tvSignupErrorDetails.setText("QA Test: Registration failed because password was 'asd'.");
+        } else {
+            signupStep = 4; // Success state
+        }
+    }
+
+    /**
+     * Dynamically hides/shows the top branding header to prevent overlap with the main card.
+     */
     private void checkHeaderOverlap() {
         if (mcvAuthContainer.getHeight() == 0) return;
 
         int containerTop = mcvAuthContainer.getTop();
         if (containerTop <= 0) return;
 
+        // Measure header height including dynamic content
         llAuthHeader.measure(
                 View.MeasureSpec.makeMeasureSpec(mcvAuthContainer.getWidth(), View.MeasureSpec.AT_MOST),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
@@ -261,113 +348,136 @@ public class AuthActivity extends AppCompatActivity {
 
         if (shouldSuppress != isHeaderSuppressed) {
             isHeaderSuppressed = shouldSuppress;
+            // Only show branding header in LOGIN mode if not suppressed
             if (currentMode == AuthMode.LOGIN) {
                 llAuthHeader.setVisibility(isHeaderSuppressed ? View.GONE : View.VISIBLE);
             }
         }
     }
 
+    /**
+     * Updates the entire UI state based on the current mode and step.
+     * @param animate Whether to use transition animations.
+     */
     private void updateUI(boolean animate) {
-        View targetView;
+        View targetForm;
         String title;
-        boolean showIndicator = false;
+        boolean showStepIndicator = false;
         String actionText;
         String switchText;
-        
-        int targetTopMargin;
+        int actionBtnTopMargin;
 
+        // Determine parameters based on state
         if (currentMode == AuthMode.LOGIN) {
-            targetView = llLoginStep;
-            title = "Login";
-            actionText = "LOGIN";
-            switchText = "Create an account";
-            targetTopMargin = 0;
+            targetForm = llLoginStep;
+            title = getString(R.string.auth_login_title);
+            actionText = getString(R.string.login_btn_text);
+            switchText = getString(R.string.login_switch_to_signup);
+            actionBtnTopMargin = 0;
         } else {
-            title = "Sign Up";
-            switchText = "Already have an account? Login";
-            targetTopMargin = (int) (30 * getResources().getDisplayMetrics().density);
+            title = getString(R.string.auth_signup_title);
+            switchText = getString(R.string.signup_switch_to_login);
+            actionBtnTopMargin = (int) (30 * getResources().getDisplayMetrics().density);
 
             switch (signupStep) {
                 case 1:
-                    targetView = llSignupStep1;
-                    showIndicator = true;
-                    actionText = "NEXT";
+                    targetForm = llSignupStep1;
+                    showStepIndicator = true;
+                    actionText = getString(R.string.signup_btn_next);
                     break;
                 case 2:
-                    targetView = llSignupStep2;
-                    showIndicator = true;
-                    actionText = "NEXT";
+                    targetForm = llSignupStep2;
+                    showStepIndicator = true;
+                    actionText = getString(R.string.signup_btn_next);
                     break;
                 case 3:
-                    targetView = llSignupStep3;
-                    showIndicator = true;
-                    actionText = "CONFIRM";
+                    targetForm = llSignupStep3;
+                    showStepIndicator = true;
+                    actionText = getString(R.string.signup_btn_confirm);
                     break;
                 case 4:
-                    targetView = llSignupSuccess;
-                    title = "Success";
-                    actionText = "BACK TO LOGIN";
+                    targetForm = llSignupSuccess;
+                    title = getString(R.string.auth_success_title);
+                    actionText = getString(R.string.signup_btn_back_to_login);
                     break;
                 default: // 5: Failed
-                    targetView = llSignupFailed;
-                    title = "Failed";
-                    actionText = "BACK TO LOGIN";
+                    targetForm = llSignupFailed;
+                    title = getString(R.string.auth_failed_title);
+                    actionText = getString(R.string.signup_btn_back_to_login);
                     break;
             }
         }
 
         if (animate) {
-            animateComplexTransition(targetView, title, showIndicator, actionText, switchText, targetTopMargin);
+            animateComplexTransition(targetForm, title, showStepIndicator, actionText, switchText, actionBtnTopMargin);
         } else {
-            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) btnAuthAction.getLayoutParams();
-            params.topMargin = targetTopMargin;
-            btnAuthAction.setLayoutParams(params);
-            
-            tvFormTitle.setText(title);
-            tvStepNumber.setText(String.valueOf(signupStep));
-            llStepIndicator.setVisibility(showIndicator ? View.VISIBLE : View.GONE);
-            btnAuthAction.setText(actionText);
-            btnSwitchAuthMode.setText(switchText);
-            updateFixedVisibilities();
-            
-            llLoginStep.setVisibility(View.INVISIBLE);
-            llSignupStep1.setVisibility(View.INVISIBLE);
-            llSignupStep2.setVisibility(View.INVISIBLE);
-            llSignupStep3.setVisibility(View.INVISIBLE);
-            llSignupSuccess.setVisibility(View.INVISIBLE);
-            llSignupFailed.setVisibility(View.INVISIBLE);
-            cbRememberMe.setVisibility(currentMode == AuthMode.LOGIN ? View.VISIBLE : View.GONE);
-            llAuthHeader.setVisibility((currentMode == AuthMode.LOGIN && !isHeaderSuppressed) ? View.VISIBLE : View.GONE);
-
-            targetView.setVisibility(View.VISIBLE);
-            targetView.setAlpha(1f);
-            targetView.setTranslationX(0f);
+            applyUiState(targetForm, title, showStepIndicator, actionText, switchText, actionBtnTopMargin);
         }
+
+        // Store current state as previous for next animation
         prevTitle = title;
         prevActionText = actionText;
         prevStep = signupStep;
         prevMode = currentMode;
     }
 
-    private void updateFixedVisibilities() {
+    /**
+     * Directly applies UI states without animation.
+     */
+    private void applyUiState(View targetForm, String title, boolean showStepIndicator, String actionText, String switchText, int actionBtnTopMargin) {
+        // Update Action Button Margin
+        ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) btnAuthAction.getLayoutParams();
+        params.topMargin = actionBtnTopMargin;
+        btnAuthAction.setLayoutParams(params);
+        
+        // Update Texts
+        tvFormTitle.setText(title);
+        tvStepNumber.setText(String.valueOf(signupStep));
+        btnAuthAction.setText(actionText);
+        btnSwitchAuthMode.setText(switchText);
+        
+        // Visibility Management
+        llStepIndicator.setVisibility(showStepIndicator ? View.VISIBLE : View.GONE);
+        cbRememberMe.setVisibility(currentMode == AuthMode.LOGIN ? View.VISIBLE : View.GONE);
+        llAuthHeader.setVisibility((currentMode == AuthMode.LOGIN && !isHeaderSuppressed) ? View.VISIBLE : View.GONE);
+        
+        updateFixedComponentVisibilities();
+        
+        // Hide all forms and show target
+        llLoginStep.setVisibility(View.INVISIBLE);
+        llSignupStep1.setVisibility(View.INVISIBLE);
+        llSignupStep2.setVisibility(View.INVISIBLE);
+        llSignupStep3.setVisibility(View.INVISIBLE);
+        llSignupSuccess.setVisibility(View.INVISIBLE);
+        llSignupFailed.setVisibility(View.INVISIBLE);
+
+        targetForm.setVisibility(View.VISIBLE);
+        targetForm.setAlpha(1f);
+        targetForm.setTranslationX(0f);
+    }
+
+    /**
+     * Updates visibility and enablement of components that don't change based on steps but on mode.
+     */
+    private void updateFixedComponentVisibilities() {
         if (currentMode == AuthMode.LOGIN) {
             ivAuthBack.setVisibility(View.GONE);
             btnSwitchAuthMode.setVisibility(View.VISIBLE);
             btnSwitchAuthMode.setClickable(true);
             tvSignupErrorDetails.setVisibility(View.GONE);
         } else {
-            if (signupStep == 1) {
-                ivAuthBack.setVisibility(View.INVISIBLE);
+            if (signupStep == 1) { // First step of Signup
+                ivAuthBack.setVisibility(View.INVISIBLE); // Invisible to maintain layout but not clickable
                 ivAuthBack.setEnabled(false);
                 btnSwitchAuthMode.setVisibility(View.VISIBLE);
                 btnSwitchAuthMode.setClickable(true);
                 tvSignupErrorDetails.setVisibility(View.GONE);
-            } else if (signupStep == 4 || signupStep == 5) {
+            } else if (signupStep == 4 || signupStep == 5) { // Result screens
                 ivAuthBack.setVisibility(View.GONE);
                 btnSwitchAuthMode.setVisibility(View.INVISIBLE);
                 btnSwitchAuthMode.setClickable(false);
                 tvSignupErrorDetails.setVisibility(signupStep == 5 ? View.VISIBLE : View.GONE);
-            } else {
+            } else { // Intermediate Signup steps
                 ivAuthBack.setVisibility(View.VISIBLE);
                 ivAuthBack.setEnabled(true);
                 btnSwitchAuthMode.setVisibility(View.INVISIBLE);
@@ -377,17 +487,22 @@ public class AuthActivity extends AppCompatActivity {
         }
     }
 
-    private void animateComplexTransition(View targetView, String newTitle, boolean showIndicator, String newActionText, String newSwitchText, int targetTopMargin) {
-        int direction = 1;
-        if (prevMode == AuthMode.SIGNUP && currentMode == AuthMode.LOGIN) direction = -1;
+    /**
+     * Manages complex animations for switching between Login/Signup and through Signup steps.
+     */
+    private void animateComplexTransition(View targetForm, String newTitle, boolean showIndicator, String newActionText, String newSwitchText, int actionBtnTopMargin) {
+        // Determine animation direction
+        int direction = 1; // Slide left (forward)
+        if (prevMode == AuthMode.SIGNUP && currentMode == AuthMode.LOGIN) direction = -1; // Slide right (backward)
         else if (currentMode == AuthMode.SIGNUP && prevMode == AuthMode.SIGNUP && signupStep < prevStep) direction = -1;
+        
         final float slideOffset = 50f * direction;
 
         boolean isModeChange = prevMode != currentMode;
-        boolean isToResult = currentMode == AuthMode.SIGNUP && (signupStep == 4 || signupStep == 5) && prevStep == 3;
+        boolean isEnteringResult = currentMode == AuthMode.SIGNUP && (signupStep == 4 || signupStep == 5) && prevStep == 3;
 
-        if (isModeChange || isToResult) {
-            // Whole card animation
+        // Perform whole-card animation for major state changes
+        if (isModeChange || isEnteringResult) {
             animateOut(mcvAuthContainer, slideOffset);
             animateOut(btnSwitchAuthMode, slideOffset);
             if (prevMode == AuthMode.LOGIN && currentMode == AuthMode.SIGNUP && llAuthHeader.getVisibility() == View.VISIBLE) {
@@ -395,37 +510,11 @@ public class AuthActivity extends AppCompatActivity {
             }
 
             mcvAuthContainer.postDelayed(() -> {
-                LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) btnAuthAction.getLayoutParams();
-                params.topMargin = targetTopMargin;
-                btnAuthAction.setLayoutParams(params);
+                applyUiState(targetForm, newTitle, showIndicator, newActionText, newSwitchText, actionBtnTopMargin);
+                resetAllAnimations();
 
-                tvFormTitle.setText(newTitle);
-                tvStepNumber.setText(String.valueOf(signupStep));
-                llStepIndicator.setVisibility(showIndicator ? View.VISIBLE : View.GONE);
-                btnAuthAction.setText(newActionText);
-                btnSwitchAuthMode.setText(newSwitchText);
-                updateFixedVisibilities();
-
-                // Prep views
-                llLoginStep.setVisibility(currentMode == AuthMode.LOGIN ? View.VISIBLE : View.INVISIBLE);
-                llSignupStep1.setVisibility(currentMode == AuthMode.SIGNUP && signupStep == 1 ? View.VISIBLE : View.INVISIBLE);
-                llSignupStep2.setVisibility(currentMode == AuthMode.SIGNUP && signupStep == 2 ? View.VISIBLE : View.INVISIBLE);
-                llSignupStep3.setVisibility(currentMode == AuthMode.SIGNUP && signupStep == 3 ? View.VISIBLE : View.INVISIBLE);
-                llSignupSuccess.setVisibility(currentMode == AuthMode.SIGNUP && signupStep == 4 ? View.VISIBLE : View.INVISIBLE);
-                llSignupFailed.setVisibility(currentMode == AuthMode.SIGNUP && signupStep == 5 ? View.VISIBLE : View.INVISIBLE);
-                cbRememberMe.setVisibility(currentMode == AuthMode.LOGIN ? View.VISIBLE : View.GONE);
-
-                resetInternalAnimations();
-
-                if (currentMode == AuthMode.LOGIN) {
-                    if (!isHeaderSuppressed) {
-                        llAuthHeader.setVisibility(View.VISIBLE);
-                        animateIn(llAuthHeader, slideOffset);
-                    } else {
-                        llAuthHeader.setVisibility(View.GONE);
-                    }
-                } else {
-                    llAuthHeader.setVisibility(View.GONE);
+                if (currentMode == AuthMode.LOGIN && !isHeaderSuppressed) {
+                    animateIn(llAuthHeader, slideOffset);
                 }
 
                 animateIn(mcvAuthContainer, slideOffset);
@@ -436,49 +525,54 @@ public class AuthActivity extends AppCompatActivity {
             return;
         }
 
+        // Perform internal form animations for step changes
         View currentForm = getVisibleForm();
-        final boolean shouldAnimateTitle = !prevTitle.equals(newTitle);
-        final boolean shouldAnimateAction = !prevActionText.equals(newActionText);
-        final boolean shouldAnimateStep = (prevStep != signupStep && signupStep <= 3 && prevStep <= 3);
-        final boolean shouldAnimateIndicator = (signupStep == 4 || prevStep == 4 || signupStep == 5 || prevStep == 5);
+        final boolean animateTitle = !prevTitle.equals(newTitle);
+        final boolean animateAction = !prevActionText.equals(newActionText);
+        final boolean animateStepText = (prevStep != signupStep && signupStep <= 3 && prevStep <= 3);
+        final boolean animateIndicator = (signupStep == 4 || prevStep == 4 || signupStep == 5 || prevStep == 5);
 
-        final boolean backVisibilityChanged = currentMode == AuthMode.SIGNUP && ((prevStep == 1 && signupStep == 2) || (prevStep == 2 && signupStep == 1) || (prevStep == 3 && (signupStep == 4 || signupStep == 5)) || ((prevStep == 4 || prevStep == 5) && signupStep == 3));
+        // Check if back button visibility is changing
+        final boolean backVisibilityToggled = currentMode == AuthMode.SIGNUP && 
+                ((prevStep == 1 && signupStep == 2) || (prevStep == 2 && signupStep == 1) || 
+                 (prevStep == 3 && (signupStep == 4 || signupStep == 5)) || 
+                 ((prevStep == 4 || prevStep == 5) && signupStep == 3));
 
-        if (currentForm != null && currentForm != targetView) {
+        if (currentForm != null && currentForm != targetForm) {
             animateOut(currentForm, slideOffset);
-            if (shouldAnimateTitle) animateOut(tvFormTitle, slideOffset);
-            if (shouldAnimateStep) animateOut(tvStepNumber, slideOffset);
-            if (shouldAnimateIndicator) animateOut(llStepIndicator, slideOffset);
-            if (shouldAnimateAction) animateOut(btnAuthAction, slideOffset);
+            if (animateTitle) animateOut(tvFormTitle, slideOffset);
+            if (animateStepText) animateOut(tvStepNumber, slideOffset);
+            if (animateIndicator) animateOut(llStepIndicator, slideOffset);
+            if (animateAction) animateOut(btnAuthAction, slideOffset);
             if (btnSwitchAuthMode.getVisibility() == View.VISIBLE) animateOut(btnSwitchAuthMode, slideOffset);
-            if (backVisibilityChanged) animateOut(ivAuthBack, slideOffset);
+            if (backVisibilityToggled) animateOut(ivAuthBack, slideOffset);
             
-            targetView.postDelayed(() -> {
-                tvFormTitle.setText(newTitle);
-                tvStepNumber.setText(String.valueOf(signupStep));
-                llStepIndicator.setVisibility(showIndicator ? View.VISIBLE : View.GONE);
-                btnAuthAction.setText(newActionText);
-                btnSwitchAuthMode.setText(newSwitchText);
-                updateFixedVisibilities();
+            targetForm.postDelayed(() -> {
+                applyUiState(targetForm, newTitle, showIndicator, newActionText, newSwitchText, actionBtnTopMargin);
 
-                animateIn(targetView, slideOffset);
-                if (shouldAnimateTitle) animateIn(tvFormTitle, slideOffset);
-                if (shouldAnimateStep) animateIn(tvStepNumber, slideOffset);
-                if (shouldAnimateIndicator && showIndicator) animateIn(llStepIndicator, slideOffset);
-                if (shouldAnimateAction) animateIn(btnAuthAction, slideOffset);
+                animateIn(targetForm, slideOffset);
+                if (animateTitle) animateIn(tvFormTitle, slideOffset);
+                if (animateStepText) animateIn(tvStepNumber, slideOffset);
+                if (animateIndicator && showIndicator) animateIn(llStepIndicator, slideOffset);
+                if (animateAction) animateIn(btnAuthAction, slideOffset);
                 if (btnSwitchAuthMode.getVisibility() == View.VISIBLE) animateIn(btnSwitchAuthMode, slideOffset);
-                if (backVisibilityChanged && ivAuthBack.getVisibility() == View.VISIBLE) animateIn(ivAuthBack, slideOffset);
+                if (backVisibilityToggled && ivAuthBack.getVisibility() == View.VISIBLE) animateIn(ivAuthBack, slideOffset);
                 
             }, 250);
         } else {
-            targetView.setVisibility(View.VISIBLE);
-            targetView.setAlpha(1f);
-            targetView.setTranslationX(0f);
+            // No current form to animate out, just show target
+            targetForm.setVisibility(View.VISIBLE);
+            targetForm.setAlpha(1f);
+            targetForm.setTranslationX(0f);
         }
     }
 
-    private void resetInternalAnimations() {
-        View[] views = {tvFormTitle, tvStepNumber, llStepIndicator, btnAuthAction, btnSwitchAuthMode, ivAuthBack, cbRememberMe, llLoginStep, llSignupStep1, llSignupStep2, llSignupStep3, llSignupSuccess, llSignupFailed};
+    /**
+     * Resets animation properties for all potentially animated views to their default state.
+     */
+    private void resetAllAnimations() {
+        View[] views = {tvFormTitle, tvStepNumber, llStepIndicator, btnAuthAction, btnSwitchAuthMode, ivAuthBack, 
+                        cbRememberMe, llLoginStep, llSignupStep1, llSignupStep2, llSignupStep3, llSignupSuccess, llSignupFailed};
         for (View v : views) {
             if (v != null) {
                 v.setAlpha(1f);
@@ -487,6 +581,9 @@ public class AuthActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Identifies which form section is currently visible.
+     */
     private View getVisibleForm() {
         if (llLoginStep.getVisibility() == View.VISIBLE) return llLoginStep;
         if (llSignupStep1.getVisibility() == View.VISIBLE) return llSignupStep1;
@@ -497,6 +594,9 @@ public class AuthActivity extends AppCompatActivity {
         return null;
     }
 
+    /**
+     * Animation helper to fade out and slide a view.
+     */
     private void animateOut(View v, float offset) {
         v.animate()
                 .alpha(0f)
@@ -508,6 +608,9 @@ public class AuthActivity extends AppCompatActivity {
                 }).start();
     }
 
+    /**
+     * Animation helper to fade out, slide, and set visibility to GONE.
+     */
     private void animateOutToGone(View v, float offset) {
         v.animate()
                 .alpha(0f)
@@ -519,6 +622,9 @@ public class AuthActivity extends AppCompatActivity {
                 }).start();
     }
 
+    /**
+     * Animation helper to fade in and slide a view into place.
+     */
     private void animateIn(View v, float offset) {
         v.setAlpha(0f);
         v.setTranslationX(offset);
@@ -530,6 +636,9 @@ public class AuthActivity extends AppCompatActivity {
                 .start();
     }
 
+    /**
+     * Helper to hide the software keyboard.
+     */
     private void hideKeyboard() {
         View view = this.getCurrentFocus();
         if (view != null) {
@@ -540,6 +649,9 @@ public class AuthActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Helper to clear focus from any view.
+     */
     private void clearFocus() {
         View view = this.getCurrentFocus();
         if (view != null) {
@@ -547,39 +659,41 @@ public class AuthActivity extends AppCompatActivity {
         }
     }
 
-    private boolean validateStep1() {
-        if (etSignupEmail.getText().toString().isEmpty()) {
-            etSignupEmail.setError("Email is required");
+    // --- Validation Methods ---
+
+    private boolean validateAccountInfo() {
+        if (etSignupEmail.getText().toString().trim().isEmpty()) {
+            etSignupEmail.setError(getString(R.string.signup_error_email_required));
             return false;
         }
-        if (etSignupUsername.getText().toString().isEmpty()) {
-            etSignupUsername.setError("Username is required");
+        if (etSignupUsername.getText().toString().trim().isEmpty()) {
+            etSignupUsername.setError(getString(R.string.signup_error_username_required));
             return false;
         }
         return true;
     }
 
-    private boolean validateNameAndPhone() {
-        if (etSignupName.getText().toString().isEmpty()) {
-            etSignupName.setError("Name is required");
+    private boolean validateIdentityInfo() {
+        if (etSignupName.getText().toString().trim().isEmpty()) {
+            etSignupName.setError(getString(R.string.signup_error_name_required));
             return false;
         }
-        if (etSignupPhone.getText().toString().isEmpty()) {
-            etSignupPhone.setError("Phone is required");
+        if (etSignupPhone.getText().toString().trim().isEmpty()) {
+            etSignupPhone.setError(getString(R.string.signup_error_phone_required));
             return false;
         }
         return true;
     }
 
-    private boolean validatePasswords() {
+    private boolean validateCredentials() {
         String pass = etSignupPassword.getText().toString();
         String confirm = etSignupConfirm.getText().toString();
         if (pass.isEmpty()) {
-            etSignupPassword.setError("Password is required");
+            etSignupPassword.setError(getString(R.string.signup_error_password_required));
             return false;
         }
         if (!pass.equals(confirm)) {
-            etSignupConfirm.setError("Passwords do not match");
+            etSignupConfirm.setError(getString(R.string.signup_error_password_mismatch));
             return false;
         }
         return true;

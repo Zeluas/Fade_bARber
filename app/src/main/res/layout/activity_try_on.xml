@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Activity Try-On Layout: Features a CameraX preview and a hairstyle carousel.
+    Optimized: Reduced nesting in the bottom sheet and localized all strings.
+-->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/layout_try_on_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
     tools:context=".TryOnActivity">
 
+    <!-- Camera Preview Section -->
     <androidx.camera.view.PreviewView
         android:id="@+id/viewFinder"
         android:layout_width="0dp"
@@ -18,8 +24,9 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Top Navigation Bar -->
     <View
-        android:id="@+id/top_bar"
+        android:id="@+id/view_top_bar_overlay"
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:background="#80000000"
@@ -39,7 +46,7 @@
         app:tint="@color/white" />
 
     <TextView
-        android:id="@+id/tv_try_on"
+        android:id="@+id/tv_try_on_title"
         android:layout_width="wrap_content"
         android:layout_height="48dp"
         android:layout_marginStart="10dp"
@@ -52,26 +59,29 @@
         app:layout_constraintStart_toEndOf="@id/btn_back"
         app:layout_constraintTop_toTopOf="@id/btn_back" />
 
+    <!-- Bottom Controls Section -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/bottom_sheet_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent">
 
+        <!-- Hidden label that appears when carousel is collapsed -->
         <TextView
             android:id="@+id/tv_choose_hairstyle_collapsed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
+            android:alpha="0"
             android:text="@string/choose_your_hairstyle"
             android:textColor="@color/white"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:alpha="0"
             app:layout_constraintBottom_toTopOf="@id/carousel_container"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
 
+        <!-- Floating Capture Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/fab_capture"
             style="@style/Widget.MaterialComponents.Button.Icon"
@@ -84,7 +94,7 @@
             android:insetRight="0dp"
             android:insetBottom="0dp"
             android:padding="0dp"
-            android:tooltipText="Capture Now"
+            android:tooltipText="@string/try_on_capture_tooltip"
             app:backgroundTint="@color/primary_color"
             app:icon="@drawable/ic_photo_camera"
             app:iconGravity="textStart"
@@ -97,6 +107,7 @@
             app:strokeColor="@color/black"
             app:strokeWidth="0.7dp" />
 
+        <!-- Carousel Container with Expand/Collapse logic -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/carousel_container"
             android:layout_width="match_parent"
@@ -111,9 +122,9 @@
                 android:layout_width="56dp"
                 android:layout_height="56dp"
                 android:padding="8dp"
+                android:rotation="180"
                 android:scaleX="1.6"
                 android:scaleY="1.6"
-                android:rotation="180"
                 android:src="@drawable/ic_arrow_up"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -131,12 +142,14 @@
                 app:layout_constraintTop_toBottomOf="@id/iv_carousel_arrow">
 
                 <LinearLayout
+                    android:id="@+id/ll_carousel_items"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
-                    <!-- 8 Image Boxes -->
+                    <!-- Hairstyle Item: Buzz Cut -->
                     <LinearLayout
+                        android:id="@+id/item_buzz_cut"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
@@ -144,11 +157,13 @@
                         android:orientation="vertical">
 
                         <View
+                            android:id="@+id/v_icon_buzz_cut"
                             android:layout_width="80dp"
                             android:layout_height="80dp"
                             android:background="@drawable/bg_carousel_item" />
 
                         <TextView
+                            android:id="@+id/tv_label_buzz_cut"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -158,7 +173,9 @@
                             android:textSize="12sp" />
                     </LinearLayout>
 
+                    <!-- Hairstyle Item: Fade -->
                     <LinearLayout
+                        android:id="@+id/item_fade"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
@@ -166,11 +183,13 @@
                         android:orientation="vertical">
 
                         <View
+                            android:id="@+id/v_icon_fade"
                             android:layout_width="80dp"
                             android:layout_height="80dp"
                             android:background="@drawable/bg_carousel_item" />
 
                         <TextView
+                            android:id="@+id/tv_label_fade"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -180,7 +199,9 @@
                             android:textSize="12sp" />
                     </LinearLayout>
 
+                    <!-- Hairstyle Item: Pompadour -->
                     <LinearLayout
+                        android:id="@+id/item_pompadour"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
@@ -188,11 +209,13 @@
                         android:orientation="vertical">
 
                         <View
+                            android:id="@+id/v_icon_pompadour"
                             android:layout_width="80dp"
                             android:layout_height="80dp"
                             android:background="@drawable/bg_carousel_item" />
 
                         <TextView
+                            android:id="@+id/tv_label_pompadour"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -202,7 +225,9 @@
                             android:textSize="12sp" />
                     </LinearLayout>
 
+                    <!-- Hairstyle Item: Undercut -->
                     <LinearLayout
+                        android:id="@+id/item_undercut"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
@@ -210,11 +235,13 @@
                         android:orientation="vertical">
 
                         <View
+                            android:id="@+id/v_icon_undercut"
                             android:layout_width="80dp"
                             android:layout_height="80dp"
                             android:background="@drawable/bg_carousel_item" />
 
                         <TextView
+                            android:id="@+id/tv_label_undercut"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -224,7 +251,9 @@
                             android:textSize="12sp" />
                     </LinearLayout>
 
+                    <!-- Hairstyle Item: Crew Cut -->
                     <LinearLayout
+                        android:id="@+id/item_crew_cut"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
@@ -232,11 +261,13 @@
                         android:orientation="vertical">
 
                         <View
+                            android:id="@+id/v_icon_crew_cut"
                             android:layout_width="80dp"
                             android:layout_height="80dp"
                             android:background="@drawable/bg_carousel_item" />
 
                         <TextView
+                            android:id="@+id/tv_label_crew_cut"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -246,7 +277,9 @@
                             android:textSize="12sp" />
                     </LinearLayout>
 
+                    <!-- Hairstyle Item: Mohawk -->
                     <LinearLayout
+                        android:id="@+id/item_mohawk"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
@@ -254,11 +287,13 @@
                         android:orientation="vertical">
 
                         <View
+                            android:id="@+id/v_icon_mohawk"
                             android:layout_width="80dp"
                             android:layout_height="80dp"
                             android:background="@drawable/bg_carousel_item" />
 
                         <TextView
+                            android:id="@+id/tv_label_mohawk"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -268,7 +303,9 @@
                             android:textSize="12sp" />
                     </LinearLayout>
 
+                    <!-- Hairstyle Item: Side Part -->
                     <LinearLayout
+                        android:id="@+id/item_side_part"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
@@ -276,11 +313,13 @@
                         android:orientation="vertical">
 
                         <View
+                            android:id="@+id/v_icon_side_part"
                             android:layout_width="80dp"
                             android:layout_height="80dp"
                             android:background="@drawable/bg_carousel_item" />
 
                         <TextView
+                            android:id="@+id/tv_label_side_part"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -290,7 +329,9 @@
                             android:textSize="12sp" />
                     </LinearLayout>
 
+                    <!-- Hairstyle Item: Top Knot -->
                     <LinearLayout
+                        android:id="@+id/item_top_knot"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
@@ -298,11 +339,13 @@
                         android:orientation="vertical">
 
                         <View
+                            android:id="@+id/v_icon_top_knot"
                             android:layout_width="80dp"
                             android:layout_height="80dp"
                             android:background="@drawable/bg_carousel_item" />
 
                         <TextView
+                            android:id="@+id/tv_label_top_knot"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"

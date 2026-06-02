@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Time Picker Dialog Layout: Custom dialog for selecting appointment time slots.
+    Minimal Cleanup: Added comments and localized strings without changing structural hierarchy.
+-->
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/cv_time_picker_root"
@@ -12,7 +16,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Header -->
+        <!-- Section 1: Dialog Header -->
         <LinearLayout
             android:id="@+id/ll_dialog_header"
             android:layout_width="match_parent"
@@ -25,12 +29,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
-                android:text="Choose Available Slot"
+                android:text="@string/time_picker_title"
                 android:textColor="@color/white"
                 android:textSize="16sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- Dialog Content Section -->
         <LinearLayout
             android:id="@+id/ll_dialog_content"
             android:layout_width="wrap_content"
@@ -39,7 +44,7 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Time of Day and AM/PM Buttons -->
+            <!-- Section 2: AM/PM Selection Header -->
             <LinearLayout
                 android:id="@+id/ll_time_selection_header"
                 android:layout_width="wrap_content"
@@ -57,7 +62,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
-                    android:text="Time of Day: "
+                    android:text="@string/time_picker_day_label"
                     android:textColor="@color/black"
                     android:textSize="17sp"
                     android:textStyle="bold" />
@@ -87,7 +92,7 @@
                     app:strokeWidth="1dp" />
             </LinearLayout>
 
-            <!-- Boxed Slot Selection -->
+            <!-- Section 3: Hour Grid Selection Box -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cv_slot_selection_container"
                 android:layout_width="match_parent"
@@ -104,7 +109,7 @@
                     android:orientation="vertical"
                     android:padding="12dp">
 
-                    <!-- Time Slot Section -->
+                    <!-- Time Slot Label -->
                     <LinearLayout
                         android:id="@+id/ll_time_slot_container"
                         android:layout_width="match_parent"
@@ -116,7 +121,7 @@
                             android:id="@+id/tv_time_slot_label"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Time Slot"
+                            android:text="@string/time_picker_slot_label"
                             android:textColor="@color/black"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -129,7 +134,7 @@
                             android:background="@drawable/bg_pill_primary" />
                     </LinearLayout>
 
-                    <!-- Hour Selection (3 rows, 4 columns) -->
+                    <!-- Hour Selection Grid (1-12) -->
                     <GridLayout
                         android:id="@+id/gl_hour_selection"
                         android:layout_width="match_parent"
@@ -138,7 +143,7 @@
                         android:columnCount="4"
                         android:rowCount="3">
 
-                        <!-- Hour 1 - Disabled (Shop Closing) -->
+                        <!-- Hour 1 -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_hour_1"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -154,7 +159,7 @@
                             app:strokeColor="@color/primary_color"
                             app:strokeWidth="1dp" />
 
-                        <!-- Hour 2 - Disabled (Shop Closing) -->
+                        <!-- Hour 2 -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_hour_2"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -170,7 +175,7 @@
                             app:strokeColor="@color/primary_color"
                             app:strokeWidth="1dp" />
 
-                        <!-- Hour 3 - Disabled (Shop Closing) -->
+                        <!-- Hour 3 -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_hour_3"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -186,7 +191,7 @@
                             app:strokeColor="@color/primary_color"
                             app:strokeWidth="1dp" />
 
-                        <!-- Hour 4 - Disabled (Shop Closing) -->
+                        <!-- Hour 4 -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_hour_4"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -202,7 +207,7 @@
                             app:strokeColor="@color/primary_color"
                             app:strokeWidth="1dp" />
 
-                        <!-- Hour 5 - Disabled (Shop Closing) -->
+                        <!-- Hour 5 -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_hour_5"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -218,7 +223,7 @@
                             app:strokeColor="@color/primary_color"
                             app:strokeWidth="1dp" />
 
-                        <!-- Hour 6 - Disabled (Shop Closing) -->
+                        <!-- Hour 6 -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_hour_6"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -234,7 +239,7 @@
                             app:strokeColor="@color/primary_color"
                             app:strokeWidth="1dp" />
 
-                        <!-- Hour 7 - Disabled (Shop Closing) -->
+                        <!-- Hour 7 -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_hour_7"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -250,7 +255,7 @@
                             app:strokeColor="@color/primary_color"
                             app:strokeWidth="1dp" />
 
-                        <!-- Hour 8 - Disabled (Shop Closing) -->
+                        <!-- Hour 8 -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_hour_8"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -266,7 +271,7 @@
                             app:strokeColor="@color/primary_color"
                             app:strokeWidth="1dp" />
 
-                        <!-- Hour 9 - Disabled (Shop Closing) -->
+                        <!-- Hour 9 -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_hour_9"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -312,7 +317,7 @@
                             app:strokeColor="@color/primary_color"
                             app:strokeWidth="1dp" />
 
-                        <!-- Hour 12 - Disabled (Rest Hour) -->
+                        <!-- Hour 12 -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_hour_12"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -331,7 +336,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Action Buttons -->
+            <!-- Section 4: Action Buttons (Cancel / OK) -->
             <LinearLayout
                 android:id="@+id/ll_action_buttons"
                 android:layout_width="match_parent"
@@ -344,7 +349,7 @@
                     android:id="@+id/btn_cancel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Cancel"
+                    android:text="@android:string/cancel"
                     android:textColor="@color/warning_red_icon"
                     android:textSize="11sp"
                     android:textStyle="bold"
@@ -359,7 +364,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="OK"
+                    android:text="@android:string/ok"
                     android:textColor="@color/white"
                     app:backgroundTint="@color/primary_color"
                     app:cornerRadius="24dp" />

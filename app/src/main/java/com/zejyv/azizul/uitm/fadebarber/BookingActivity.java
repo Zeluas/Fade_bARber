@@ -32,10 +32,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
+/**
+ * BookingActivity handles the appointment booking process.
+ * It allows users to pick a date, select a time slot, choose a stylist,
+ * and navigate to the AR Try-On experience.
+ */
 public class BookingActivity extends AppCompatActivity {
 
+    // --- UI Components ---
     private TextView tvDate, tvTime;
-    
     private LinearLayout llStylist1, llStylist2, llStylist3;
     private CheckBox cbStylist1, cbStylist2, cbStylist3;
 
@@ -44,70 +49,94 @@ public class BookingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_booking);
 
-        // Initialize views
+        // --- View Initialization ---
+        
+        // Navigation and Header elements
         ImageView ivBack = findViewById(R.id.iv_back_booking);
+        
+        // Picker triggers
         LinearLayout llDatePicker = findViewById(R.id.ll_date_picker_controls);
         LinearLayout llTimePicker = findViewById(R.id.ll_time_picker_controls);
+        
+        // Display fields
         tvDate = findViewById(R.id.tv_booking_date);
         tvTime = findViewById(R.id.tv_booking_time);
 
-        // Set default date and time
-        setDefaultDateTime();
-
+        // Stylist Selection containers
         llStylist1 = findViewById(R.id.ll_stylist_item_1);
         llStylist2 = findViewById(R.id.ll_stylist_item_2);
         llStylist3 = findViewById(R.id.ll_stylist_item_3);
         
+        // Stylist Selection indicators
         cbStylist1 = findViewById(R.id.cb_stylist_1);
         cbStylist2 = findViewById(R.id.cb_stylist_2);
         cbStylist3 = findViewById(R.id.cb_stylist_3);
 
+        // Action Buttons
         MaterialButton btnChooseHairstyle = findViewById(R.id.btn_choose_hairstyle);
         MaterialButton btnConfirmBooking = findViewById(R.id.btn_confirm_booking);
 
-        // Back button
+        // --- Initial Setup ---
+        
+        // Set default date and time (localized logic)
+        setDefaultDateTime();
+        
+        // Configure mutual exclusivity for stylist selection
+        setupStylistSelection();
+
+        // --- Click Listeners ---
+
+        // Back button navigation
         ivBack.setOnClickListener(v -> finish());
 
-        // Date Picker
+        // Date Picker logic
         View.OnClickListener dateClick = v -> showDatePicker();
         llDatePicker.setOnClickListener(dateClick);
         tvDate.setOnClickListener(dateClick);
         findViewById(R.id.iv_calendar_button).setOnClickListener(dateClick);
 
-        // Time Picker
+        // Time Picker logic
         View.OnClickListener timeClick = v -> showCustomTimePicker();
         llTimePicker.setOnClickListener(timeClick);
         tvTime.setOnClickListener(timeClick);
         findViewById(R.id.iv_clock_button).setOnClickListener(timeClick);
 
-        // Stylist Selection (Radio button logic)
-        setupStylistSelection();
-
-        // Choose Hairstyle
+        // Navigation to Try-On Activity
         btnChooseHairstyle.setOnClickListener(v -> {
             Intent intent = new Intent(BookingActivity.this, TryOnActivity.class);
             intent.putExtra("FROM_BOOKING", true);
             startActivity(intent);
         });
 
-        // Confirm Booking
-        btnConfirmBooking.setOnClickListener(v -> Toast.makeText(this, "Booking Confirmed!", Toast.LENGTH_SHORT).show());
+        // Final Booking Confirmation
+        btnConfirmBooking.setOnClickListener(v -> 
+            Toast.makeText(this, getString(R.string.booking_success_toast), Toast.LENGTH_SHORT).show()
+        );
     }
 
+    /**
+     * Initializes the date and time displays with default values.
+     * Logic: If today is Friday, defaults to Saturday.
+     */
     private void setDefaultDateTime() {
         Calendar c = Calendar.getInstance();
-        // If today is Friday (shop closed), default to tomorrow
+        // If today is Friday (shop closed), default to tomorrow (Saturday)
         if (c.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY) {
             c.add(Calendar.DAY_OF_MONTH, 1);
         }
         int year = c.get(Calendar.YEAR);
         int month = c.get(Calendar.MONTH);
         int day = c.get(Calendar.DAY_OF_MONTH);
+        
+        // Format: DD/MM/YY
         String date = String.format(Locale.getDefault(), "%02d/%02d/%02d", day, month + 1, year % 100);
         tvDate.setText(date);
         tvTime.setText("10:00 AM");
     }
 
+    /**
+     * Displays a MaterialDatePicker with constraints to disable past dates and Fridays.
+     */
     private void showDatePicker() {
         CalendarConstraints.Builder constraintsBuilder = new CalendarConstraints.Builder();
 
@@ -127,7 +156,7 @@ public class BookingActivity extends AppCompatActivity {
         }
 
         MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
-                .setTitleText("Select Date")
+                .setTitleText(getString(R.string.booking_date_hint))
                 .setSelection(selection)
                 .setCalendarConstraints(constraintsBuilder.build())
                 .build();
@@ -138,6 +167,8 @@ public class BookingActivity extends AppCompatActivity {
             int day = calendar.get(Calendar.DAY_OF_MONTH);
             int month = calendar.get(Calendar.MONTH) + 1;
             int year = calendar.get(Calendar.YEAR) % 100;
+            
+            // Apply selected date to UI
             String date = String.format(Locale.getDefault(), "%02d/%02d/%02d", day, month, year);
             tvDate.setText(date);
         });
@@ -145,6 +176,9 @@ public class BookingActivity extends AppCompatActivity {
         datePicker.show(getSupportFragmentManager(), "DATE_PICKER");
     }
 
+    /**
+     * Custom DateValidator to ensure Fridays cannot be selected.
+     */
     static class DisableFridaysValidator implements CalendarConstraints.DateValidator {
         public static final Parcelable.Creator<DisableFridaysValidator> CREATOR =
                 new Parcelable.Creator<>() {
@@ -164,6 +198,7 @@ public class BookingActivity extends AppCompatActivity {
             Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
             calendar.setTimeInMillis(date);
             int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+            // Shop is closed on Fridays
             return dayOfWeek != Calendar.FRIDAY;
         }
 
@@ -177,27 +212,30 @@ public class BookingActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Displays a custom dialog for selecting hour-based time slots.
+     */
     private void showCustomTimePicker() {
         LayoutInflater inflater = getLayoutInflater();
-        // Inflate without a parent, but the Dialog will handle the root layout parameters correctly when shown
+        // Inflate the custom time picker view
         View dialogView = inflater.inflate(R.layout.dialog_time_picker, null);
 
-        // Use a standard Dialog to avoid the default "framing" of AlertDialog
+        // Use a standard Dialog to avoid the default framing of AlertDialog
         final Dialog dialog = new Dialog(this);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(dialogView);
 
         if (dialog.getWindow() != null) {
-            // Set window background to transparent to remove the "white stripe" or default dialog border
+            // Set window background to transparent to allow for rounded card corners
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            // Ensure no default padding is added by the system
             dialog.getWindow().getDecorView().setPadding(0, 0, 0, 0);
         }
 
         final MaterialButton[] hourButtons = new MaterialButton[12];
-        final int[] selectedHour = {10}; // Default 10
-        final String[] selectedAmPm = {"AM"}; // Default AM
+        final int[] selectedHour = {10}; // Default selection: 10
+        final String[] selectedAmPm = {"AM"}; // Default selection: AM
 
+        // Bind and configure the 12 hour buttons (1 to 12)
         for (int i = 0; i < 12; i++) {
             int hour = i + 1;
             int resId = getResources().getIdentifier("btn_hour_" + hour, "id", getPackageName());
@@ -205,38 +243,42 @@ public class BookingActivity extends AppCompatActivity {
             if (hourButtons[i] != null) {
                 hourButtons[i].setOnClickListener(v -> {
                     selectedHour[0] = hour;
+                    // Update visual state for all hour buttons
                     for (int j = 0; j < 12; j++) {
                         if (hourButtons[j] != null) {
-                            updateViewStyle(hourButtons[j], (j + 1) == selectedHour[0]);
+                            updateTimeButtonStyle(hourButtons[j], (j + 1) == selectedHour[0]);
                         }
                     }
                 });
             }
         }
 
+        // Bind and configure AM/PM toggle buttons
         MaterialButton btnAm = dialogView.findViewById(R.id.btn_am);
         MaterialButton btnPm = dialogView.findViewById(R.id.btn_pm);
 
         View.OnClickListener amPmClick = v -> {
             selectedAmPm[0] = (v.getId() == R.id.btn_am) ? "AM" : "PM";
-            updateViewStyle(btnAm, selectedAmPm[0].equals("AM"));
-            updateViewStyle(btnPm, selectedAmPm[0].equals("PM"));
+            updateTimeButtonStyle(btnAm, selectedAmPm[0].equals("AM"));
+            updateTimeButtonStyle(btnPm, selectedAmPm[0].equals("PM"));
         };
 
         btnAm.setOnClickListener(amPmClick);
         btnPm.setOnClickListener(amPmClick);
 
-        // Initial Selection
+        // Set initial visual selection states
         for (int i = 0; i < 12; i++) {
             if (hourButtons[i] != null) {
-                updateViewStyle(hourButtons[i], (i + 1) == selectedHour[0]);
+                updateTimeButtonStyle(hourButtons[i], (i + 1) == selectedHour[0]);
             }
         }
-        updateViewStyle(btnAm, true);
-        updateViewStyle(btnPm, false);
+        updateTimeButtonStyle(btnAm, true);
+        updateTimeButtonStyle(btnPm, false);
 
+        // Dialog action buttons
         dialogView.findViewById(R.id.btn_cancel).setOnClickListener(v -> dialog.dismiss());
         dialogView.findViewById(R.id.btn_ok).setOnClickListener(v -> {
+            // Apply selected time to main UI
             tvTime.setText(String.format(Locale.getDefault(), "%02d:00 %s", selectedHour[0], selectedAmPm[0]));
             dialog.dismiss();
         });
@@ -244,14 +286,19 @@ public class BookingActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void updateViewStyle(View view, boolean isSelected) {
+    /**
+     * Updates the background tint and text color of picker buttons to reflect selection.
+     */
+    private void updateTimeButtonStyle(View view, boolean isSelected) {
         if (view instanceof MaterialButton) {
             MaterialButton button = (MaterialButton) view;
             if (isSelected) {
+                // Highlighted state
                 button.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.primary_color));
                 button.setTextColor(ContextCompat.getColor(this, R.color.white));
                 button.setStrokeWidth(0);
             } else {
+                // Default/Deselected state
                 button.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
                 button.setTextColor(ContextCompat.getColor(this, R.color.primary_color));
                 button.setStrokeWidth((int) (1 * getResources().getDisplayMetrics().density));
@@ -259,22 +306,29 @@ public class BookingActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Configures the mutual exclusivity logic for stylist selection (Radio-button behavior).
+     */
     private void setupStylistSelection() {
         // Initial state: all unmarked
         cbStylist1.setChecked(false);
         cbStylist2.setChecked(false);
         cbStylist3.setChecked(false);
 
+        // Container-level click listeners
         llStylist1.setOnClickListener(v -> selectStylist(1));
         llStylist2.setOnClickListener(v -> selectStylist(2));
         llStylist3.setOnClickListener(v -> selectStylist(3));
         
-        // Also allow clicking the checkbox directly
+        // Direct checkbox click listeners
         cbStylist1.setOnClickListener(v -> selectStylist(1));
         cbStylist2.setOnClickListener(v -> selectStylist(2));
         cbStylist3.setOnClickListener(v -> selectStylist(3));
     }
 
+    /**
+     * Updates the checkboxes to ensure only one stylist is selected at a time.
+     */
     private void selectStylist(int stylistIndex) {
         cbStylist1.setChecked(stylistIndex == 1);
         cbStylist2.setChecked(stylistIndex == 2);

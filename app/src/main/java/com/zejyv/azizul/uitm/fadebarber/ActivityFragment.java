@@ -14,8 +14,17 @@ import androidx.fragment.app.Fragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
+/**
+ * ActivityFragment manages the notifications section of the app.
+ * It uses a ViewPager2 to switch between Inbox (new notifications) and Read (history).
+ * Features:
+ * - Synchronized custom tab bar with a sliding underline.
+ * - Localized tab labels with dynamic counts.
+ * - ViewPager2 integration for smooth fragment transitions.
+ */
 public class ActivityFragment extends Fragment {
 
+    // --- UI Components ---
     private ViewPager2 viewPager;
     private FrameLayout layoutTabInbox, layoutTabRead;
     private TextView textTabInbox, textTabRead;
@@ -26,29 +35,36 @@ public class ActivityFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_activity, container, false);
 
+        initializeViews(view);
+        setupViewPager();
+        setupTabs();
+        populateTabLabels();
+
+        return view;
+    }
+
+    /**
+     * Initializes all view references from the fragment layout.
+     */
+    private void initializeViews(View view) {
         viewPager = view.findViewById(R.id.view_pager_activity);
         layoutTabInbox = view.findViewById(R.id.layout_tab_inbox);
         layoutTabRead = view.findViewById(R.id.layout_tab_read);
         textTabInbox = view.findViewById(R.id.text_tab_inbox);
         textTabRead = view.findViewById(R.id.text_tab_read);
         slidingUnderline = view.findViewById(R.id.view_sliding_underline);
-
-        setupViewPager();
-        setupTabs();
-
-        return view;
     }
 
+    /**
+     * Sets up the ViewPager2 with its adapter and page change callbacks.
+     */
     private void setupViewPager() {
         viewPager.setAdapter(new FragmentStateAdapter(this) {
             @NonNull
             @Override
             public Fragment createFragment(int position) {
-                if (position == 0) {
-                    return new ActivityListFragment(); // Inbox
-                } else {
-                    return new ReadFragment(); // Read
-                }
+                // Fragment 0: Inbox List, Fragment 1: Read History
+                return (position == 0) ? new ActivityListFragment() : new ReadFragment();
             }
 
             @Override
@@ -62,7 +78,8 @@ public class ActivityFragment extends Fragment {
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels);
                 
-                // Using post to ensure width is measured
+                // Animate the sliding underline based on scroll progress
+                // Using post to ensure the view is measured before calculating translation
                 slidingUnderline.post(() -> {
                     float translationX = (position + positionOffset) * slidingUnderline.getWidth();
                     slidingUnderline.setTranslationX(translationX);
@@ -72,45 +89,62 @@ public class ActivityFragment extends Fragment {
             @Override
             public void onPageSelected(int position) {
                 super.onPageSelected(position);
+                // Update the visual style of tabs to reflect the current selection
                 updateTabStyles(position);
             }
         });
     }
 
+    /**
+     * Configures click listeners for the custom tab layouts.
+     */
     private void setupTabs() {
         layoutTabInbox.setOnClickListener(v -> viewPager.setCurrentItem(0));
         layoutTabRead.setOnClickListener(v -> viewPager.setCurrentItem(1));
     }
 
+    /**
+     * Fills the tab labels with localized text and counts.
+     */
+    private void populateTabLabels() {
+        // Mocking counts for now
+        textTabInbox.setText(getString(R.string.activity_tab_inbox, 4));
+        textTabRead.setText(getString(R.string.activity_tab_read, 0));
+    }
+
+    /**
+     * Dynamically updates the background, elevation, and text opacity of the tabs.
+     * @param position The currently selected page index.
+     */
     private void updateTabStyles(int position) {
+        final int activeColor = ContextCompat.getColor(requireContext(), R.color.primary_color);
+        final int inactiveColor = Color.parseColor("#208000"); // Darker green for inactive state
+        final float elevationPx = 6 * getResources().getDisplayMetrics().density;
+
         if (position == 0) {
-            // Inbox On
-            layoutTabInbox.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.primary_color));
-            layoutTabInbox.setElevation(convertDpToPx());
+            // --- Inbox Tab Active ---
+            layoutTabInbox.setBackgroundColor(activeColor);
+            layoutTabInbox.setElevation(elevationPx);
             layoutTabInbox.setForeground(null);
             textTabInbox.setAlpha(1.0f);
 
-            // Read Off
-            layoutTabRead.setBackgroundColor(Color.parseColor("#208000"));
+            // --- Read Tab Inactive ---
+            layoutTabRead.setBackgroundColor(inactiveColor);
             layoutTabRead.setElevation(0);
             layoutTabRead.setForeground(ContextCompat.getDrawable(requireContext(), R.drawable.bg_inner_shadow));
             textTabRead.setAlpha(0.6f);
         } else {
-            // Inbox Off
-            layoutTabInbox.setBackgroundColor(Color.parseColor("#208000"));
+            // --- Inbox Tab Inactive ---
+            layoutTabInbox.setBackgroundColor(inactiveColor);
             layoutTabInbox.setElevation(0);
             layoutTabInbox.setForeground(ContextCompat.getDrawable(requireContext(), R.drawable.bg_inner_shadow));
             textTabInbox.setAlpha(0.6f);
 
-            // Read On
-            layoutTabRead.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.primary_color));
-            layoutTabRead.setElevation(convertDpToPx());
+            // --- Read Tab Active ---
+            layoutTabRead.setBackgroundColor(activeColor);
+            layoutTabRead.setElevation(elevationPx);
             layoutTabRead.setForeground(null);
             textTabRead.setAlpha(1.0f);
         }
-    }
-
-    private float convertDpToPx() {
-        return 6 * getResources().getDisplayMetrics().density;
     }
 }

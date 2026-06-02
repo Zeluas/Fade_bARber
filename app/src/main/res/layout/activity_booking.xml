@@ -1,13 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Activity Booking Layout: Allows users to schedule an appointment.
+    Sections:
+    - Top Bar: Navigation and Title.
+    - Date Picker: Calendar trigger and display.
+    - Time Picker: Custom dialog trigger and display.
+    - Hairstylist List: Selection of available barbers.
+    - Hairstyle Preview: Link to AR Try-On activity.
+-->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cl_booking_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/back_primary_color"
     tools:context=".BookingActivity">
 
-    <!-- Top Bar -->
+    <!-- Section 1: Top Bar Header -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/mcv_top_bar"
         android:layout_width="match_parent"
@@ -44,14 +54,16 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical|start"
                 android:layout_marginStart="63dp"
-                android:text="Book Your Cut"
+                android:text="@string/booking_title"
                 android:textColor="@color/white"
                 android:textSize="20sp"
                 android:textStyle="bold" />
         </FrameLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- Scrollable Content Section -->
     <ScrollView
+        android:id="@+id/sv_booking_content"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:fillViewport="true"
@@ -59,23 +71,25 @@
         app:layout_constraintTop_toBottomOf="@id/mcv_top_bar">
 
         <LinearLayout
+            android:id="@+id/ll_booking_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Date and Time Pickers Row -->
+            <!-- Section 2: Date and Time Selection Row -->
             <LinearLayout
+                android:id="@+id/ll_picker_row"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:baselineAligned="false"
                 android:orientation="horizontal">
 
-                <!-- Pick your Date Section -->
+                <!-- 2a. Date Selection Card -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/mcv_date_selection"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-
                     android:layout_marginEnd="-10dp"
                     android:layout_weight="1"
                     app:cardBackgroundColor="@color/white"
@@ -84,26 +98,31 @@
                     app:cardUseCompatPadding="true">
 
                     <LinearLayout
+                        android:id="@+id/ll_date_selection_inner"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical">
 
+                        <!-- Date Header -->
                         <LinearLayout
+                            android:id="@+id/ll_date_header"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:background="@drawable/bg_booking_header"
                             android:paddingVertical="8dp">
 
                             <TextView
+                                android:id="@+id/tv_date_header_label"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="12dp"
-                                android:text="Pick a Date"
+                                android:text="@string/booking_header_date"
                                 android:textColor="@color/white"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
 
+                        <!-- Date Controls -->
                         <LinearLayout
                             android:id="@+id/ll_date_picker_controls"
                             android:layout_width="match_parent"
@@ -138,7 +157,7 @@
                                 android:layout_marginStart="8dp"
                                 android:background="@drawable/bg_pill_stroke"
                                 android:clickable="true"
-                                android:contentDescription="Select Date"
+                                android:contentDescription="@string/booking_date_hint"
                                 android:focusable="true"
                                 android:padding="6dp"
                                 android:src="@drawable/ic_calendar"
@@ -147,11 +166,11 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Pick your Time Section -->
+                <!-- 2b. Time Selection Card -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/mcv_time_selection"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-
                     android:layout_weight="1"
                     app:cardBackgroundColor="@color/white"
                     app:cardCornerRadius="12dp"
@@ -159,26 +178,31 @@
                     app:cardUseCompatPadding="true">
 
                     <LinearLayout
+                        android:id="@+id/ll_time_selection_inner"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical">
 
+                        <!-- Time Header -->
                         <LinearLayout
+                            android:id="@+id/ll_time_header"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:background="@drawable/bg_booking_header"
                             android:paddingVertical="8dp">
 
                             <TextView
+                                android:id="@+id/tv_time_header_label"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="12dp"
-                                android:text="Pick a Time"
+                                android:text="@string/booking_header_time"
                                 android:textColor="@color/white"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
 
+                        <!-- Time Controls -->
                         <LinearLayout
                             android:id="@+id/ll_time_picker_controls"
                             android:layout_width="match_parent"
@@ -214,7 +238,7 @@
                                 android:layout_marginStart="8dp"
                                 android:background="@drawable/bg_pill_stroke"
                                 android:clickable="true"
-                                android:contentDescription="Select Time"
+                                android:contentDescription="@string/booking_time_hint"
                                 android:focusable="true"
                                 android:padding="6dp"
                                 android:src="@drawable/ic_clock"
@@ -224,7 +248,7 @@
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
-            <!-- Hairstylist List Box (Copied from fragment_home.xml) -->
+            <!-- Section 3: Hairstylist List Selection Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/mcv_hairstylist_list"
                 android:layout_width="match_parent"
@@ -241,6 +265,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
+                    <!-- Stylist List Header -->
                     <LinearLayout
                         android:id="@+id/ll_hairstylist_header"
                         android:layout_width="match_parent"
@@ -249,16 +274,17 @@
                         android:paddingVertical="8dp">
 
                         <TextView
+                            android:id="@+id/tv_hairstylist_header_label"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
-                            android:text="Select your Preferred Hairstylist"
+                            android:text="@string/booking_header_stylist"
                             android:textColor="@color/white"
                             android:textSize="16sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Stylist 1 -->
+                    <!-- Stylist 1 Selection Item -->
                     <LinearLayout
                         android:id="@+id/ll_stylist_item_1"
                         android:layout_width="match_parent"
@@ -319,15 +345,17 @@
                                     android:id="@+id/tv_stylist_specialty_1"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Specialty: Classic Fade"
-                                    android:textSize="13sp" />
+                                    android:text="@string/stylist_specialty_label"
+                                    android:textSize="13sp"
+                                    tools:text="Specialty: Classic Fade" />
 
                                 <TextView
                                     android:id="@+id/tv_stylist_available_1"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Available: Mon-Sun"
-                                    android:textSize="13sp" />
+                                    android:text="@string/stylist_availability_label"
+                                    android:textSize="13sp"
+                                    tools:text="Available: Mon-Sun" />
                             </LinearLayout>
 
                             <com.google.android.material.checkbox.MaterialCheckBox
@@ -335,19 +363,20 @@
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:layout_marginStart="8dp"
+                                android:background="@null"
                                 app:buttonTint="@drawable/sl_stylist_checkbox"
-                                app:rippleColor="@color/trans_primary_color"
-                                android:background="@null" />
+                                app:rippleColor="@color/trans_primary_color" />
                         </LinearLayout>
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/v_stylist_divider_1"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginHorizontal="12dp"
                         android:background="#EEEEEE" />
 
-                    <!-- Stylist 2 -->
+                    <!-- Stylist 2 Selection Item -->
                     <LinearLayout
                         android:id="@+id/ll_stylist_item_2"
                         android:layout_width="match_parent"
@@ -409,15 +438,17 @@
                                     android:id="@+id/tv_stylist_specialty_2"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Specialty: Pompadour"
-                                    android:textSize="13sp" />
+                                    android:text="@string/stylist_specialty_label"
+                                    android:textSize="13sp"
+                                    tools:text="Specialty: Pompadour" />
 
                                 <TextView
                                     android:id="@+id/tv_stylist_available_2"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Available: Mon-Fri"
-                                    android:textSize="13sp" />
+                                    android:text="@string/stylist_availability_label"
+                                    android:textSize="13sp"
+                                    tools:text="Available: Mon-Fri" />
                             </LinearLayout>
 
                             <com.google.android.material.checkbox.MaterialCheckBox
@@ -425,19 +456,20 @@
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:layout_marginStart="8dp"
+                                android:background="@null"
                                 app:buttonTint="@drawable/sl_stylist_checkbox"
-                                app:rippleColor="@color/trans_primary_color"
-                                android:background="@null" />
+                                app:rippleColor="@color/trans_primary_color" />
                         </LinearLayout>
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/v_stylist_divider_2"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginHorizontal="12dp"
                         android:background="#EEEEEE" />
 
-                    <!-- Stylist 3 -->
+                    <!-- Stylist 3 Selection Item -->
                     <LinearLayout
                         android:id="@+id/ll_stylist_item_3"
                         android:layout_width="match_parent"
@@ -498,15 +530,17 @@
                                     android:id="@+id/tv_stylist_specialty_3"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Specialty: Buzz Cut"
-                                    android:textSize="13sp" />
+                                    android:text="@string/stylist_specialty_label"
+                                    android:textSize="13sp"
+                                    tools:text="Specialty: Buzz Cut" />
 
                                 <TextView
                                     android:id="@+id/tv_stylist_available_3"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Available: Sat-Sun"
-                                    android:textSize="13sp" />
+                                    android:text="@string/stylist_availability_label"
+                                    android:textSize="13sp"
+                                    tools:text="Available: Sat-Sun" />
                             </LinearLayout>
 
                             <com.google.android.material.checkbox.MaterialCheckBox
@@ -514,15 +548,15 @@
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:layout_marginStart="8dp"
+                                android:background="@null"
                                 app:buttonTint="@drawable/sl_stylist_checkbox"
-                                app:rippleColor="@color/trans_primary_color"
-                                android:background="@null" />
+                                app:rippleColor="@color/trans_primary_color" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Choose Hairstyle Box -->
+            <!-- Section 4: Choose Hairstyle Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/mcv_choose_hairstyle"
                 android:layout_width="match_parent"
@@ -539,6 +573,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
+                    <!-- Hairstyle Header -->
                     <LinearLayout
                         android:id="@+id/ll_choose_hairstyle_header"
                         android:layout_width="match_parent"
@@ -551,12 +586,13 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
-                            android:text="Choose your Hairstyle"
+                            android:text="@string/booking_header_hairstyle"
                             android:textColor="@color/white"
                             android:textSize="16sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
+                    <!-- Hairstyle Content -->
                     <LinearLayout
                         android:id="@+id/ll_choose_hairstyle_content"
                         android:layout_width="match_parent"
@@ -576,6 +612,7 @@
                             app:strokeWidth="1dp" />
 
                         <LinearLayout
+                            android:id="@+id/ll_hairstyle_info"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
@@ -586,7 +623,7 @@
                                 android:id="@+id/tv_haircut_name_booking"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="HairCut Name"
+                                android:text="@string/haircut_name_placeholder"
                                 android:textColor="@color/black"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
@@ -596,7 +633,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginBottom="4dp"
-                                android:text="Description of the selected hairstyle"
+                                android:text="@string/haircut_desc_default"
                                 android:textColor="@color/grey_grey"
                                 android:textSize="12sp" />
 
@@ -605,7 +642,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:paddingVertical="15dp"
-                                android:text="Try-On"
+                                android:text="@string/title_try_on"
                                 android:textColor="@color/primary_color"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
@@ -622,13 +659,14 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Final Confirmation Button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_confirm_booking"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
                 android:paddingVertical="16dp"
-                android:text="Confirm Booking"
+                android:text="@string/booking_btn_confirm"
                 android:textColor="@color/white"
                 android:textSize="14sp"
                 android:textStyle="bold"

@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    HomeFragment Layout:
+    This layout defines the main dashboard for the user.
+    It includes:
+    1. A dynamic Top Bar with a floating bubble background and AI-generated jabs.
+    2. A scrollable content area containing:
+       - Booking Status & Current Time/Date (with dynamic themes).
+       - Booking Details (Current active booking).
+       - Hairstylist List (Available barbers).
+       - Cut History (Past services).
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/ll_home_root"
@@ -7,11 +18,12 @@
     android:background="@color/back_primary_color"
     android:orientation="vertical">
 
-    <!-- Top Bar -->
+    <!-- Top Bar: Contains welcome message, AI jabs, and profile picture.
+         Height changes dynamically during scroll. -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/mcv_top_bar"
         android:layout_width="match_parent"
-        android:layout_height="140dp"
+        android:layout_height="100dp"
         app:cardBackgroundColor="@color/primary_color"
         app:cardElevation="0dp"
         app:cardMaxElevation="0dp"
@@ -19,12 +31,12 @@
         app:cardUseCompatPadding="true"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.TopBar">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/cl_top_bar_content"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <!-- Bubble Background -->
+            <!-- Bubble Background Animation -->
             <com.zejyv.azizul.uitm.fadebarber.FloatingBubblesView
                 android:id="@+id/floating_bubbles_home"
                 android:layout_width="0dp"
@@ -34,7 +46,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <!-- Grey Tint Overlay -->
+            <!-- Grey Tint Overlay for better text readability -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
@@ -88,6 +100,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- Main Content Area: Scrollable -->
     <ScrollView
         android:id="@+id/sv_home_content"
         android:layout_width="match_parent"
@@ -102,14 +115,14 @@
             android:orientation="vertical"
             android:padding="12dp">
 
-            <!-- Horizontal Container 1: Booking Status & Time -->
+            <!-- Row 1: Booking Status & Time/Date Widget -->
             <LinearLayout
                 android:id="@+id/ll_booking_status_time_row"
                 android:layout_width="match_parent"
                 android:layout_height="110dp"
                 android:orientation="horizontal">
 
-                <!-- Left Box: Booking Status -->
+                <!-- Booking Status Box -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
@@ -151,7 +164,7 @@
                     android:layout_width="4dp"
                     android:layout_height="match_parent" />
 
-                <!-- Right Box: Time & Date -->
+                <!-- Time & Date Widget: Changes background and greeting based on time of day -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_datetime"
                     android:layout_width="0dp"
@@ -172,7 +185,7 @@
                             android:scaleType="centerCrop"
                             android:src="@drawable/bg_time_sunrise" />
 
-                        <!-- Tint Overlay -->
+                        <!-- Tint Overlay for time widget -->
                         <View
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
@@ -217,7 +230,7 @@
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:layout_marginStart="4dp"
-                                            android:text="A.M."
+                                            android:text="@string/am_label"
                                             android:textColor="@color/white"
                                             android:textSize="12sp"
                                             android:textStyle="bold" />
@@ -239,7 +252,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_gravity="top|end"
                                     android:layout_marginTop="4dp"
-                                    android:text="Morning"
+                                    android:text="@string/time_morning"
                                     android:textColor="@color/white"
                                     android:textSize="14sp"
                                     android:textStyle="bold" />
@@ -249,7 +262,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_gravity="bottom|start"
-                                    android:text="The Shop is now OPEN"
+                                    android:text="@string/shop_status_open"
                                     android:textColor="@color/white"
                                     android:textSize="11sp" />
                             </FrameLayout>
@@ -258,7 +271,7 @@
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
-            <!-- Booking Details Box -->
+            <!-- Booking Details Section: Shows information about the current appointment -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -300,7 +313,7 @@
                         android:orientation="horizontal"
                         android:padding="12dp">
 
-                        <!-- Left Vertical Layout: Details -->
+                        <!-- Details Column -->
                         <LinearLayout
                             android:id="@+id/ll_booking_details_left_col"
                             android:layout_width="0dp"
@@ -347,14 +360,38 @@
                                     android:text="@string/label_placeholder"
                                     android:textSize="16sp" />
 
-                                <TextView
+                                <LinearLayout
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="12dp"
-                                    android:text="@string/hairstylist_label"
-                                    android:textColor="@color/black"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold" />
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/hairstylist_label"
+                                        android:textColor="@color/black"
+                                        android:textSize="16sp"
+                                        android:textStyle="bold" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btn_call_stylist"
+                                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="8dp"
+                                        android:minWidth="0dp"
+                                        android:minHeight="0dp"
+                                        android:background="@android:color/transparent"
+                                        app:backgroundTint="@android:color/transparent"
+                                        android:padding="0dp"
+                                        app:cornerRadius="6dp"
+                                        app:icon="@drawable/ic_phone"
+                                        app:iconPadding="0dp"
+                                        app:iconSize="18dp"
+                                        app:iconTint="@color/primary_color" />
+                                </LinearLayout>
 
                                 <TextView
                                     android:layout_width="wrap_content"
@@ -367,7 +404,7 @@
                                 android:id="@+id/btn_cancel_booking"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginRight="6dp"
+                                android:layout_marginEnd="6dp"
                                 android:paddingVertical="15dp"
                                 android:text="@string/cancel_booking"
                                 android:textColor="@color/warning_red_icon"
@@ -381,7 +418,7 @@
 
                         </LinearLayout>
 
-                        <!-- Right Vertical Layout: Hairstyle View -->
+                        <!-- Hairstyle Preview Column -->
                         <LinearLayout
                             android:id="@+id/ll_booking_details_right_col"
                             android:layout_width="0dp"
@@ -420,7 +457,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="3dp"
-                                    android:text="HairCut Name"
+                                    android:text="@string/haircut_name_placeholder"
                                     android:textColor="@color/black"
                                     android:textStyle="bold" />
                             </LinearLayout>
@@ -429,7 +466,7 @@
                                 android:id="@+id/btn_edit_booking"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginLeft="6dp"
+                                android:layout_marginStart="6dp"
                                 android:paddingVertical="15dp"
                                 android:text="@string/edit_booking"
                                 android:textColor="@color/white"
@@ -442,7 +479,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Hairstylist List Box -->
+            <!-- Hairstylist List Section: Displays available stylists -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -469,7 +506,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
-                            android:text="Hairstylist List"
+                            android:text="@string/hairstylist_list_label"
                             android:textColor="@color/white"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -521,13 +558,13 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Specialty: Classic Fade"
+                                android:text="@string/label_placeholder"
                                 android:textSize="13sp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Available: Mon-Sun"
+                                android:text="@string/label_placeholder"
                                 android:textSize="13sp" />
                         </LinearLayout>
                     </LinearLayout>
@@ -585,13 +622,13 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Specialty: Pompadour"
+                                android:text="@string/label_placeholder"
                                 android:textSize="13sp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Available: Mon-Fri"
+                                android:text="@string/label_placeholder"
                                 android:textSize="13sp" />
                         </LinearLayout>
                     </LinearLayout>
@@ -648,20 +685,20 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Specialty: Buzz Cut"
+                                android:text="@string/label_placeholder"
                                 android:textSize="13sp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Available: Sat-Sun"
+                                android:text="@string/label_placeholder"
                                 android:textSize="13sp" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Cut History Box -->
+            <!-- Cut History Section: Shows past completed bookings -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -688,7 +725,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
-                            android:text="Cut History"
+                            android:text="@string/cut_history_label"
                             android:textColor="@color/white"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -738,7 +775,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Classic Fade"
+                                    android:text="@string/style_fade"
                                     android:textSize="11sp" />
                             </LinearLayout>
 
@@ -852,7 +889,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Pompadour"
+                                    android:text="@string/style_pompadour"
                                     android:textSize="11sp" />
                             </LinearLayout>
 
@@ -966,7 +1003,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Buzz Cut"
+                                    android:text="@string/style_buzz_cut"
                                     android:textSize="11sp" />
                             </LinearLayout>
 
@@ -1080,7 +1117,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Classic Fade"
+                                    android:text="@string/style_fade"
                                     android:textSize="11sp" />
                             </LinearLayout>
 
