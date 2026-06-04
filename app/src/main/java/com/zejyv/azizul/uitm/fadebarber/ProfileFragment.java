@@ -54,7 +54,25 @@ public class ProfileFragment extends Fragment {
         initializeViews(view);
         calculateDimensions();
         setupCollapsingTopBar();
+        setupLogoutAction(view);
+        adjustLayoutForEmployee();
         populateUserData();
+    }
+
+    /**
+     * Hides specific items if the fragment is hosted in the Employee Space.
+     */
+    private void adjustLayoutForEmployee() {
+        View view = getView();
+        if (getActivity() instanceof MainActivityEmployee && view != null) {
+            View cutHistory = view.findViewById(R.id.mcv_cut_history);
+            View privacyPolicy = view.findViewById(R.id.mcv_privacy_policy);
+            View userAgreement = view.findViewById(R.id.mcv_user_agreement);
+
+            if (cutHistory != null) cutHistory.setVisibility(View.GONE);
+            if (privacyPolicy != null) privacyPolicy.setVisibility(View.GONE);
+            if (userAgreement != null) userAgreement.setVisibility(View.GONE);
+        }
     }
 
     /**
@@ -263,5 +281,22 @@ public class ProfileFragment extends Fragment {
             }
         });
         animator.start();
+    }
+
+    /**
+     * Sets up the logout action trigger by delegating to MainActivity.
+     */
+    private void setupLogoutAction(View view) {
+        // --- Logout Action ---
+        View ivLogout = view.findViewById(R.id.iv_logout);
+        if (ivLogout != null) {
+            ivLogout.setOnClickListener(v -> {
+                if (getActivity() instanceof MainActivity) {
+                    ((MainActivity) getActivity()).showLogoutDialog();
+                } else if (getActivity() instanceof MainActivityEmployee) {
+                    ((MainActivityEmployee) getActivity()).showLogoutDialog();
+                }
+            });
+        }
     }
 }

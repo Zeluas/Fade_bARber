@@ -12,12 +12,18 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.splashscreen.SplashScreen;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * AuthActivity handles the user authentication process including Login and a multi-step Signup.
@@ -38,6 +44,10 @@ public class AuthActivity extends AppCompatActivity {
     private int signupStep = 1; // 1: Account, 2: Identity, 3: Credentials, 4: Success, 5: Failed
     private boolean isHeaderSuppressed = false;
 
+    // Firebase
+    private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
+
     // Previous state trackers for animation direction and delta checks
     private String prevTitle = "";
     private String prevActionText = "";
@@ -55,7 +65,7 @@ public class AuthActivity extends AppCompatActivity {
     
     // Text Views
     private TextView tvFormTitle, tvStepNumber, tvSignupErrorDetails;
-    
+
     // Buttons & Icons
     private Button btnAuthAction, btnSwitchAuthMode, btnExitCancel, btnExitConfirm;
     private ImageView ivAuthBack;
@@ -73,6 +83,9 @@ public class AuthActivity extends AppCompatActivity {
         SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_auth);
+
+        mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
 
         initializeViews();
         setupListeners();
@@ -163,6 +176,7 @@ public class AuthActivity extends AppCompatActivity {
         // Exit confirmation dialog buttons
         btnExitCancel.setOnClickListener(v -> hideExitDialog());
         btnExitConfirm.setOnClickListener(v -> finish());
+        layoutExitConfirmation.setOnClickListener(v -> hideExitDialog());
     }
 
     /**
@@ -267,14 +281,77 @@ public class AuthActivity extends AppCompatActivity {
      */
     private void handleLogin() {
         String email = etLoginEmail.getText().toString().trim();
-        if (!email.isEmpty()) {
-            // Success: Navigate to Main
-            Intent intent = new Intent(this, MainActivity.class);
-            startActivity(intent);
-            finish();
-        } else {
-            Toast.makeText(this, getString(R.string.login_error_empty_email), Toast.LENGTH_SHORT).show();
+        String password = etLoginPassword.getText().toString().trim();
+
+        // Email Validation
+        if (email.isEmpty()) {
+            etLoginEmail.setError(getString(R.string.login_error_empty_email));
+            etLoginEmail.requestFocus();
+            return;
         }
+        if (!email.contains("@")) {
+            etLoginEmail.setError("Email missing '@' symbol");
+            etLoginEmail.requestFocus();
+            return;
+        }
+        if (!email.contains(".")) {
+            etLoginEmail.setError("Email missing '.' (dot)");
+            etLoginEmail.requestFocus();
+            return;
+        }
+
+        // Password Validation
+        if (password.isEmpty()) {
+            etLoginPassword.setError("Please enter your password");
+            etLoginPassword.requestFocus();
+            return;
+        }
+        
+        if (!validatePasswordComplexity(etLoginPassword, password)) {
+            return;
+        }
+
+        // Show some loading indicator if needed, for now just proceeding
+        mAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        if (user != null) {
+                            // Fetch user role from Firestore
+                            db.collection("users").document(user.getUid()).get()
+                                    .addOnSuccessListener(documentSnapshot -> {
+                                        Intent intent;
+                                        String role = documentSnapshot.getString("role");
+                                        if ("employee".equals(role)) {
+                                            intent = new Intent(this, MainActivityEmployee.class);
+                                        } else {
+                                            intent = new Intent(this, MainActivity.class);
+                                        }
+                                        startActivity(intent);
+                                        finish();
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        // Fallback to email logic if Firestore fetch fails
+                                        Intent intent;
+                                        if (email.contains("emp")) {
+                                            intent = new Intent(this, MainActivityEmployee.class);
+                                        } else {
+                                            intent = new Intent(this, MainActivity.class);
+                                        }
+                                        startActivity(intent);
+                                        finish();
+                                    });
+                        }
+                    } else {
+                        // Removed Toast as requested. Using setError on the password field for general auth failure.
+                        String errorMsg = "Authentication failed";
+                        if (task.getException() != null) {
+                            errorMsg = task.getException().getMessage();
+                        }
+                        etLoginPassword.setError(errorMsg);
+                        etLoginPassword.requestFocus();
+                    }
+                });
     }
 
     /**
@@ -283,10 +360,33 @@ public class AuthActivity extends AppCompatActivity {
     private void handleSignupNext() {
         switch (signupStep) {
             case 1: // Account Info Step
-                if (validateAccountInfo()) { 
-                    signupStep = 2; 
-                    updateUI(true); 
-                    etSignupName.requestFocus(); 
+                if (validateAccountInfo()) {
+                    String email = etSignupEmail.getText().toString().trim();
+                    String username = etSignupUsername.getText().toString().trim();
+
+                    // Check uniqueness in Firestore
+                    btnAuthAction.setEnabled(false); // Prevent multiple clicks
+                    db.collection("users").whereEqualTo("email", email).get()
+                            .addOnCompleteListener(task -> {
+                                if (task.isSuccessful() && !task.getResult().isEmpty()) {
+                                    etSignupEmail.setError("Email already registered");
+                                    etSignupEmail.requestFocus();
+                                    btnAuthAction.setEnabled(true);
+                                } else {
+                                    db.collection("users").whereEqualTo("username", username).get()
+                                            .addOnCompleteListener(uTask -> {
+                                                btnAuthAction.setEnabled(true);
+                                                if (uTask.isSuccessful() && !uTask.getResult().isEmpty()) {
+                                                    etSignupUsername.setError("Username already taken");
+                                                    etSignupUsername.requestFocus();
+                                                } else {
+                                                    signupStep = 2;
+                                                    updateUI(true);
+                                                    etSignupName.requestFocus();
+                                                }
+                                            });
+                                }
+                            });
                 }
                 break;
             case 2: // Identity Info Step
@@ -300,8 +400,7 @@ public class AuthActivity extends AppCompatActivity {
                 if (validateCredentials()) {
                     hideKeyboard();
                     clearFocus();
-                    simulateRegistration();
-                    updateUI(true);
+                    performRegistration();
                 }
                 break;
             case 4: // Success Screen -> Back to Login
@@ -315,16 +414,56 @@ public class AuthActivity extends AppCompatActivity {
     }
 
     /**
-     * Simulates the registration process result.
+     * Performs actual registration with Firebase Auth and Firestore.
      */
-    private void simulateRegistration() {
-        // QA Hook: Simulate failure if password is 'asd'
-        if (etSignupPassword.getText().toString().equals("asd")) {
-            signupStep = 5; // Failed state
-            tvSignupErrorDetails.setText("QA Test: Registration failed because password was 'asd'.");
-        } else {
-            signupStep = 4; // Success state
-        }
+    private void performRegistration() {
+        String email = etSignupEmail.getText().toString().trim();
+        String password = etSignupPassword.getText().toString().trim();
+        String username = etSignupUsername.getText().toString().trim();
+        String name = etSignupName.getText().toString().trim();
+        String phone = etSignupPhone.getText().toString().trim();
+
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                        if (firebaseUser != null) {
+                            String userId = firebaseUser.getUid();
+
+                            // Prepare user data for Firestore
+                            Map<String, Object> user = new HashMap<>();
+                            user.put("uid", userId);
+                            user.put("email", email);
+                            user.put("username", username);
+                            user.put("name", name);
+                            user.put("phone", phone);
+                            user.put("role", email.contains("emp") ? "employee" : "customer");
+                            user.put("createdAt", com.google.firebase.Timestamp.now());
+
+                            // Save to 'users' collection
+                            db.collection("users").document(userId)
+                                    .set(user)
+                                    .addOnSuccessListener(aVoid -> {
+                                        signupStep = 4; // Success
+                                        updateUI(true);
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        signupStep = 5; // Failed
+                                        String error = "Firestore Error: " + e.getMessage();
+                                        tvSignupErrorDetails.setText(error);
+                                        updateUI(true);
+                                    });
+                        }
+                    } else {
+                        signupStep = 5; // Failed
+                        String error = "Auth Error: ";
+                        if (task.getException() != null) {
+                            error += task.getException().getMessage();
+                        }
+                        tvSignupErrorDetails.setText(error);
+                        updateUI(true);
+                    }
+                });
     }
 
     /**
@@ -662,24 +801,73 @@ public class AuthActivity extends AppCompatActivity {
     // --- Validation Methods ---
 
     private boolean validateAccountInfo() {
-        if (etSignupEmail.getText().toString().trim().isEmpty()) {
+        String email = etSignupEmail.getText().toString().trim();
+        String username = etSignupUsername.getText().toString().trim();
+
+        if (email.isEmpty()) {
             etSignupEmail.setError(getString(R.string.signup_error_email_required));
+            etSignupEmail.requestFocus();
             return false;
         }
-        if (etSignupUsername.getText().toString().trim().isEmpty()) {
+        if (!email.contains("@")) {
+            etSignupEmail.setError("Email missing '@' symbol");
+            etSignupEmail.requestFocus();
+            return false;
+        }
+        if (!email.contains(".")) {
+            etSignupEmail.setError("Email missing '.' (dot)");
+            etSignupEmail.requestFocus();
+            return false;
+        }
+
+        if (username.isEmpty()) {
             etSignupUsername.setError(getString(R.string.signup_error_username_required));
+            etSignupUsername.requestFocus();
+            return false;
+        }
+        if (username.length() > 16) {
+            etSignupUsername.setError("Username must be 16 characters or less");
+            etSignupUsername.requestFocus();
+            return false;
+        }
+        if (!username.matches("^[a-zA-Z0-9]+$")) {
+            etSignupUsername.setError("Username can only contain letters and numbers (no spaces or special characters)");
+            etSignupUsername.requestFocus();
             return false;
         }
         return true;
     }
 
     private boolean validateIdentityInfo() {
-        if (etSignupName.getText().toString().trim().isEmpty()) {
+        String name = etSignupName.getText().toString().trim();
+        String phone = etSignupPhone.getText().toString().trim();
+
+        if (name.isEmpty()) {
             etSignupName.setError(getString(R.string.signup_error_name_required));
+            etSignupName.requestFocus();
             return false;
         }
-        if (etSignupPhone.getText().toString().trim().isEmpty()) {
+        // Name: Only letters, spaces, @ and -
+        if (!name.matches("^[a-zA-Z\\s@\\-]+$")) {
+            etSignupName.setError("Name can only contain letters, spaces, @ and -");
+            etSignupName.requestFocus();
+            return false;
+        }
+
+        if (phone.isEmpty()) {
             etSignupPhone.setError(getString(R.string.signup_error_phone_required));
+            etSignupPhone.requestFocus();
+            return false;
+        }
+        // Phone: At least 11 digits, no special characters
+        if (!phone.matches("[0-9]+")) {
+            etSignupPhone.setError("Phone number can only contain digits");
+            etSignupPhone.requestFocus();
+            return false;
+        }
+        if (phone.length() < 11) {
+            etSignupPhone.setError("Phone number must be at least 11 digits");
+            etSignupPhone.requestFocus();
             return false;
         }
         return true;
@@ -688,12 +876,47 @@ public class AuthActivity extends AppCompatActivity {
     private boolean validateCredentials() {
         String pass = etSignupPassword.getText().toString();
         String confirm = etSignupConfirm.getText().toString();
+        
         if (pass.isEmpty()) {
             etSignupPassword.setError(getString(R.string.signup_error_password_required));
+            etSignupPassword.requestFocus();
             return false;
         }
+
+        if (!validatePasswordComplexity(etSignupPassword, pass)) {
+            return false;
+        }
+
         if (!pass.equals(confirm)) {
             etSignupConfirm.setError(getString(R.string.signup_error_password_mismatch));
+            etSignupConfirm.requestFocus();
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Helper to validate password complexity and set specific error messages.
+     */
+    private boolean validatePasswordComplexity(EditText editText, String password) {
+        if (password.length() < 8) {
+            editText.setError("Password must be at least 8 characters");
+            editText.requestFocus();
+            return false;
+        }
+        if (!password.matches(".*[A-Z].*")) {
+            editText.setError("Missing uppercase letter");
+            editText.requestFocus();
+            return false;
+        }
+        if (!password.matches(".*[a-z].*")) {
+            editText.setError("Missing lowercase letter");
+            editText.requestFocus();
+            return false;
+        }
+        if (!password.matches(".*[0-9].*")) {
+            editText.setError("Missing a number");
+            editText.requestFocus();
             return false;
         }
         return true;

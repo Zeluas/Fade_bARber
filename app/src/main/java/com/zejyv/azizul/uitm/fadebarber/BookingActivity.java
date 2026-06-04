@@ -109,7 +109,7 @@ public class BookingActivity extends AppCompatActivity {
         });
 
         // Final Booking Confirmation
-        btnConfirmBooking.setOnClickListener(v -> 
+        btnConfirmBooking.setOnClickListener(v ->
             Toast.makeText(this, getString(R.string.booking_success_toast), Toast.LENGTH_SHORT).show()
         );
     }

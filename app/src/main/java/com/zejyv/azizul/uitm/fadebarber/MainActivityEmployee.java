@@ -1,51 +1,38 @@
 package com.zejyv.azizul.uitm.fadebarber;
 
 import android.animation.ValueAnimator;
-import android.content.Intent;
-import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
-import android.util.TypedValue;
 import android.view.View;
+import android.widget.Button;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 
-import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-import android.widget.Button;
+public class MainActivityEmployee extends AppCompatActivity {
 
-/**
- * MainActivity: The primary host for the customer application interface.
- * Features:
- * - ViewPager2 for seamless fragment navigation.
- * - Synchronized BottomNavigationView with custom animations.
- * - Notification badges and quick-access FAB for bookings.
- */
-public class MainActivity extends AppCompatActivity {
-
-    // --- Core UI Components ---
     private ViewPager2 viewPager;
     private BottomNavigationView bottomNavigationView;
+    private android.widget.TextView tvFabLabel;
 
-    // --- Exit Dialog Components ---
+    private FloatingActionButton fab;
+
     private View layoutExitConfirmation, mcvExitDialog;
 
-    // --- Logout Dialog Components ---
     private View layoutLogoutConfirmation, mcvLogoutDialog;
-    private Button btnLogoutCancel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main_customer);
+        setContentView(R.layout.activity_main_employee);
 
         initializeViews();
-        setupBadge();
         setupNavigationSync();
         setupFab();
         setupExitDialog();
@@ -53,105 +40,80 @@ public class MainActivity extends AppCompatActivity {
         setupBackPressed();
     }
 
-    /**
-     * Initializes UI references and sets up the pager adapter.
-     */
     private void initializeViews() {
         viewPager = findViewById(R.id.viewPager);
         bottomNavigationView = findViewById(R.id.bottomNavigation);
+        tvFabLabel = findViewById(R.id.tv_fab_label);
+        fab = findViewById(R.id.fab);
 
-        MainPagerAdapter adapter = new MainPagerAdapter(this);
+        EmployeePagerAdapter adapter = new EmployeePagerAdapter(this);
         viewPager.setAdapter(adapter);
     }
 
-    /**
-     * Configures notification badges on the Activity/Notification tab.
-     */
-    private void setupBadge() {
-        BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.navigation_notifications);
-        badge.setVisible(true);
-        badge.setNumber(3); // Mock count
-        badge.setBackgroundColor(Color.parseColor("#D81B60"));
-        badge.setBadgeTextColor(Color.WHITE);
-
-        // Adjust badge position
-        int offset = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4, getResources().getDisplayMetrics());
-        badge.setVerticalOffset(offset);
-        badge.setHorizontalOffset(offset);
-    }
-
-    /**
-     * Synchronizes BottomNavigationView clicks with ViewPager2 swipes.
-     */
     private void setupNavigationSync() {
-        // Handle menu item selections
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
-            animateBottomNavigationItem(itemId);
-
-            if (itemId == R.id.navigation_home) {
+            
+            if (itemId == R.id.navigation_book) {
+                animateBottomNavigationItem(itemId);
                 viewPager.setCurrentItem(0);
                 return true;
-            } else if (itemId == R.id.navigation_try_on) {
-                // Quick launch for Try-On tool
-                startActivity(new Intent(MainActivity.this, TryOnActivity.class));
-                revertSelectionAfterDelay();
-                return true;
-            } else if (itemId == R.id.navigation_notifications) {
-                viewPager.setCurrentItem(1);
-                return true;
             } else if (itemId == R.id.navigation_profile) {
+                animateBottomNavigationItem(itemId);
                 viewPager.setCurrentItem(2);
                 return true;
+            } else if (itemId == R.id.navigation_placeholder) {
+                return false;
             }
             return false;
         });
 
-        // Update Nav selection based on Pager swipe
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
-                switch (position) {
-                    case 0: bottomNavigationView.setSelectedItemId(R.id.navigation_home); break;
-                    case 1: bottomNavigationView.setSelectedItemId(R.id.navigation_notifications); break;
-                    case 2: bottomNavigationView.setSelectedItemId(R.id.navigation_profile); break;
-                }
+                updateUiForPage(position);
             }
         });
 
-        // Trigger initial animation for the default tab
-        bottomNavigationView.post(() -> animateBottomNavigationItem(R.id.navigation_home));
-        
-        // Disable actions on re-selection
-        bottomNavigationView.setOnItemReselectedListener(item -> {});
+        // Default to Home (position 1)
+        viewPager.setCurrentItem(1, false);
+        updateUiForPage(1);
     }
 
-    /**
-     * Feature: Briefly shows Try-On selection, then reverts to the last active tab.
-     */
-    private void revertSelectionAfterDelay() {
-        int lastPos = viewPager.getCurrentItem();
-        bottomNavigationView.postDelayed(() -> {
-            int targetId;
-            if (lastPos == 1) targetId = R.id.navigation_notifications;
-            else if (lastPos == 2) targetId = R.id.navigation_profile;
-            else targetId = R.id.navigation_home;
-            bottomNavigationView.setSelectedItemId(targetId);
-        }, 1500);
+    private void updateUiForPage(int position) {
+        switch (position) {
+            case 0:
+                bottomNavigationView.setSelectedItemId(R.id.navigation_book);
+                setFabActive(false);
+                break;
+            case 1:
+                bottomNavigationView.getMenu().findItem(R.id.navigation_placeholder).setChecked(true);
+                setFabActive(true);
+                break;
+            case 2:
+                bottomNavigationView.setSelectedItemId(R.id.navigation_profile);
+                setFabActive(false);
+                break;
+        }
     }
 
-    /**
-     * Configures the primary booking trigger button.
-     */
+    private void setFabActive(boolean active) {
+        if (active) {
+            tvFabLabel.setTextColor(getResources().getColor(R.color.primary_color, getTheme()));
+        } else {
+            tvFabLabel.setTextColor(android.graphics.Color.parseColor("#808080"));
+        }
+        if (fab != null) {
+            fab.setActivated(active);
+        }
+    }
+
     private void setupFab() {
-        findViewById(R.id.fab).setOnClickListener(v -> 
-            startActivity(new Intent(MainActivity.this, BookingActivity.class))
-        );
+        if (fab != null) {
+            fab.setOnClickListener(v -> viewPager.setCurrentItem(1));
+        }
     }
 
-    /**
-     * Initializes and configures the custom exit confirmation dialog.
-     */
     private void setupExitDialog() {
         layoutExitConfirmation = findViewById(R.id.layout_exit_confirmation);
         mcvExitDialog = findViewById(R.id.mcv_exit_dialog);
@@ -161,15 +123,11 @@ public class MainActivity extends AppCompatActivity {
         btnExitCancel.setOnClickListener(v -> hideExitDialog());
         btnExitConfirm.setOnClickListener(v -> finish());
 
-        // Clicking outside the dialog (on the overlay) hides it
         if (layoutExitConfirmation != null) {
             layoutExitConfirmation.setOnClickListener(v -> hideExitDialog());
         }
     }
 
-    /**
-     * Initializes and configures the logout confirmation dialog.
-     */
     private void setupLogoutDialog() {
         layoutLogoutConfirmation = findViewById(R.id.layout_logout_confirmation);
         mcvLogoutDialog = findViewById(R.id.mcv_logout_dialog);
@@ -177,8 +135,8 @@ public class MainActivity extends AppCompatActivity {
 
         if (btnLogoutConfirm != null) btnLogoutConfirm.setOnClickListener(v -> {
             com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
-            Intent intent = new Intent(MainActivity.this, AuthActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            android.content.Intent intent = new android.content.Intent(MainActivityEmployee.this, AuthActivity.class);
+            intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();
         });
@@ -187,9 +145,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Shows the logout confirmation dialog with animation.
-     */
     public void showLogoutDialog() {
         if (layoutLogoutConfirmation == null || mcvLogoutDialog == null) return;
 
@@ -203,9 +158,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Hides the logout confirmation dialog with animation.
-     */
     public void hideLogoutDialog() {
         if (layoutLogoutConfirmation == null || mcvLogoutDialog == null) return;
 
@@ -214,9 +166,12 @@ public class MainActivity extends AppCompatActivity {
                 .withEndAction(() -> layoutLogoutConfirmation.setVisibility(View.GONE)).start();
     }
 
-    /**
-     * Shows the custom exit confirmation dialog with animation.
-     */
+    private void hideExitDialog() {
+        mcvExitDialog.animate().scaleX(0f).scaleY(0f).setDuration(200).start();
+        layoutExitConfirmation.animate().alpha(0f).setDuration(200)
+                .withEndAction(() -> layoutExitConfirmation.setVisibility(View.GONE)).start();
+    }
+
     private void showExitDialog() {
         layoutExitConfirmation.setVisibility(View.VISIBLE);
         layoutExitConfirmation.setAlpha(0f);
@@ -227,18 +182,6 @@ public class MainActivity extends AppCompatActivity {
         mcvExitDialog.animate().scaleX(1f).scaleY(1f).setDuration(300).start();
     }
 
-    /**
-     * Hides the custom exit confirmation dialog with animation.
-     */
-    private void hideExitDialog() {
-        mcvExitDialog.animate().scaleX(0f).scaleY(0f).setDuration(200).start();
-        layoutExitConfirmation.animate().alpha(0f).setDuration(200)
-                .withEndAction(() -> layoutExitConfirmation.setVisibility(View.GONE)).start();
-    }
-
-    /**
-     * Configures the system back button behavior to show the exit dialog.
-     */
     private void setupBackPressed() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -254,9 +197,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Executes the custom "Pill" expansion animation for navigation items.
-     */
     private void animateBottomNavigationItem(int itemId) {
         final View itemView = bottomNavigationView.findViewById(itemId);
         if (itemView == null) return;
@@ -267,8 +207,6 @@ public class MainActivity extends AppCompatActivity {
                 Drawable current = bg.getCurrent();
                 if (current instanceof LayerDrawable) {
                     LayerDrawable layers = (LayerDrawable) current;
-
-                    // Animate underline and background fill levels (0-10000)
                     animateLayer(layers.findDrawableByLayerId(R.id.pill_underline));
                     animateLayer(layers.findDrawableByLayerId(R.id.pill_background));
                 }

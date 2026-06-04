@@ -97,9 +97,14 @@
 
     <!-- Navigation Labels -->
     <string name="nav_home">Home</string>
+    <string name="nav_book">Book</string>
     <string name="nav_try_on">Try-On</string>
     <string name="nav_notifications">Activity</string>
     <string name="nav_profile">Profile</string>
+
+    <!-- Employee Space -->
+    <string name="employee_home_title">Employee Home</string>
+    <string name="employee_book_title">Employee Bookings</string>
 
     <!-- Notifications -->
     <string name="notif_booking_success">Booking Success</string>
@@ -161,4 +166,9 @@
     <string name="exit_dialog_msg">Are you sure you want to exit the app?</string>
     <string name="exit_dialog_btn_cancel">CANCEL</string>
     <string name="exit_dialog_btn_confirm">EXIT</string>
+
+    <!-- Logout Strings -->
+    <string name="logout_confirm_title">Confirm Log Out</string>
+    <string name="logout_confirm_btn">Log Out</string>
+    <string name="logout_cancel_btn">Cancel</string>
 </resources>

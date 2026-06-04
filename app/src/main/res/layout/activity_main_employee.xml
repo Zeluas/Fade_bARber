@@ -1,12 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Main Customer Activity Layout: The primary host container for the application.
-    Features:
-    - ViewPager2: Swipable fragment area (Home, Activity, Profile).
-    - BottomAppBar: The base for the navigation and centered booking FAB.
-    - BottomNavigationView: Tab-based navigation controls.
-    - FloatingActionButton (FAB): Prominent quick-action button for new bookings.
--->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -14,11 +6,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
-    android:forceDarkAllowed="false"
-    tools:context=".MainActivity">
+    android:forceDarkAllowed="false">
 
     <!-- Section 1: Dynamic Content Pager -->
-    <!-- Displays the current fragment based on navigation selection -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="match_parent"
@@ -27,7 +17,6 @@
         android:theme="@style/ViewPagerEdgeEffect" />
 
     <!-- Section 2: Bottom Application Bar -->
-    <!-- Serves as the visual background and anchor point for the FAB -->
     <com.google.android.material.bottomappbar.BottomAppBar
         android:id="@+id/bottomAppBar"
         android:layout_width="match_parent"
@@ -39,7 +28,6 @@
         app:contentInsetRight="0dp"
         app:contentInsetStart="0dp" >
 
-        <!-- Navigation Tabs (Home, Activity, Profile) -->
         <com.google.android.material.bottomnavigation.BottomNavigationView
             android:id="@+id/bottomNavigation"
             android:layout_width="match_parent"
@@ -51,20 +39,19 @@
             app:itemIconTint="@color/bottom_nav_color_state"
             app:itemTextColor="@color/bottom_nav_color_state"
             app:labelVisibilityMode="labeled"
-            app:menu="@menu/bottom_nav_menu" />
+            app:menu="@menu/bottom_nav_menu_employee" />
 
     </com.google.android.material.bottomappbar.BottomAppBar>
 
-    <!-- Section 3: Central Booking Action Button -->
-    <!-- Prominent circular button anchored to the top of the BottomAppBar -->
+    <!-- Section 3: Central Home Action Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="0dp"
         android:backgroundTint="@color/primary_color"
-        android:src="@drawable/ic_plus"
-        android:contentDescription="@string/plus_button_description"
+        android:src="@drawable/ic_home"
+        android:contentDescription="@string/nav_home"
         app:backgroundTint="@color/black"
         app:borderWidth="0.7dp"
         app:fabCustomSize="65dp"
@@ -73,18 +60,28 @@
         app:layout_anchorGravity="top|center_horizontal"
         app:maxImageSize="40dp"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.FAB.Circle"
-        app:tint="@color/white" />
+        app:tint="@color/fab_tint_selector" />
 
-    <!-- FAB Label: "Book Now" Text below the FAB -->
+    <View
+        android:id="@+id/v_fab_pill_bg"
+        android:layout_width="80dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@drawable/bg_pill_primary"
+        android:backgroundTint="@color/trans_primary_color"
+        android:visibility="gone"
+        app:layout_anchor="@id/bottomNavigation"
+        app:layout_anchorGravity="center_horizontal" />
+
     <TextView
-        android:id="@+id/tv_book_now_label"
+        android:id="@+id/tv_fab_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingTop="28dp"
-        android:text="@string/book_now"
+        android:text="@string/nav_home"
         android:textColor="#808080"
         android:textSize="13sp"
         android:textStyle="bold"
+        android:elevation="1dp"
         app:layout_anchor="@id/fab"
         app:layout_anchorGravity="bottom|center_horizontal" />
 
@@ -121,7 +118,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-                <!-- Exit Dialog Header -->
                 <TextView
                     android:id="@+id/tv_exit_dialog_title"
                     android:layout_width="match_parent"
@@ -135,7 +131,6 @@
                     android:textStyle="bold"
                     app:layout_constraintTop_toTopOf="parent" />
 
-                <!-- Exit Dialog Body -->
                 <TextView
                     android:id="@+id/tv_exit_dialog_msg"
                     android:layout_width="wrap_content"
@@ -149,7 +144,6 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/tv_exit_dialog_title" />
 
-                <!-- Buttons Row -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_exit_cancel"
                     android:layout_width="0dp"
@@ -225,7 +219,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-                <!-- Logout Dialog Header -->
                 <TextView
                     android:id="@+id/tv_logout_dialog_header"
                     android:layout_width="match_parent"
@@ -239,7 +232,6 @@
                     android:textStyle="bold"
                     app:layout_constraintTop_toTopOf="parent" />
 
-                <!-- Confirm Logout Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_logout_confirm"
                     android:layout_width="match_parent"
@@ -263,4 +255,3 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
-

@@ -53,6 +53,9 @@
         app:cardBackgroundColor="@color/white"
         app:cardCornerRadius="16dp"
         app:cardElevation="4dp"
+        app:cardPreventCornerOverlap="false"
+        app:cardUseCompatPadding="false"
+        app:contentPadding="0dp"
         app:layout_constraintBottom_toTopOf="@+id/btn_switch_auth_mode"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.6"
@@ -601,9 +604,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="40dp"
+            android:clickable="true"
+            android:focusable="true"
             app:cardBackgroundColor="@color/white"
             app:cardCornerRadius="16dp"
             app:cardElevation="8dp"
+            app:cardPreventCornerOverlap="false"
+            app:cardUseCompatPadding="false"
+            app:contentPadding="0dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:strokeColor="@color/primary_color"
@@ -661,7 +669,7 @@
                     app:layout_constraintEnd_toStartOf="@+id/btn_exit_confirm"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/tv_exit_dialog_msg"
-                    app:rippleColor="@color/trans_primary_color"
+                    app:rippleColor="@color/primary_color"
                     app:strokeColor="@color/primary_color"
                     app:strokeWidth="2dp" />
 
@@ -681,7 +689,8 @@
                     app:layout_constraintBottom_toBottomOf="@id/btn_exit_cancel"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toEndOf="@id/btn_exit_cancel"
-                    app:layout_constraintTop_toTopOf="@id/btn_exit_cancel" />
+                    app:layout_constraintTop_toTopOf="@id/btn_exit_cancel"
+                    app:rippleColor="@color/trans_white" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>

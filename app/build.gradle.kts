@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.secrets.gradle)
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
@@ -40,7 +41,10 @@ android {
 }
 
 dependencies {
+    implementation(platform(libs.firebase.bom))
     implementation(libs.appcompat)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
