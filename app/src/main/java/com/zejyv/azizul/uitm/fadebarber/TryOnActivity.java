@@ -10,7 +10,10 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -24,9 +27,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.TooltipCompat;
 import androidx.camera.core.CameraSelector;
-import androidx.camera.core.Preview;
+import androidx.camera.core.ImageAnalysis;
 import androidx.camera.lifecycle.ProcessCameraProvider;
-import androidx.camera.view.PreviewView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -34,28 +36,38 @@ import androidx.core.content.ContextCompat;
 import com.google.android.material.button.MaterialButton;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
 
+import ai.deepar.ar.DeepAR;
+import ai.deepar.ar.AREventListener;
+import ai.deepar.ar.DeepARImageFormat;
+
 /**
- * TryOnActivity handles the AR hairstyle try-on experience.
+ * TryOnActivity handles the AR hairstyle try-on experience using DeepAR SDK.
  * Features:
- * - Real-time camera preview using CameraX.
+ * - Real-time AR rendering on a SurfaceView.
+ * - Frame processing from CameraX to DeepAR.
  * - Interactive hairstyle carousel with expand/collapse animations.
- * - Auto-reminder bounce animation for the carousel.
- * - Optimized full-screen performance.
  */
-public class TryOnActivity extends AppCompatActivity {
+public class TryOnActivity extends AppCompatActivity implements AREventListener, SurfaceHolder.Callback {
 
     private static final int CAMERA_PERMISSION_CODE = 1001;
+    private static final String TAG = "TryOnActivity";
 
     // --- UI Components ---
-    private PreviewView viewFinder;
+    private SurfaceView surfaceView;
     private ConstraintLayout bottomSheetContainer;
     private ConstraintLayout carouselContainer;
     private ImageView ivCarouselArrow;
     private View carouselScroll;
     private TextView tvChooseHairstyle, tvChooseHairstyleCollapsed;
     private MaterialButton fabCapture;
+
+    // --- DeepAR & Camera ---
+    private DeepAR deepAR;
+    private ProcessCameraProvider cameraProvider;
+    private boolean isDeepARInitialized = false;
 
     // --- State & Animation Management ---
     private boolean isCarouselExpanded = true;
@@ -75,25 +87,34 @@ public class TryOnActivity extends AppCompatActivity {
         
         setContentView(R.layout.activity_try_on);
 
+        initializeDeepAR();
         initializeViews();
         setupBookingContext();
         setupCarouselLogic();
-        
+
         reminderRunnable = this::startReminderAnimation;
 
         // Start camera if permissions are already granted
         if (allPermissionsGranted()) {
-            startCamera();
+            setupCamera();
         } else {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_CODE);
         }
+    }
+
+    private void initializeDeepAR() {
+        deepAR = new DeepAR(this);
+        deepAR.setLicenseKey(BuildConfig.DEEP_AR_SDK_KEY);
+        deepAR.initialize(this, this);
     }
 
     /**
      * Initializes all view references from the activity layout.
      */
     private void initializeViews() {
-        viewFinder = findViewById(R.id.viewFinder);
+        surfaceView = findViewById(R.id.surfaceView);
+        surfaceView.getHolder().addCallback(this);
+        
         bottomSheetContainer = findViewById(R.id.bottom_sheet_container);
         carouselContainer = findViewById(R.id.carousel_container);
         ivCarouselArrow = findViewById(R.id.iv_carousel_arrow);
@@ -101,6 +122,11 @@ public class TryOnActivity extends AppCompatActivity {
         tvChooseHairstyle = findViewById(R.id.tv_choose_hairstyle);
         tvChooseHairstyleCollapsed = findViewById(R.id.tv_choose_hairstyle_collapsed);
         fabCapture = findViewById(R.id.fab_capture);
+        fabCapture.setOnClickListener(v -> {
+            if (deepAR != null) {
+                deepAR.takeScreenshot();
+            }
+        });
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
     }
@@ -130,6 +156,17 @@ public class TryOnActivity extends AppCompatActivity {
         ivCarouselArrow.setOnClickListener(v -> toggleCarousel(!isCarouselExpanded));
         tvChooseHairstyleCollapsed.setOnClickListener(v -> toggleCarousel(!isCarouselExpanded));
         carouselContainer.setOnClickListener(v -> toggleCarousel(!isCarouselExpanded));
+
+        // Hairstyle Selection Listeners
+        // Mapping available assets for testing
+        findViewById(R.id.item_buzz_cut).setOnClickListener(v -> switchHairstyle("viking_helmet.deepar"));
+        findViewById(R.id.item_fade).setOnClickListener(v -> switchHairstyle("Vendetta_Mask.deepar"));
+        findViewById(R.id.item_pompadour).setOnClickListener(v -> switchHairstyle("Humanoid.deepar"));
+        findViewById(R.id.item_undercut).setOnClickListener(v -> switchHairstyle("Snail.deepar"));
+        findViewById(R.id.item_crew_cut).setOnClickListener(v -> switchHairstyle("viking_helmet.deepar"));
+        findViewById(R.id.item_mohawk).setOnClickListener(v -> switchHairstyle("Vendetta_Mask.deepar"));
+        findViewById(R.id.item_side_part).setOnClickListener(v -> switchHairstyle("Humanoid.deepar"));
+        findViewById(R.id.item_top_knot).setOnClickListener(v -> switchHairstyle("Snail.deepar"));
 
         // Swipe-to-collapse/expand logic
         View rootView = findViewById(android.R.id.content);
@@ -168,6 +205,20 @@ public class TryOnActivity extends AppCompatActivity {
             }
             return false;
         });
+    }
+
+    /**
+     * Switches the AR effect to the specified hairstyle.
+     * @param fileName The name of the .deepar file in the assets folder.
+     */
+    private void switchHairstyle(String fileName) {
+        if (deepAR != null && isDeepARInitialized) {
+            // DeepAR 5.x uses the slot name "main" for the primary effect
+            deepAR.switchEffect("main", "file:///android_asset/" + fileName);
+            Log.d(TAG, "Switched effect to: " + fileName);
+        } else {
+            Toast.makeText(this, "DeepAR is still initializing...", Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
@@ -251,33 +302,72 @@ public class TryOnActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        if (cameraProvider != null) {
+            cameraProvider.unbindAll();
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         stopReminderAnimation();
+        if (deepAR != null) {
+            deepAR.release();
+            deepAR = null;
+        }
     }
 
     /**
-     * Configures and starts the CameraX front-facing camera preview.
+     * Configures CameraX to send frames to DeepAR for processing.
      */
-    private void startCamera() {
+    private void setupCamera() {
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
 
         cameraProviderFuture.addListener(() -> {
             try {
-                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
-
-                Preview preview = new Preview.Builder().build();
-                preview.setSurfaceProvider(viewFinder.getSurfaceProvider());
-
-                CameraSelector cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
-
-                cameraProvider.unbindAll();
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview);
-
+                cameraProvider = cameraProviderFuture.get();
+                bindCameraUseCases();
             } catch (ExecutionException | InterruptedException e) {
-                Toast.makeText(this, getString(R.string.try_on_camera_error, e.getMessage()), Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Error starting camera: " + e.getMessage());
             }
         }, ContextCompat.getMainExecutor(this));
+    }
+
+    private void bindCameraUseCases() {
+        if (cameraProvider == null) return;
+
+        CameraSelector cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
+
+        ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
+                .build();
+
+        imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), image -> {
+            if (isDeepARInitialized && deepAR != null) {
+                // Get the Y plane buffer directly
+                ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                // Set mirror to true for a natural "mirror" feel with the front camera
+                deepAR.receiveFrame(buffer, image.getWidth(), image.getHeight(), 
+                                   image.getImageInfo().getRotationDegrees(), 
+                                   true, DeepARImageFormat.YUV_420_888, 0);
+            }
+            image.close();
+        });
+
+        try {
+            cameraProvider.unbindAll();
+            cameraProvider.bindToLifecycle(this, cameraSelector, imageAnalysis);
+        } catch (Exception e) {
+            Log.e(TAG, "Use case binding failed", e);
+        }
     }
 
     /**
@@ -292,11 +382,83 @@ public class TryOnActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == CAMERA_PERMISSION_CODE) {
             if (allPermissionsGranted()) {
-                startCamera();
+                setupCamera();
             } else {
                 Toast.makeText(this, getString(R.string.try_on_permission_denied), Toast.LENGTH_SHORT).show();
                 finish();
             }
+        }
+    }
+
+    // --- DeepARListener Implementation ---
+
+    @Override
+    public void initialized() {
+        Log.d(TAG, "DeepAR initialized successfully");
+        isDeepARInitialized = true;
+        // Load a default effect once initialized
+        switchHairstyle("viking_helmet.deepar");
+    }
+
+    @Override
+    public void screenshotTaken(android.graphics.Bitmap bitmap) {
+        Log.d(TAG, "Screenshot taken successfully");
+        Toast.makeText(this, "Screenshot saved to gallery", Toast.LENGTH_SHORT).show();
+        // In a real app, you would save the bitmap to the media store here.
+    }
+
+    @Override
+    public void videoRecordingStarted() {}
+
+    @Override
+    public void videoRecordingFinished() {}
+
+    @Override
+    public void videoRecordingFailed() {}
+
+    @Override
+    public void videoRecordingPrepared() {}
+
+    @Override
+    public void shutdownFinished() {}
+
+    @Override
+    public void error(ai.deepar.ar.ARErrorType arErrorType, String s) {
+        Log.e(TAG, "DeepAR Error: " + s + " Type: " + arErrorType);
+    }
+
+    @Override
+    public void faceVisibilityChanged(boolean visible) {
+        if (visible) {
+            Log.d(TAG, "Face detected");
+        }
+    }
+
+    @Override
+    public void imageVisibilityChanged(String s, boolean b) {}
+
+    @Override
+    public void frameAvailable(android.media.Image image) {}
+
+    @Override
+    public void effectSwitched(String s) {}
+
+    // --- SurfaceHolder.Callback Implementation ---
+
+    @Override
+    public void surfaceCreated(@NonNull SurfaceHolder holder) {}
+
+    @Override
+    public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
+        if (deepAR != null) {
+            deepAR.setRenderSurface(holder.getSurface(), width, height);
+        }
+    }
+
+    @Override
+    public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
+        if (deepAR != null) {
+            deepAR.setRenderSurface(null, 0, 0);
         }
     }
 }

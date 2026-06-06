@@ -80,7 +80,7 @@
 
     <!-- Profile Module Strings -->
     <string name="profile_title">Profile</string>
-    <string name="profile_user_name_default">Ahmad Firdaus Ba</string>
+    <string name="profile_user_name_default">Username (Name)</string>
     <string name="profile_user_id_label">User ID: %1$s</string>
     <string name="profile_btn_edit">Edit</string>
     <string name="profile_item_cut_history">Cut History</string>

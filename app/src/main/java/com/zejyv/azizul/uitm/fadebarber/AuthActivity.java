@@ -426,11 +426,26 @@ public class AuthActivity extends AppCompatActivity {
         }
     }
 
+    private void saveProfileData(String uid, String name, String username, String fullname) {
+        if (encryptedPrefs != null) {
+            encryptedPrefs.edit()
+                    .putString("uid", uid)
+                    .putString("name", name)
+                    .putString("username", username)
+                    .putString("fullname", fullname)
+                    .apply();
+        }
+    }
+
     private void clearSavedCredentials() {
         if (encryptedPrefs != null) {
             encryptedPrefs.edit()
                     .remove("email")
                     .remove("password")
+                    .remove("uid")
+                    .remove("name")
+                    .remove("username")
+                    .remove("fullname")
                     .putBoolean("remember_me", false)
                     .apply();
         }
@@ -511,8 +526,10 @@ public class AuthActivity extends AppCompatActivity {
                                                                                             .addOnSuccessListener(aVoid2 -> {
                                                                                                 if (cbRememberMe.isChecked()) {
                                                                                                     saveCredentials(email, password);
+                                                                                                    saveProfileData(user.getUid(), "", "", "");
                                                                                                 } else {
                                                                                                     clearSavedCredentials();
+                                                                                                    saveProfileData(user.getUid(), "", "", "");
                                                                                                 }
                                                                                                 showButtonLoading(false);
                                                                                                 startActivity(new Intent(this, MainActivityEmployee.class));
@@ -538,24 +555,41 @@ public class AuthActivity extends AppCompatActivity {
                                                                     String registeredEmail = userTask.getResult().getString("email");
 
                                                                     if ("employee".equals(r) && email.equals(registeredEmail)) {
-                                                                        if (cbRememberMe.isChecked()) {
-                                                                            saveCredentials(email, password);
-                                                                        } else {
-                                                                            clearSavedCredentials();
-                                                                        }
-                                                                        showButtonLoading(false);
-                                                                        startActivity(new Intent(this, MainActivityEmployee.class));
-                                                                        finish();
+                                                                        // Fetch employee profile
+                                                                        db.collection("employees").document(user.getUid()).get(Source.SERVER)
+                                                                                .addOnCompleteListener(empTask -> {
+                                                                                    showButtonLoading(false);
+                                                                                    if (empTask.isSuccessful() && empTask.getResult().exists()) {
+                                                                                        String fullname = empTask.getResult().getString("fullname");
+                                                                                        if (cbRememberMe.isChecked()) {
+                                                                                            saveCredentials(email, password);
+                                                                                            saveProfileData(user.getUid(), "", "", fullname);
+                                                                                        } else {
+                                                                                            clearSavedCredentials();
+                                                                                            saveProfileData(user.getUid(), "", "", fullname);
+                                                                                        }
+                                                                                        startActivity(new Intent(this, MainActivityEmployee.class));
+                                                                                        finish();
+                                                                                    } else {
+                                                                                        showErrorBanner("Access denied: Employee profile not found.");
+                                                                                    }
+                                                                                });
                                                                     } else if ("customer".equals(r)) {
                                                                         // Verify customer profile exists
                                                                         db.collection("customers").document(user.getUid()).get(Source.SERVER)
                                                                                 .addOnCompleteListener(custTask -> {
                                                                                     showButtonLoading(false);
                                                                                     if (custTask.isSuccessful() && custTask.getResult().exists()) {
+                                                                                        String name = custTask.getResult().getString("name");
+                                                                                        String username = custTask.getResult().getString("username");
+
                                                                                         if (cbRememberMe.isChecked()) {
                                                                                             saveCredentials(email, password);
+                                                                                            saveProfileData(user.getUid(), name, username, "");
                                                                                         } else {
                                                                                             clearSavedCredentials();
+                                                                                            // Even if not "remembered", we save for the current session's fragments
+                                                                                            saveProfileData(user.getUid(), name, username, "");
                                                                                         }
                                                                                         startActivity(new Intent(this, MainActivity.class));
                                                                                         finish();
@@ -686,6 +720,7 @@ public class AuthActivity extends AppCompatActivity {
                             .addOnSuccessListener(aVoid -> {
                                 db.collection("customers").document(fUser.getUid()).set(custProfile)
                                         .addOnSuccessListener(aVoid2 -> {
+                                            saveProfileData(fUser.getUid(), (String) custProfile.get("name"), (String) custProfile.get("username"), "");
                                             showButtonLoading(false);
                                             signupStep = 4;
                                             updateUI(true);

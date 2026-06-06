@@ -6,11 +6,7 @@ plugins {
 
 android {
     namespace = "com.zejyv.azizul.uitm.fadebarber"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.zejyv.azizul.uitm.fadebarber"
@@ -52,11 +48,15 @@ dependencies {
     implementation(libs.splashscreen)
     implementation(libs.swiperefreshlayout)
     implementation(libs.security.crypto)
-    val cameraxVersion = "1.3.4"
+    
+    val cameraxVersion = "1.6.1"
     implementation(libs.camera.core)
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
     implementation(libs.androidx.camera.view)
+
+    implementation(libs.ar.deepar)
+
     implementation(libs.generativeai)
     implementation(libs.guava)
     testImplementation(libs.junit)

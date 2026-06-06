@@ -46,6 +46,10 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.FadeBARber" />
+
+        <uses-native-library
+            android:name="libOpenCL.so"
+            android:required="false" />
     </application>
 
 </manifest>

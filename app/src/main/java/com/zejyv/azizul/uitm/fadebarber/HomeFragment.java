@@ -22,7 +22,12 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.security.crypto.EncryptedSharedPreferences;
+import androidx.security.crypto.MasterKey;
 import com.google.android.material.card.MaterialCardView;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Calendar;
 import java.util.Random;
 
@@ -101,6 +106,35 @@ public class HomeFragment extends Fragment {
 
         setupScrollingLogic();
         setupClickLogic();
+        populateWelcomeMessage(view);
+    }
+
+    /**
+     * Populates the welcome message with the user's username from encrypted preferences.
+     */
+    private void populateWelcomeMessage(View view) {
+        TextView tvWelcome = view.findViewById(R.id.tv_welcome_home);
+        if (tvWelcome == null) return;
+
+        try {
+            MasterKey masterKey = new MasterKey.Builder(requireContext())
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build();
+
+            android.content.SharedPreferences prefs = EncryptedSharedPreferences.create(
+                    requireContext(),
+                    "secret_shared_prefs",
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+
+            String username = prefs.getString("username", "User");
+            String welcomeTemplate = getString(R.string.welcome_user);
+            tvWelcome.setText(welcomeTemplate.replace("(User)", username));
+        } catch (GeneralSecurityException | IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**

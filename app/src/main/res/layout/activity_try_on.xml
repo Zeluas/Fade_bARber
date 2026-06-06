@@ -12,13 +12,11 @@
     android:background="@color/black"
     tools:context=".TryOnActivity">
 
-    <!-- Camera Preview Section -->
-    <androidx.camera.view.PreviewView
-        android:id="@+id/viewFinder"
-        android:layout_width="0dp"
-        android:layout_height="450dp"
-        app:layout_constrainedHeight="true"
-        app:layout_constrainedWidth="true"
+    <!-- DeepAR Rendering Surface -->
+    <SurfaceView
+        android:id="@+id/surfaceView"
+        android:layout_width="match_parent"
+        android:layout_height="512dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

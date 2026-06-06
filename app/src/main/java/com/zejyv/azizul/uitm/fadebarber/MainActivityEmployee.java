@@ -10,10 +10,15 @@ import android.widget.Button;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.security.crypto.EncryptedSharedPreferences;
+import androidx.security.crypto.MasterKey;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 public class MainActivityEmployee extends AppCompatActivity {
 
@@ -134,6 +139,7 @@ public class MainActivityEmployee extends AppCompatActivity {
         Button btnLogoutConfirm = findViewById(R.id.btn_logout_confirm);
 
         if (btnLogoutConfirm != null) btnLogoutConfirm.setOnClickListener(v -> {
+            clearStoredCredentials();
             com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
             android.content.Intent intent = new android.content.Intent(MainActivityEmployee.this, AuthActivity.class);
             intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -142,6 +148,26 @@ public class MainActivityEmployee extends AppCompatActivity {
         });
         if (layoutLogoutConfirmation != null) {
             layoutLogoutConfirmation.setOnClickListener(v -> hideLogoutDialog());
+        }
+    }
+
+    private void clearStoredCredentials() {
+        try {
+            MasterKey masterKey = new MasterKey.Builder(this)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build();
+
+            android.content.SharedPreferences prefs = EncryptedSharedPreferences.create(
+                    this,
+                    "secret_shared_prefs",
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+
+            prefs.edit().clear().apply();
+        } catch (GeneralSecurityException | IOException e) {
+            e.printStackTrace();
         }
     }
 

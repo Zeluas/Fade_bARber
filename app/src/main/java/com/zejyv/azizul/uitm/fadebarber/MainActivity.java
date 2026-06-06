@@ -12,12 +12,17 @@ import android.view.View;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.security.crypto.EncryptedSharedPreferences;
+import androidx.security.crypto.MasterKey;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import android.widget.Button;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 /**
  * MainActivity: The primary host for the customer application interface.
@@ -176,6 +181,7 @@ public class MainActivity extends AppCompatActivity {
         Button btnLogoutConfirm = findViewById(R.id.btn_logout_confirm);
 
         if (btnLogoutConfirm != null) btnLogoutConfirm.setOnClickListener(v -> {
+            clearStoredCredentials();
             com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
             Intent intent = new Intent(MainActivity.this, AuthActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -184,6 +190,29 @@ public class MainActivity extends AppCompatActivity {
         });
         if (layoutLogoutConfirmation != null) {
             layoutLogoutConfirmation.setOnClickListener(v -> hideLogoutDialog());
+        }
+    }
+
+    /**
+     * Clears all stored credentials from EncryptedSharedPreferences.
+     */
+    private void clearStoredCredentials() {
+        try {
+            MasterKey masterKey = new MasterKey.Builder(this)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build();
+
+            android.content.SharedPreferences prefs = EncryptedSharedPreferences.create(
+                    this,
+                    "secret_shared_prefs",
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+
+            prefs.edit().clear().apply();
+        } catch (GeneralSecurityException | IOException e) {
+            e.printStackTrace();
         }
     }
 

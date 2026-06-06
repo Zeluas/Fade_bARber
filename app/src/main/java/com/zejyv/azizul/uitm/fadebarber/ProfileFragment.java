@@ -4,6 +4,9 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.view.MotionEvent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -11,11 +14,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
+import androidx.security.crypto.EncryptedSharedPreferences;
+import androidx.security.crypto.MasterKey;
 import com.google.android.material.card.MaterialCardView;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 /**
  * ProfileFragment manages the user profile screen.
@@ -50,7 +59,7 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        
+
         initializeViews(view);
         calculateDimensions();
         setupCollapsingTopBar();
@@ -97,15 +106,66 @@ public class ProfileFragment extends Fragment {
     }
 
     /**
-     * Fills the profile views with localized user data.
+     * Fills the profile views with localized user data from encrypted preferences.
      */
     private void populateUserData() {
-        if (tvUserName != null) {
-            tvUserName.setText(getString(R.string.profile_user_name_default));
-        }
-        if (tvUserId != null) {
-            // Using placeholder ID for now
-            tvUserId.setText(getString(R.string.profile_user_id_label, "123456"));
+        try {
+            MasterKey masterKey = new MasterKey.Builder(requireContext())
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build();
+
+            android.content.SharedPreferences prefs = EncryptedSharedPreferences.create(
+                    requireContext(),
+                    "secret_shared_prefs",
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+
+            String name = prefs.getString("name", "User");
+            String username = prefs.getString("username", "user");
+            String uid = prefs.getString("uid", "000000");
+            String fullname = prefs.getString("fullname", "");
+
+            if (tvUserName != null) {
+                String fullDisplayName;
+                if (!fullname.isEmpty()) {
+                    // It's an employee
+                    fullDisplayName = fullname;
+                } else {
+                    // It's a customer
+                    fullDisplayName = String.format("%s (%s)", username, name);
+                }
+                tvUserName.setText(fullDisplayName);
+
+                // Adjust display if text exceeds 2 lines
+                tvUserName.post(() -> {
+                    if (tvUserName.getLineCount() > 2 && fullname.isEmpty()) {
+                        tvUserName.setText(username);
+                    }
+                });
+            }
+            if (tvUserId != null) {
+                tvUserId.setText(getString(R.string.profile_user_id_label, uid));
+
+                // Copy to clipboard with visual feedback (Ripple added in XML)
+                tvUserId.setOnClickListener(v -> {
+                    ClipboardManager clipboard = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("User ID", uid);
+                    if (clipboard != null) {
+                        clipboard.setPrimaryClip(clip);
+                        Toast.makeText(requireContext(), "User ID copied to clipboard", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        } catch (GeneralSecurityException | IOException e) {
+            e.printStackTrace();
+            if (tvUserName != null) {
+                tvUserName.setText(getString(R.string.profile_user_name_default));
+            }
+            if (tvUserId != null) {
+                tvUserId.setText(getString(R.string.profile_user_id_label, "123456"));
+            }
         }
     }
 
