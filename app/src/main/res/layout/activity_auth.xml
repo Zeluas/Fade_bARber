@@ -204,6 +204,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
+                        android:autofillHints="emailAddress"
                         android:background="@drawable/bg_pill_stroke"
                         android:gravity="center_vertical|start"
                         android:hint="@string/login_email_label"
@@ -214,22 +215,47 @@
                         android:textColor="@color/black"
                         android:textStyle="bold" />
 
-                    <TextView
-                        android:id="@+id/tv_login_password_label"
-                        android:layout_width="wrap_content"
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_marginBottom="4dp"
-                        android:text="@string/login_password_label"
-                        android:textColor="@color/black"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:layout_marginBottom="4dp">
+
+                        <TextView
+                            android:id="@+id/tv_login_password_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:text="@string/login_password_label"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent" />
+
+                        <TextView
+                            android:id="@+id/btn_forgot_password"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:padding="2dp"
+                            android:text="Forgot Password?"
+                            android:textColor="@color/primary_color"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toTopOf="parent" />
+                    </androidx.constraintlayout.widget.ConstraintLayout>
 
                     <EditText
                         android:id="@+id/et_login_password"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="5dp"
+                        android:autofillHints="password"
                         android:background="@drawable/bg_pill_stroke"
                         android:gravity="center_vertical|start"
                         android:hint="@string/login_password_label"
@@ -237,6 +263,8 @@
                         android:inputType="textPassword"
                         android:paddingHorizontal="20dp"
                         android:paddingVertical="12dp"
+                        android:drawableEnd="@drawable/ic_visibility_off"
+                        android:drawablePadding="8dp"
                         android:textColor="@color/black"
                         android:textStyle="bold" />
 
@@ -431,6 +459,8 @@
                         android:inputType="textPassword"
                         android:paddingHorizontal="20dp"
                         android:paddingVertical="12dp"
+                        android:drawableEnd="@drawable/ic_visibility_off"
+                        android:drawablePadding="8dp"
                         android:textColor="@color/black"
                         android:textStyle="bold" />
 
@@ -456,6 +486,8 @@
                         android:inputType="textPassword"
                         android:paddingHorizontal="20dp"
                         android:paddingVertical="12dp"
+                        android:drawableEnd="@drawable/ic_visibility_off"
+                        android:drawablePadding="8dp"
                         android:textColor="@color/black"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -694,6 +726,63 @@
 
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Section 5: Global Loading Overlay -->
+    <include
+        android:id="@+id/layout_loading_overlay"
+        layout="@layout/layout_loading_overlay"
+        android:visibility="gone" />
+
+    <!-- Section 6: Error Banner Overlay -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_error_banner_root"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/warning_red"
+        android:clickable="true"
+        android:elevation="25dp"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <!-- Radar Pulse View -->
+        <View
+            android:id="@+id/view_radar_pulse"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:alpha="0"
+            android:background="@drawable/bg_radar_pulse"
+            app:layout_constraintBottom_toBottomOf="@+id/ll_error_banner"
+            app:layout_constraintEnd_toEndOf="@+id/ll_error_banner"
+            app:layout_constraintStart_toStartOf="@+id/ll_error_banner"
+            app:layout_constraintTop_toTopOf="@+id/ll_error_banner" />
+
+        <LinearLayout
+            android:id="@+id/ll_error_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/warning_red_icon"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_warning_circle"
+                app:tint="@color/white" />
+
+            <TextView
+                android:id="@+id/tv_error_banner_msg"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="@string/signup_error_default_msg"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

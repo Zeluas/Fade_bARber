@@ -50,6 +50,8 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.viewpager2)
     implementation(libs.splashscreen)
+    implementation(libs.swiperefreshlayout)
+    implementation(libs.security.crypto)
     val cameraxVersion = "1.3.4"
     implementation(libs.camera.core)
     implementation(libs.camera.camera2)
