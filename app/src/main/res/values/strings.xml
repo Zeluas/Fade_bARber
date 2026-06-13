@@ -68,7 +68,7 @@
     <string name="try_on_camera_error">Error starting camera: %1$s</string>
     <string name="try_on_permission_denied">Permissions not granted by the user.</string>
 
-    <!-- Hairstyle Names -->
+    <!-- General Hairstyle Names (Used in Home/History) -->
     <string name="style_buzz_cut">Buzz Cut</string>
     <string name="style_fade">Fade</string>
     <string name="style_pompadour">Pompadour</string>
@@ -77,6 +77,46 @@
     <string name="style_mohawk">Mohawk</string>
     <string name="style_side_part">Side Part</string>
     <string name="style_top_knot">Top Knot</string>
+
+    <!-- Hairstyle Names & Descriptions -->
+    <string name="style_viking_helmet">Viking Helmet</string>
+    <string name="desc_viking_helmet">A majestic ancient Norse helmet with horns for a warrior look.</string>
+
+    <string name="style_vendetta_mask">Vendetta Mask</string>
+    <string name="desc_vendetta_mask">The iconic Guy Fawkes mask, a symbol of rebellion and mystery.</string>
+
+    <string name="style_humanoid">Humanoid</string>
+    <string name="desc_humanoid">An experimental look that transforms your appearance into something unique.</string>
+
+    <string name="style_brazilian">Brazilian</string>
+    <string name="desc_brazilian">A sleek and stylish cut inspired by the latest Brazilian hair trends.</string>
+
+    <string name="style_bird_hair">Bird Hair</string>
+    <string name="desc_bird_hair">An avant-garde hairstyle inspired by the vibrant colors of tropical feathers.</string>
+
+    <string name="style_fade_top">Fade Top</string>
+    <string name="desc_fade_top">A sharp fade transition with more volume and texture on top.</string>
+
+    <string name="style_side_sweep">Side Sweep</string>
+    <string name="desc_side_sweep">A modern side-swept look with a clean, professional finish.</string>
+
+    <string name="style_wolf_hair">Wolf Hair</string>
+    <string name="desc_wolf_hair">A wild and shaggy look inspired by the natural mane of a wolf.</string>
+
+    <string name="style_70s_afro">70s Afro Tapper</string>
+    <string name="desc_70s_afro">A classic high-volume afro with a modern tapered finish.</string>
+
+    <string name="style_curtain">Curtain Haircut</string>
+    <string name="desc_curtain">A symmetric middle-parted style for a classic 90s aesthetic.</string>
+
+    <string name="style_disconnect_undercut">Disconnect Undercut</string>
+    <string name="desc_disconnect_undercut">A bold contrast between long hair on top and buzzed sides.</string>
+
+    <string name="style_afro_tapper">Afro Tapper</string>
+    <string name="desc_afro_tapper">A tight, well-defined afro with a sharp taper fade.</string>
+
+    <string name="style_punk">Punk Style</string>
+    <string name="desc_punk">A rebellious and edgy spiked look for a bold statement.</string>
 
     <!-- Profile Module Strings -->
     <string name="profile_title">Profile</string>
@@ -102,9 +142,30 @@
     <string name="nav_notifications">Activity</string>
     <string name="nav_profile">Profile</string>
 
-    <!-- Employee Space -->
+    <!-- Shift Status -->
+    <string name="shift_status_prefix">"Your Shift is"</string>
+    <string name="shift_about_to_start">about to start</string>
+    <string name="shift_starting">starting</string>
+    <string name="shift_taking_a_break">taking a break</string>
+    <string name="shift_near_the_end">near the end</string>
+    <string name="shift_over">over</string>
     <string name="employee_home_title">Employee Home</string>
     <string name="employee_book_title">Employee Bookings</string>
+    <string name="search_bookings_hint">Search customer or hairstyle…</string>
+    <string name="booking_status_pending">Pending</string>
+    <string name="booking_status_completed">Completed</string>
+    <string name="booking_status_cancelled">Cancelled</string>
+    <string name="welcome_employee">Hello, (Barber)</string>
+    <string name="booking_number_label">Booking #</string>
+    <string name="current_customer_label">Current Customer</string>
+    <string name="upcoming_bookings_label">Upcoming Bookings</string>
+    <string name="total_bookings_today_label">Total Bookings: %1$d</string>
+    <string name="btn_start_session">Start Session</string>
+    <string name="btn_no_show">No Show</string>
+    <string name="customer_label">Customer</string>
+    <string name="call_label">Call</string>
+    <string name="employee_jab_1">Ready to craft some masterpieces today?</string>
+    <string name="employee_jab_2">Your scissors are waiting. Let\'s get to work!</string>
 
     <!-- Notifications -->
     <string name="notif_booking_success">Booking Success</string>
@@ -170,5 +231,18 @@
     <!-- Logout Strings -->
     <string name="logout_confirm_title">Confirm Log Out</string>
     <string name="logout_confirm_btn">Log Out</string>
-    <string name="logout_cancel_btn">Cancel</string>
+    <string name="total_earnings_today">Total Today: RM %1$.2f</string>
+    <string name="total_earnings_year">Total 2026: RM %1$.2f</string>
+    <string name="earnings_label">Earnings</string>
+    <string name="today_label">Today</string>
+    <string name="filter_sort_title">Filter &amp; Sort</string>
+    <string name="reset_filters">Reset</string>
+    <string name="filter_status">Status</string>
+    <string name="filter_haircut">Haircut</string>
+    <string name="sort_by">Sort By</string>
+    <string name="sort_time">Time</string>
+    <string name="sort_name">Name</string>
+    <string name="label_filter">Filter:</string>
+    <string name="label_keyword">Keyword:</string>
+    <string name="label_sort">Sort:</string>
 </resources>

@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="6dp"
+    app:cardBackgroundColor="@color/white"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <!-- Status Badge -->
+        <TextView
+            android:id="@+id/tv_booking_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_pill_primary"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:text="@string/booking_status_pending"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Booking ID -->
+        <TextView
+            android:id="@+id/tv_booking_id"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="#FB-1024"
+            android:textColor="@color/grey_grey"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@id/tv_booking_status"
+            app:layout_constraintStart_toEndOf="@id/tv_booking_status"
+            app:layout_constraintTop_toTopOf="@id/tv_booking_status" />
+
+        <!-- Hairstyle Info Section (Right) -->
+        <LinearLayout
+            android:id="@+id/ll_hairstyle_info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_booking_status">
+
+            <TextView
+                android:id="@+id/tv_chosen_haircut_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chosen_haircut"
+                android:textColor="@color/black"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/iv_chosen_hairstyle"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_marginTop="2dp"
+                android:padding="1dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_launcher_background"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
+                app:strokeColor="@color/black"
+                app:strokeWidth="1dp" />
+
+            <TextView
+                android:id="@+id/tv_hairstyle_name_book"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/style_fade"
+                android:textColor="@color/black"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Profile Picture -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/iv_customer_profile"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:padding="1dp"
+            android:src="@drawable/ic_launcher_background"
+            app:layout_constraintBottom_toBottomOf="@id/ll_hairstyle_info"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/ll_hairstyle_info"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
+            app:strokeColor="@color/black"
+            app:strokeWidth="1dp" />
+
+        <!-- Customer Info -->
+        <LinearLayout
+            android:id="@+id/ll_customer_info"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="@id/ll_hairstyle_info"
+            app:layout_constraintEnd_toStartOf="@+id/ll_hairstyle_info"
+            app:layout_constraintStart_toEndOf="@id/iv_customer_profile"
+            app:layout_constraintTop_toTopOf="@id/ll_hairstyle_info">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_customer_name_book"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Customer Name"
+                    android:textColor="@color/black"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:id="@+id/iv_call_direct"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginStart="8dp"
+                    android:src="@drawable/ic_phone"
+                    app:tint="@color/primary_color" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_booking_date_book"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="04/05/26"
+                android:textColor="@color/grey_grey"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tv_booking_time_book"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="10:00 AM"
+                android:textColor="@color/primary_color"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Buttons Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            app:layout_constraintTop_toBottomOf="@id/ll_hairstyle_info">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_cancel_booking_book"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:paddingVertical="10dp"
+                android:text="@string/cancel_booking"
+                android:textColor="@color/warning_red_icon"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                app:backgroundTint="#FFFFFF"
+                app:cornerRadius="24dp"
+                app:strokeColor="@color/warning_red_icon"
+                app:strokeWidth="2dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_edit_booking_book"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:paddingVertical="10dp"
+                android:text="@string/edit_booking"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                app:backgroundTint="@color/info_blue_icon"
+                app:cornerRadius="24dp" />
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

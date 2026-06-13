@@ -6,10 +6,16 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
+import android.content.ContentValues;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -23,6 +29,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.TooltipCompat;
@@ -36,7 +43,12 @@ import androidx.core.content.ContextCompat;
 import com.google.android.material.button.MaterialButton;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 import ai.deepar.ar.DeepAR;
@@ -63,6 +75,11 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
     private View carouselScroll;
     private TextView tvChooseHairstyle, tvChooseHairstyleCollapsed;
     private MaterialButton fabCapture;
+    private View vFlash;
+    private ImageView ivCapturedPreview;
+    private View layoutPostCapture;
+    private MaterialButton btnCancel, btnSave;
+    private android.graphics.Bitmap capturedBitmap;
 
     // --- DeepAR & Camera ---
     private DeepAR deepAR;
@@ -72,7 +89,10 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
     // --- State & Animation Management ---
     private boolean isCarouselExpanded = true;
     private float initialY, dY;
-    
+    private String currentHairstyleName = "Brazilian"; // Default
+    private String currentHairstyleDesc = "";
+    private String currentHairstyleKey = "brazilian";
+
     private final Handler reminderHandler = new Handler(Looper.getMainLooper());
     private Runnable reminderRunnable;
     private AnimatorSet reminderAnimatorSet;
@@ -80,17 +100,18 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         // Optimize for performance: Use a full-screen, hardware-accelerated window
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        
+
         setContentView(R.layout.activity_try_on);
 
         initializeDeepAR();
         initializeViews();
         setupBookingContext();
         setupCarouselLogic();
+        setupBackNavigation();
 
         reminderRunnable = this::startReminderAnimation;
 
@@ -100,6 +121,22 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
         } else {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_CODE);
         }
+    }
+
+    /**
+     * Configures the system back button behavior.
+     */
+    private void setupBackNavigation() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (layoutPostCapture != null && layoutPostCapture.getVisibility() == View.VISIBLE) {
+                    resetFromCapture();
+                } else {
+                    finish();
+                }
+            }
+        });
     }
 
     private void initializeDeepAR() {
@@ -114,7 +151,7 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
     private void initializeViews() {
         surfaceView = findViewById(R.id.surfaceView);
         surfaceView.getHolder().addCallback(this);
-        
+
         bottomSheetContainer = findViewById(R.id.bottom_sheet_container);
         carouselContainer = findViewById(R.id.carousel_container);
         ivCarouselArrow = findViewById(R.id.iv_carousel_arrow);
@@ -122,13 +159,63 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
         tvChooseHairstyle = findViewById(R.id.tv_choose_hairstyle);
         tvChooseHairstyleCollapsed = findViewById(R.id.tv_choose_hairstyle_collapsed);
         fabCapture = findViewById(R.id.fab_capture);
-        fabCapture.setOnClickListener(v -> {
-            if (deepAR != null) {
-                deepAR.takeScreenshot();
-            }
-        });
+        vFlash = findViewById(R.id.v_flash);
+        ivCapturedPreview = findViewById(R.id.iv_captured_preview);
+        layoutPostCapture = findViewById(R.id.layout_post_capture);
+        btnCancel = findViewById(R.id.btn_cancel);
+        btnSave = findViewById(R.id.btn_save);
 
-        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+        fabCapture.setOnClickListener(v -> performCapture());
+
+        btnCancel.setOnClickListener(v -> resetFromCapture());
+        btnSave.setOnClickListener(v -> saveCapturedImage());
+
+        findViewById(R.id.btn_back).setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+
+        loadCarouselPreviews();
+    }
+
+    /**
+     * Dynamically loads hairstyle preview images from assets/images folder.
+     * Each ImageView in the carousel is updated if a matching image exists.
+     */
+    private void loadCarouselPreviews() {
+        try {
+            String[] images = getAssets().list("images");
+            if (images == null) return;
+
+            java.util.Map<String, Integer> viewMap = new java.util.HashMap<>();
+            viewMap.put("viking_helmet", R.id.v_icon_viking_helmet);
+            viewMap.put("vendetta_mask", R.id.v_icon_vendetta_mask);
+            viewMap.put("brazilian", R.id.v_icon_brazilian);
+            viewMap.put("bird_hair", R.id.v_icon_bird_hair);
+            viewMap.put("side_sweep", R.id.v_icon_side_sweep);
+            viewMap.put("wolf_hair", R.id.v_icon_wolf_hair);
+            viewMap.put("70s_afro", R.id.v_icon_70s_afro);
+            viewMap.put("curtain", R.id.v_icon_curtain);
+            viewMap.put("disconnect_undercut", R.id.v_icon_disconnect_undercut);
+            viewMap.put("afro_tapper", R.id.v_icon_afro_tapper);
+            viewMap.put("punk", R.id.v_icon_punk);
+
+            for (String imageName : images) {
+                for (String key : viewMap.keySet()) {
+                    if (imageName.toLowerCase().startsWith(key)) {
+                        View container = findViewById(viewMap.get(key));
+                        if (container instanceof android.widget.FrameLayout) {
+                            android.widget.ImageView iv = (android.widget.ImageView) ((android.widget.FrameLayout) container).getChildAt(1);
+                            try (java.io.InputStream is = getAssets().open("images/" + imageName)) {
+                                android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(is);
+                                iv.setImageBitmap(bitmap);
+                                iv.setImageTintList(null); // Remove white tint if a real image is loaded
+                                iv.setPadding(0, 0, 0, 0); // Remove padding for full image display
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (java.io.IOException e) {
+            Log.e(TAG, "Error loading carousel previews: " + e.getMessage());
+        }
     }
 
     /**
@@ -140,7 +227,7 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
             fabCapture.setIconResource(R.drawable.ic_check_circle);
             fabCapture.setContentDescription(getString(R.string.try_on_confirm_hairstyle));
             TooltipCompat.setTooltipText(fabCapture, getString(R.string.try_on_select_hairstyle_tooltip));
-            
+
             // Scale icon for better visibility in selection mode
             int iconSizePx = (int) (32 * getResources().getDisplayMetrics().density * 1.5f);
             fabCapture.setIconSize(iconSizePx);
@@ -158,15 +245,18 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
         carouselContainer.setOnClickListener(v -> toggleCarousel(!isCarouselExpanded));
 
         // Hairstyle Selection Listeners
-        // Mapping available assets for testing
-        findViewById(R.id.item_buzz_cut).setOnClickListener(v -> switchHairstyle("viking_helmet.deepar"));
-        findViewById(R.id.item_fade).setOnClickListener(v -> switchHairstyle("Vendetta_Mask.deepar"));
-        findViewById(R.id.item_pompadour).setOnClickListener(v -> switchHairstyle("Humanoid.deepar"));
-        findViewById(R.id.item_undercut).setOnClickListener(v -> switchHairstyle("Snail.deepar"));
-        findViewById(R.id.item_crew_cut).setOnClickListener(v -> switchHairstyle("viking_helmet.deepar"));
-        findViewById(R.id.item_mohawk).setOnClickListener(v -> switchHairstyle("Vendetta_Mask.deepar"));
-        findViewById(R.id.item_side_part).setOnClickListener(v -> switchHairstyle("Humanoid.deepar"));
-        findViewById(R.id.item_top_knot).setOnClickListener(v -> switchHairstyle("Snail.deepar"));
+        // Mapping available assets based on updated carousel items
+        findViewById(R.id.item_brazilian).setOnClickListener(v -> switchHairstyle("brazilian.deepar", getString(R.string.style_brazilian), getString(R.string.desc_brazilian), "brazilian"));
+        findViewById(R.id.item_bird_hair).setOnClickListener(v -> switchHairstyle("birdhair.deepar", getString(R.string.style_bird_hair), getString(R.string.desc_bird_hair), "bird_hair"));
+        findViewById(R.id.item_side_sweep).setOnClickListener(v -> switchHairstyle("sidesweep.deepar", getString(R.string.style_side_sweep), getString(R.string.desc_side_sweep), "side_sweep"));
+        findViewById(R.id.item_wolf_hair).setOnClickListener(v -> switchHairstyle("wolfhair.deepar", getString(R.string.style_wolf_hair), getString(R.string.desc_wolf_hair), "wolf_hair"));
+        findViewById(R.id.item_70s_afro).setOnClickListener(v -> switchHairstyle("70s_afro_tapper.deepar", getString(R.string.style_70s_afro), getString(R.string.desc_70s_afro), "70s_afro"));
+        findViewById(R.id.item_curtain).setOnClickListener(v -> switchHairstyle("curtain_haircut.deepar", getString(R.string.style_curtain), getString(R.string.desc_curtain), "curtain"));
+        findViewById(R.id.item_disconnect_undercut).setOnClickListener(v -> switchHairstyle("disconnect_undercut.deepar", getString(R.string.style_disconnect_undercut), getString(R.string.desc_disconnect_undercut), "disconnect_undercut"));
+        findViewById(R.id.item_afro_tapper).setOnClickListener(v -> switchHairstyle("afro_tapper.deepar", getString(R.string.style_afro_tapper), getString(R.string.desc_afro_tapper), "afro_tapper"));
+        findViewById(R.id.item_punk).setOnClickListener(v -> switchHairstyle("punk.deepar", getString(R.string.style_punk), getString(R.string.desc_punk), "punk"));
+        findViewById(R.id.item_viking_helmet).setOnClickListener(v -> switchHairstyle("viking_helmet.deepar", getString(R.string.style_viking_helmet), getString(R.string.desc_viking_helmet), "viking_helmet"));
+        findViewById(R.id.item_vendetta_mask).setOnClickListener(v -> switchHairstyle("Vendetta_Mask.deepar", getString(R.string.style_vendetta_mask), getString(R.string.desc_vendetta_mask), "vendetta_mask"));
 
         // Swipe-to-collapse/expand logic
         View rootView = findViewById(android.R.id.content);
@@ -193,7 +283,7 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
                         int[] location = new int[2];
                         ivCarouselArrow.getLocationOnScreen(location);
                         if (event.getRawX() >= location[0] && event.getRawX() <= location[0] + ivCarouselArrow.getWidth() &&
-                            event.getRawY() >= location[1] && event.getRawY() <= location[1] + ivCarouselArrow.getHeight()) {
+                                event.getRawY() >= location[1] && event.getRawY() <= location[1] + ivCarouselArrow.getHeight()) {
                             ivCarouselArrow.performClick();
                         }
                     } else {
@@ -210,12 +300,20 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
     /**
      * Switches the AR effect to the specified hairstyle.
      * @param fileName The name of the .deepar file in the assets folder.
+     * @param name The display name of the hairstyle.
+     * @param desc The description of the hairstyle.
+     * @param key The key to identify the hairstyle (for images).
      */
-    private void switchHairstyle(String fileName) {
+    private void switchHairstyle(String fileName, String name, String desc, String key) {
         if (deepAR != null && isDeepARInitialized) {
             // DeepAR 5.x uses the slot name "main" for the primary effect
             deepAR.switchEffect("main", "file:///android_asset/" + fileName);
             Log.d(TAG, "Switched effect to: " + fileName);
+            
+            // Update state
+            this.currentHairstyleName = name;
+            this.currentHairstyleDesc = desc;
+            this.currentHairstyleKey = key;
         } else {
             Toast.makeText(this, "DeepAR is still initializing...", Toast.LENGTH_SHORT).show();
         }
@@ -355,9 +453,9 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
                 // Get the Y plane buffer directly
                 ByteBuffer buffer = image.getPlanes()[0].getBuffer();
                 // Set mirror to true for a natural "mirror" feel with the front camera
-                deepAR.receiveFrame(buffer, image.getWidth(), image.getHeight(), 
-                                   image.getImageInfo().getRotationDegrees(), 
-                                   true, DeepARImageFormat.YUV_420_888, 0);
+                deepAR.receiveFrame(buffer, image.getWidth(), image.getHeight(),
+                        image.getImageInfo().getRotationDegrees(),
+                        true, DeepARImageFormat.YUV_420_888, 0);
             }
             image.close();
         });
@@ -390,6 +488,115 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
         }
     }
 
+    /**
+     * Performs the capture sequence: flash animation, UI hiding, and triggering DeepAR screenshot.
+     */
+    private void performCapture() {
+        if (deepAR == null) return;
+
+        // 1. Grey Flash Animation (0.2s fade in, 0.2s fade out)
+        vFlash.setAlpha(0f);
+        vFlash.setVisibility(View.VISIBLE);
+        vFlash.animate()
+                .alpha(1f)
+                .setDuration(200)
+                .withEndAction(() -> {
+                    // Hide all UI elements at the peak of the flash
+                    setUIVisibility(View.GONE);
+                    
+                    // 2. Trigger screenshot
+                    deepAR.takeScreenshot();
+
+                    vFlash.animate()
+                            .alpha(0f)
+                            .setDuration(200)
+                            .withEndAction(() -> vFlash.setVisibility(View.GONE))
+                            .start();
+                })
+                .start();
+    }
+
+    /**
+     * Toggles visibility for all primary UI elements.
+     */
+    private void setUIVisibility(int visibility) {
+        View topBar = findViewById(R.id.view_top_bar_overlay);
+        View backBtn = findViewById(R.id.btn_back);
+        View title = findViewById(R.id.tv_try_on_title);
+        
+        if (topBar != null) topBar.setVisibility(visibility);
+        if (backBtn != null) backBtn.setVisibility(visibility);
+        if (title != null) title.setVisibility(visibility);
+        
+        if (bottomSheetContainer != null) bottomSheetContainer.setVisibility(visibility);
+        if (fabCapture != null) fabCapture.setVisibility(visibility);
+    }
+
+    /**
+     * Resets the activity state back to preview mode after a capture.
+     */
+    private void resetFromCapture() {
+        ivCapturedPreview.setVisibility(View.GONE);
+        layoutPostCapture.setVisibility(View.GONE);
+        setUIVisibility(View.VISIBLE);
+        capturedBitmap = null;
+    }
+
+    /**
+     * Saves the captured bitmap to the standard Android Pictures folder,
+     * or returns the selection if in booking mode.
+     */
+    private void saveCapturedImage() {
+        if (capturedBitmap == null) {
+            Toast.makeText(this, "No image to save", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        boolean fromBooking = getIntent().getBooleanExtra("FROM_BOOKING", false);
+        if (fromBooking) {
+            // Return selection to BookingActivity instead of saving to gallery
+            android.content.Intent resultIntent = new android.content.Intent();
+            resultIntent.putExtra("HAIRSTYLE_NAME", currentHairstyleName);
+            resultIntent.putExtra("HAIRSTYLE_DESC", currentHairstyleDesc);
+            resultIntent.putExtra("HAIRSTYLE_KEY", currentHairstyleKey);
+            setResult(RESULT_OK, resultIntent);
+            finish();
+            return;
+        }
+
+        String appName = getString(R.string.app_name);
+        // Using dots or dashes for date/time to avoid invalid filename characters
+        String dateStr = new SimpleDateFormat("dd-MM-yy", Locale.getDefault()).format(new Date());
+        String timeStr = new SimpleDateFormat("HH-mm-ss", Locale.getDefault()).format(new Date());
+        
+        // Format: (hairstyle) (app name) - (date dd/mm/yy) (time hh:mm:ss)
+        String fileName = String.format("%s %s - %s %s.png", currentHairstyleName, appName, dateStr, timeStr);
+
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, fileName);
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/" + appName);
+        }
+
+        Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+
+        if (uri != null) {
+            try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                // Save as lossless PNG
+                if (capturedBitmap.compress(Bitmap.CompressFormat.PNG, 100, out)) {
+                    Toast.makeText(this, "Image saved to Pictures/" + appName, Toast.LENGTH_LONG).show();
+                }
+            } catch (IOException e) {
+                Log.e(TAG, "Error saving image", e);
+                Toast.makeText(this, "Failed to save image", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        resetFromCapture();
+    }
+
     // --- DeepARListener Implementation ---
 
     @Override
@@ -397,14 +604,19 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
         Log.d(TAG, "DeepAR initialized successfully");
         isDeepARInitialized = true;
         // Load a default effect once initialized
-        switchHairstyle("viking_helmet.deepar");
+        switchHairstyle("brazilian.deepar", getString(R.string.style_brazilian), getString(R.string.desc_brazilian), "brazilian");
     }
 
     @Override
     public void screenshotTaken(android.graphics.Bitmap bitmap) {
         Log.d(TAG, "Screenshot taken successfully");
-        Toast.makeText(this, "Screenshot saved to gallery", Toast.LENGTH_SHORT).show();
-        // In a real app, you would save the bitmap to the media store here.
+        capturedBitmap = bitmap;
+        
+        runOnUiThread(() -> {
+            ivCapturedPreview.setImageBitmap(bitmap);
+            ivCapturedPreview.setVisibility(View.VISIBLE);
+            layoutPostCapture.setVisibility(View.VISIBLE);
+        });
     }
 
     @Override

@@ -22,6 +22,24 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Frozen Image Preview -->
+    <ImageView
+        android:id="@+id/iv_captured_preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/black"
+        android:scaleType="centerInside"
+        android:visibility="gone" />
+
+    <!-- Flash Overlay -->
+    <View
+        android:id="@+id/v_flash"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:background="#808080"
+        android:visibility="gone" />
+
     <!-- Top Navigation Bar -->
     <View
         android:id="@+id/view_top_bar_overlay"
@@ -145,209 +163,397 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
-                    <!-- Hairstyle Item: Buzz Cut -->
+                    <!-- Hairstyle Item: Brazilian -->
                     <LinearLayout
-                        android:id="@+id/item_buzz_cut"
+                        android:id="@+id/item_brazilian"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <View
-                            android:id="@+id/v_icon_buzz_cut"
+                        <FrameLayout
+                            android:id="@+id/v_icon_brazilian"
                             android:layout_width="80dp"
-                            android:layout_height="80dp"
-                            android:background="@drawable/bg_carousel_item" />
+                            android:layout_height="80dp">
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_carousel_item" />
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_hair"
+                                app:tint="@color/white" />
+                        </FrameLayout>
 
                         <TextView
-                            android:id="@+id/tv_label_buzz_cut"
+                            android:id="@+id/tv_label_brazilian"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="@string/style_buzz_cut"
+                            android:text="@string/style_brazilian"
                             android:textAlignment="center"
                             android:textColor="@color/white"
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Hairstyle Item: Fade -->
+                    <!-- Hairstyle Item: Bird Hair -->
                     <LinearLayout
-                        android:id="@+id/item_fade"
+                        android:id="@+id/item_bird_hair"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <View
-                            android:id="@+id/v_icon_fade"
+                        <FrameLayout
+                            android:id="@+id/v_icon_bird_hair"
                             android:layout_width="80dp"
-                            android:layout_height="80dp"
-                            android:background="@drawable/bg_carousel_item" />
+                            android:layout_height="80dp">
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_carousel_item" />
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_hair"
+                                app:tint="@color/white" />
+                        </FrameLayout>
 
                         <TextView
-                            android:id="@+id/tv_label_fade"
+                            android:id="@+id/tv_label_bird_hair"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="@string/style_fade"
+                            android:text="@string/style_bird_hair"
                             android:textAlignment="center"
                             android:textColor="@color/white"
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Hairstyle Item: Pompadour -->
+                    <!-- Hairstyle Item: Side Sweep -->
                     <LinearLayout
-                        android:id="@+id/item_pompadour"
+                        android:id="@+id/item_side_sweep"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <View
-                            android:id="@+id/v_icon_pompadour"
+                        <FrameLayout
+                            android:id="@+id/v_icon_side_sweep"
                             android:layout_width="80dp"
-                            android:layout_height="80dp"
-                            android:background="@drawable/bg_carousel_item" />
+                            android:layout_height="80dp">
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_carousel_item" />
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_hair"
+                                app:tint="@color/white" />
+                        </FrameLayout>
 
                         <TextView
-                            android:id="@+id/tv_label_pompadour"
+                            android:id="@+id/tv_label_side_sweep"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="@string/style_pompadour"
+                            android:text="@string/style_side_sweep"
                             android:textAlignment="center"
                             android:textColor="@color/white"
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Hairstyle Item: Undercut -->
+                    <!-- Hairstyle Item: Wolf Hair -->
                     <LinearLayout
-                        android:id="@+id/item_undercut"
+                        android:id="@+id/item_wolf_hair"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <View
-                            android:id="@+id/v_icon_undercut"
+                        <FrameLayout
+                            android:id="@+id/v_icon_wolf_hair"
                             android:layout_width="80dp"
-                            android:layout_height="80dp"
-                            android:background="@drawable/bg_carousel_item" />
+                            android:layout_height="80dp">
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_carousel_item" />
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_hair"
+                                app:tint="@color/white" />
+                        </FrameLayout>
 
                         <TextView
-                            android:id="@+id/tv_label_undercut"
+                            android:id="@+id/tv_label_wolf_hair"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="@string/style_undercut"
+                            android:text="@string/style_wolf_hair"
                             android:textAlignment="center"
                             android:textColor="@color/white"
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Hairstyle Item: Crew Cut -->
+                    <!-- Hairstyle Item: 70s Afro -->
                     <LinearLayout
-                        android:id="@+id/item_crew_cut"
+                        android:id="@+id/item_70s_afro"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <View
-                            android:id="@+id/v_icon_crew_cut"
+                        <FrameLayout
+                            android:id="@+id/v_icon_70s_afro"
                             android:layout_width="80dp"
-                            android:layout_height="80dp"
-                            android:background="@drawable/bg_carousel_item" />
+                            android:layout_height="80dp">
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_carousel_item" />
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_hair"
+                                app:tint="@color/white" />
+                        </FrameLayout>
 
                         <TextView
-                            android:id="@+id/tv_label_crew_cut"
+                            android:id="@+id/tv_label_70s_afro"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="@string/style_crew_cut"
+                            android:text="@string/style_70s_afro"
                             android:textAlignment="center"
                             android:textColor="@color/white"
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Hairstyle Item: Mohawk -->
+                    <!-- Hairstyle Item: Curtain -->
                     <LinearLayout
-                        android:id="@+id/item_mohawk"
+                        android:id="@+id/item_curtain"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <View
-                            android:id="@+id/v_icon_mohawk"
+                        <FrameLayout
+                            android:id="@+id/v_icon_curtain"
                             android:layout_width="80dp"
-                            android:layout_height="80dp"
-                            android:background="@drawable/bg_carousel_item" />
+                            android:layout_height="80dp">
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_carousel_item" />
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_hair"
+                                app:tint="@color/white" />
+                        </FrameLayout>
 
                         <TextView
-                            android:id="@+id/tv_label_mohawk"
+                            android:id="@+id/tv_label_curtain"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="@string/style_mohawk"
+                            android:text="@string/style_curtain"
                             android:textAlignment="center"
                             android:textColor="@color/white"
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Hairstyle Item: Side Part -->
+                    <!-- Hairstyle Item: Disconnect Undercut -->
                     <LinearLayout
-                        android:id="@+id/item_side_part"
+                        android:id="@+id/item_disconnect_undercut"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <View
-                            android:id="@+id/v_icon_side_part"
+                        <FrameLayout
+                            android:id="@+id/v_icon_disconnect_undercut"
                             android:layout_width="80dp"
-                            android:layout_height="80dp"
-                            android:background="@drawable/bg_carousel_item" />
+                            android:layout_height="80dp">
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_carousel_item" />
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_hair"
+                                app:tint="@color/white" />
+                        </FrameLayout>
 
                         <TextView
-                            android:id="@+id/tv_label_side_part"
+                            android:id="@+id/tv_label_disconnect_undercut"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="@string/style_side_part"
+                            android:text="@string/style_disconnect_undercut"
                             android:textAlignment="center"
                             android:textColor="@color/white"
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Hairstyle Item: Top Knot -->
+                    <!-- Hairstyle Item: Afro Tapper -->
                     <LinearLayout
-                        android:id="@+id/item_top_knot"
+                        android:id="@+id/item_afro_tapper"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <View
-                            android:id="@+id/v_icon_top_knot"
+                        <FrameLayout
+                            android:id="@+id/v_icon_afro_tapper"
                             android:layout_width="80dp"
-                            android:layout_height="80dp"
-                            android:background="@drawable/bg_carousel_item" />
+                            android:layout_height="80dp">
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_carousel_item" />
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_hair"
+                                app:tint="@color/white" />
+                        </FrameLayout>
 
                         <TextView
-                            android:id="@+id/tv_label_top_knot"
+                            android:id="@+id/tv_label_afro_tapper"
                             android:layout_width="80dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="@string/style_top_knot"
+                            android:text="@string/style_afro_tapper"
+                            android:textAlignment="center"
+                            android:textColor="@color/white"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Hairstyle Item: Punk -->
+                    <LinearLayout
+                        android:id="@+id/item_punk"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="12dp"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <FrameLayout
+                            android:id="@+id/v_icon_punk"
+                            android:layout_width="80dp"
+                            android:layout_height="80dp">
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_carousel_item" />
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_hair"
+                                app:tint="@color/white" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:id="@+id/tv_label_punk"
+                            android:layout_width="80dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/style_punk"
+                            android:textAlignment="center"
+                            android:textColor="@color/white"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Hairstyle Item: Viking Helmet (Test) -->
+                    <LinearLayout
+                        android:id="@+id/item_viking_helmet"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="12dp"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <FrameLayout
+                            android:id="@+id/v_icon_viking_helmet"
+                            android:layout_width="80dp"
+                            android:layout_height="80dp">
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_carousel_item" />
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_hair"
+                                app:tint="@color/white" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:id="@+id/tv_label_viking_helmet"
+                            android:layout_width="80dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/style_viking_helmet"
+                            android:textAlignment="center"
+                            android:textColor="@color/white"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Hairstyle Item: Vendetta Mask (Test) -->
+                    <LinearLayout
+                        android:id="@+id/item_vendetta_mask"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="12dp"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <FrameLayout
+                            android:id="@+id/v_icon_vendetta_mask"
+                            android:layout_width="80dp"
+                            android:layout_height="80dp">
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_carousel_item" />
+                            <ImageView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_hair"
+                                app:tint="@color/white" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:id="@+id/tv_label_vendetta_mask"
+                            android:layout_width="80dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/style_vendetta_mask"
                             android:textAlignment="center"
                             android:textColor="@color/white"
                             android:textSize="12sp" />
@@ -373,5 +579,61 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Post-Capture Controls -->
+    <LinearLayout
+        android:id="@+id/layout_post_capture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_cancel"
+            style="@style/Widget.MaterialComponents.Button.Icon"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginEnd="32dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:padding="0dp"
+            app:backgroundTint="@color/warning_red_icon"
+            app:icon="@drawable/ic_cancel"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="32dp"
+            app:iconTint="@color/white"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.FAB.Circle"
+            app:strokeColor="@color/black"
+            app:strokeWidth="0.7dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_save"
+            style="@style/Widget.MaterialComponents.Button.Icon"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:padding="0dp"
+            android:layout_marginLeft="60dp"
+            app:backgroundTint="@color/primary_color"
+            app:icon="@drawable/ic_check_circle"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="32dp"
+            app:iconTint="@color/white"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.FAB.Circle"
+            app:strokeColor="@color/black"
+            app:strokeWidth="0.7dp" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -43,6 +43,19 @@ public class BookingActivity extends AppCompatActivity {
     private TextView tvDate, tvTime;
     private LinearLayout llStylist1, llStylist2, llStylist3;
     private CheckBox cbStylist1, cbStylist2, cbStylist3;
+    
+    // Result Launcher for TryOnActivity
+    private final androidx.activity.result.ActivityResultLauncher<Intent> tryOnLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                            String name = result.getData().getStringExtra("HAIRSTYLE_NAME");
+                            String desc = result.getData().getStringExtra("HAIRSTYLE_DESC");
+                            String key = result.getData().getStringExtra("HAIRSTYLE_KEY");
+
+                            updateHairstylePreview(name, desc, key);
+                        }
+                    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,7 +118,7 @@ public class BookingActivity extends AppCompatActivity {
         btnChooseHairstyle.setOnClickListener(v -> {
             Intent intent = new Intent(BookingActivity.this, TryOnActivity.class);
             intent.putExtra("FROM_BOOKING", true);
-            startActivity(intent);
+            tryOnLauncher.launch(intent);
         });
 
         // Final Booking Confirmation
@@ -324,6 +337,48 @@ public class BookingActivity extends AppCompatActivity {
         cbStylist1.setOnClickListener(v -> selectStylist(1));
         cbStylist2.setOnClickListener(v -> selectStylist(2));
         cbStylist3.setOnClickListener(v -> selectStylist(3));
+    }
+
+    /**
+     * Updates the hairstyle preview section with selected data from TryOnActivity.
+     */
+    private void updateHairstylePreview(String name, String desc, String key) {
+        TextView tvName = findViewById(R.id.tv_haircut_name_booking);
+        TextView tvDesc = findViewById(R.id.tv_haircut_desc_booking);
+        ImageView ivPreview = findViewById(R.id.iv_hairPreview_booking);
+        TextView tvEmpty = findViewById(R.id.tv_empty_preview);
+
+        if (tvName != null) {
+            tvName.setText(name);
+            tvName.setVisibility(View.VISIBLE);
+        }
+        if (tvDesc != null) {
+            tvDesc.setText(desc);
+            tvDesc.setVisibility(View.VISIBLE);
+        }
+        if (tvEmpty != null) tvEmpty.setVisibility(View.GONE); // Hide placeholder text
+
+        if (ivPreview != null) {
+            try {
+                // Try to load the corresponding preview image from assets/images
+                String[] images = getAssets().list("images");
+                if (images != null) {
+                    for (String imageName : images) {
+                        if (imageName.toLowerCase().startsWith(key.toLowerCase())) {
+                            try (java.io.InputStream is = getAssets().open("images/" + imageName)) {
+                                android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(is);
+                                ivPreview.setImageBitmap(bitmap);
+                                return;
+                            }
+                        }
+                    }
+                }
+                // Fallback if no specific image found
+                ivPreview.setImageResource(R.drawable.ic_hair);
+            } catch (java.io.IOException e) {
+                ivPreview.setImageResource(R.drawable.ic_hair);
+            }
+        }
     }
 
     /**

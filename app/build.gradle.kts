@@ -48,7 +48,7 @@ dependencies {
     implementation(libs.splashscreen)
     implementation(libs.swiperefreshlayout)
     implementation(libs.security.crypto)
-    
+
     val cameraxVersion = "1.6.1"
     implementation(libs.camera.core)
     implementation(libs.camera.camera2)

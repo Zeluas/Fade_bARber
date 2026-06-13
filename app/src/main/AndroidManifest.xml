@@ -24,7 +24,8 @@
 
         <activity
             android:name=".MainActivityEmployee"
-            android:exported="true" />
+            android:exported="true"
+            android:windowSoftInputMode="adjustPan" />
 
         <activity
             android:name=".AuthActivity"
