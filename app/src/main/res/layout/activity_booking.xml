@@ -284,254 +284,29 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Stylist 1 Selection Item -->
-                    <LinearLayout
-                        android:id="@+id/ll_stylist_item_1"
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_stylist_list"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_ripple_primary"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
+                        android:nestedScrollingEnabled="false"
+                        tools:listitem="@layout/item_stylist_selection" />
 
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:id="@+id/iv_stylist_img_1"
-                            android:layout_width="60dp"
-                            android:layout_height="60dp"
-                            android:padding="2dp"
-                            android:src="@drawable/ic_launcher_background"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                            app:strokeColor="@color/black"
-                            app:strokeWidth="1dp" />
+                    <ProgressBar
+                        android:id="@+id/pb_stylist_loading"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_margin="16dp"
+                        android:visibility="gone" />
 
-                        <LinearLayout
-                            android:id="@+id/ll_stylist_content_row_1"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <LinearLayout
-                                android:id="@+id/ll_stylist_info_1"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:id="@+id/tv_stylist_name_1"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Ahmad"
-                                    android:textColor="@color/black"
-                                    android:textStyle="bold" />
-
-                                <RatingBar
-                                    android:id="@+id/rb_stylist_rating_1"
-                                    style="?android:attr/ratingBarStyleSmall"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:isIndicator="true"
-                                    android:numStars="5"
-                                    android:progressTint="#016808"
-                                    android:rating="5"
-                                    android:secondaryProgressTint="#016808" />
-
-                                <TextView
-                                    android:id="@+id/tv_stylist_specialty_1"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/stylist_specialty_label"
-                                    android:textSize="13sp"
-                                    tools:text="Specialty: Classic Fade" />
-
-                            </LinearLayout>
-
-                            <com.google.android.material.checkbox.MaterialCheckBox
-                                android:id="@+id/cb_stylist_1"
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:layout_marginStart="8dp"
-                                android:background="@null"
-                                app:buttonTint="@drawable/sl_stylist_checkbox"
-                                app:rippleColor="@color/trans_primary_color" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <View
-                        android:id="@+id/v_stylist_divider_1"
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginHorizontal="12dp"
-                        android:background="#EEEEEE" />
-
-                    <!-- Stylist 2 Selection Item -->
-                    <LinearLayout
-                        android:id="@+id/ll_stylist_item_2"
+                    <TextView
+                        android:id="@+id/tv_no_stylists"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_ripple_primary"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
-
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:id="@+id/iv_stylist_img_2"
-                            android:layout_width="60dp"
-                            android:layout_height="60dp"
-                            android:padding="2dp"
-                            android:src="@drawable/ic_launcher_background"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                            app:strokeColor="@color/black"
-                            app:strokeWidth="1dp" />
-
-                        <LinearLayout
-                            android:id="@+id/ll_stylist_content_row_2"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <LinearLayout
-                                android:id="@+id/ll_stylist_info_2"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:id="@+id/tv_stylist_name_2"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Ali"
-                                    android:textColor="@color/black"
-                                    android:textStyle="bold" />
-
-                                <RatingBar
-                                    android:id="@+id/rb_stylist_rating_2"
-                                    style="?android:attr/ratingBarStyleSmall"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:isIndicator="true"
-                                    android:numStars="5"
-                                    android:progressTint="#016808"
-                                    android:rating="4.5"
-                                    android:secondaryProgressTint="#016808"
-                                    android:stepSize="0.5" />
-
-                                <TextView
-                                    android:id="@+id/tv_stylist_specialty_2"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/stylist_specialty_label"
-                                    android:textSize="13sp"
-                                    tools:text="Specialty: Pompadour" />
-
-                            </LinearLayout>
-
-                            <com.google.android.material.checkbox.MaterialCheckBox
-                                android:id="@+id/cb_stylist_2"
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:layout_marginStart="8dp"
-                                android:background="@null"
-                                app:buttonTint="@drawable/sl_stylist_checkbox"
-                                app:rippleColor="@color/trans_primary_color" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <View
-                        android:id="@+id/v_stylist_divider_2"
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginHorizontal="12dp"
-                        android:background="#EEEEEE" />
-
-                    <!-- Stylist 3 Selection Item -->
-                    <LinearLayout
-                        android:id="@+id/ll_stylist_item_3"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_ripple_primary"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
-
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:id="@+id/iv_stylist_img_3"
-                            android:layout_width="60dp"
-                            android:layout_height="60dp"
-                            android:padding="2dp"
-                            android:src="@drawable/ic_launcher_background"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                            app:strokeColor="@color/black"
-                            app:strokeWidth="1dp" />
-
-                        <LinearLayout
-                            android:id="@+id/ll_stylist_content_row_3"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <LinearLayout
-                                android:id="@+id/ll_stylist_info_3"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:id="@+id/tv_stylist_name_3"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Abu"
-                                    android:textColor="@color/black"
-                                    android:textStyle="bold" />
-
-                                <RatingBar
-                                    android:id="@+id/rb_stylist_rating_3"
-                                    style="?android:attr/ratingBarStyleSmall"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:isIndicator="true"
-                                    android:numStars="5"
-                                    android:progressTint="#016808"
-                                    android:rating="5"
-                                    android:secondaryProgressTint="#016808" />
-
-                                <TextView
-                                    android:id="@+id/tv_stylist_specialty_3"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/stylist_specialty_label"
-                                    android:textSize="13sp"
-                                    tools:text="Specialty: Buzz Cut" />
-
-                            </LinearLayout>
-
-                            <com.google.android.material.checkbox.MaterialCheckBox
-                                android:id="@+id/cb_stylist_3"
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:layout_marginStart="8dp"
-                                android:background="@null"
-                                app:buttonTint="@drawable/sl_stylist_checkbox"
-                                app:rippleColor="@color/trans_primary_color" />
-                        </LinearLayout>
-                    </LinearLayout>
+                        android:gravity="center"
+                        android:padding="16dp"
+                        android:text="No stylists available."
+                        android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -681,5 +456,11 @@
 
         </LinearLayout>
     </ScrollView>
+
+    <!-- Include Loading Overlay -->
+    <include
+        android:id="@+id/loading_overlay"
+        layout="@layout/layout_loading_overlay"
+        android:visibility="gone" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

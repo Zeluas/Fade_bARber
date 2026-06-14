@@ -92,6 +92,7 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
     private String currentHairstyleName = "Brazilian"; // Default
     private String currentHairstyleDesc = "";
     private String currentHairstyleKey = "brazilian";
+    private String currentHairstyleId = "hs_brazilian";
 
     private final Handler reminderHandler = new Handler(Looper.getMainLooper());
     private Runnable reminderRunnable;
@@ -246,17 +247,17 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
 
         // Hairstyle Selection Listeners
         // Mapping available assets based on updated carousel items
-        findViewById(R.id.item_brazilian).setOnClickListener(v -> switchHairstyle("brazilian.deepar", getString(R.string.style_brazilian), getString(R.string.desc_brazilian), "brazilian"));
-        findViewById(R.id.item_bird_hair).setOnClickListener(v -> switchHairstyle("birdhair.deepar", getString(R.string.style_bird_hair), getString(R.string.desc_bird_hair), "bird_hair"));
-        findViewById(R.id.item_side_sweep).setOnClickListener(v -> switchHairstyle("sidesweep.deepar", getString(R.string.style_side_sweep), getString(R.string.desc_side_sweep), "side_sweep"));
-        findViewById(R.id.item_wolf_hair).setOnClickListener(v -> switchHairstyle("wolfhair.deepar", getString(R.string.style_wolf_hair), getString(R.string.desc_wolf_hair), "wolf_hair"));
-        findViewById(R.id.item_70s_afro).setOnClickListener(v -> switchHairstyle("70s_afro_tapper.deepar", getString(R.string.style_70s_afro), getString(R.string.desc_70s_afro), "70s_afro"));
-        findViewById(R.id.item_curtain).setOnClickListener(v -> switchHairstyle("curtain_haircut.deepar", getString(R.string.style_curtain), getString(R.string.desc_curtain), "curtain"));
-        findViewById(R.id.item_disconnect_undercut).setOnClickListener(v -> switchHairstyle("disconnect_undercut.deepar", getString(R.string.style_disconnect_undercut), getString(R.string.desc_disconnect_undercut), "disconnect_undercut"));
-        findViewById(R.id.item_afro_tapper).setOnClickListener(v -> switchHairstyle("afro_tapper.deepar", getString(R.string.style_afro_tapper), getString(R.string.desc_afro_tapper), "afro_tapper"));
-        findViewById(R.id.item_punk).setOnClickListener(v -> switchHairstyle("punk.deepar", getString(R.string.style_punk), getString(R.string.desc_punk), "punk"));
-        findViewById(R.id.item_viking_helmet).setOnClickListener(v -> switchHairstyle("viking_helmet.deepar", getString(R.string.style_viking_helmet), getString(R.string.desc_viking_helmet), "viking_helmet"));
-        findViewById(R.id.item_vendetta_mask).setOnClickListener(v -> switchHairstyle("Vendetta_Mask.deepar", getString(R.string.style_vendetta_mask), getString(R.string.desc_vendetta_mask), "vendetta_mask"));
+        findViewById(R.id.item_brazilian).setOnClickListener(v -> switchHairstyle("brazilian.deepar", getString(R.string.style_brazilian), getString(R.string.desc_brazilian), "brazilian", "hs_brazilian"));
+        findViewById(R.id.item_bird_hair).setOnClickListener(v -> switchHairstyle("birdhair.deepar", getString(R.string.style_bird_hair), getString(R.string.desc_bird_hair), "bird_hair", "hs_bird_hair"));
+        findViewById(R.id.item_side_sweep).setOnClickListener(v -> switchHairstyle("sidesweep.deepar", getString(R.string.style_side_sweep), getString(R.string.desc_side_sweep), "side_sweep", "hs_side_sweep"));
+        findViewById(R.id.item_wolf_hair).setOnClickListener(v -> switchHairstyle("wolfhair.deepar", getString(R.string.style_wolf_hair), getString(R.string.desc_wolf_hair), "wolf_hair", "hs_wolf_hair"));
+        findViewById(R.id.item_70s_afro).setOnClickListener(v -> switchHairstyle("70s_afro_tapper.deepar", getString(R.string.style_70s_afro), getString(R.string.desc_70s_afro), "70s_afro", "hs_70s_afro"));
+        findViewById(R.id.item_curtain).setOnClickListener(v -> switchHairstyle("curtain_haircut.deepar", getString(R.string.style_curtain), getString(R.string.desc_curtain), "curtain", "hs_curtain"));
+        findViewById(R.id.item_disconnect_undercut).setOnClickListener(v -> switchHairstyle("disconnect_undercut.deepar", getString(R.string.style_disconnect_undercut), getString(R.string.desc_disconnect_undercut), "disconnect_undercut", "hs_disconnect_undercut"));
+        findViewById(R.id.item_afro_tapper).setOnClickListener(v -> switchHairstyle("afro_tapper.deepar", getString(R.string.style_afro_tapper), getString(R.string.desc_afro_tapper), "afro_tapper", "hs_afro_tapper"));
+        findViewById(R.id.item_punk).setOnClickListener(v -> switchHairstyle("punk.deepar", getString(R.string.style_punk), getString(R.string.desc_punk), "punk", "hs_punk"));
+        findViewById(R.id.item_viking_helmet).setOnClickListener(v -> switchHairstyle("viking_helmet.deepar", getString(R.string.style_viking_helmet), getString(R.string.desc_viking_helmet), "viking_helmet", "hs_viking_helmet"));
+        findViewById(R.id.item_vendetta_mask).setOnClickListener(v -> switchHairstyle("Vendetta_Mask.deepar", getString(R.string.style_vendetta_mask), getString(R.string.desc_vendetta_mask), "vendetta_mask", "hs_vendetta_mask"));
 
         // Swipe-to-collapse/expand logic
         View rootView = findViewById(android.R.id.content);
@@ -303,8 +304,9 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
      * @param name The display name of the hairstyle.
      * @param desc The description of the hairstyle.
      * @param key The key to identify the hairstyle (for images).
+     * @param id The unique identifier for the hairstyle.
      */
-    private void switchHairstyle(String fileName, String name, String desc, String key) {
+    private void switchHairstyle(String fileName, String name, String desc, String key, String id) {
         if (deepAR != null && isDeepARInitialized) {
             // DeepAR 5.x uses the slot name "main" for the primary effect
             deepAR.switchEffect("main", "file:///android_asset/" + fileName);
@@ -314,6 +316,7 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
             this.currentHairstyleName = name;
             this.currentHairstyleDesc = desc;
             this.currentHairstyleKey = key;
+            this.currentHairstyleId = id;
         } else {
             Toast.makeText(this, "DeepAR is still initializing...", Toast.LENGTH_SHORT).show();
         }
@@ -559,6 +562,7 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
             resultIntent.putExtra("HAIRSTYLE_NAME", currentHairstyleName);
             resultIntent.putExtra("HAIRSTYLE_DESC", currentHairstyleDesc);
             resultIntent.putExtra("HAIRSTYLE_KEY", currentHairstyleKey);
+            resultIntent.putExtra("HAIRSTYLE_ID", currentHairstyleId);
             setResult(RESULT_OK, resultIntent);
             finish();
             return;
@@ -604,7 +608,7 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
         Log.d(TAG, "DeepAR initialized successfully");
         isDeepARInitialized = true;
         // Load a default effect once initialized
-        switchHairstyle("brazilian.deepar", getString(R.string.style_brazilian), getString(R.string.desc_brazilian), "brazilian");
+        switchHairstyle("brazilian.deepar", getString(R.string.style_brazilian), getString(R.string.desc_brazilian), "brazilian", "hs_brazilian");
     }
 
     @Override

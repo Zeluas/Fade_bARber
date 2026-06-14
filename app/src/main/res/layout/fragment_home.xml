@@ -12,6 +12,7 @@
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/ll_home_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -311,7 +312,9 @@
                         android:layout_height="wrap_content"
                         android:baselineAligned="false"
                         android:orientation="horizontal"
-                        android:padding="12dp">
+                        android:padding="12dp"
+                        android:visibility="gone"
+                        tools:visibility="visible">
 
                         <!-- Details Column -->
                         <LinearLayout
@@ -330,6 +333,7 @@
                                 android:orientation="vertical">
 
                                 <TextView
+                                    android:id="@+id/tv_label_date"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="@string/date_label"
@@ -338,6 +342,7 @@
                                     android:textStyle="bold" />
 
                                 <TextView
+                                    android:id="@+id/tv_booking_date_home"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginBottom="4dp"
@@ -345,6 +350,7 @@
                                     android:textSize="16sp" />
 
                                 <TextView
+                                    android:id="@+id/tv_label_time"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="12dp"
@@ -354,6 +360,7 @@
                                     android:textStyle="bold" />
 
                                 <TextView
+                                    android:id="@+id/tv_booking_time_home"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginBottom="4dp"
@@ -368,6 +375,7 @@
                                     android:orientation="horizontal">
 
                                     <TextView
+                                        android:id="@+id/tv_label_stylist"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:text="@string/hairstylist_label"
@@ -378,15 +386,14 @@
                                     <com.google.android.material.button.MaterialButton
                                         android:id="@+id/btn_call_stylist"
                                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
                                         android:layout_marginStart="8dp"
+                                        android:background="@android:color/transparent"
                                         android:minWidth="0dp"
                                         android:minHeight="0dp"
-                                        android:background="@android:color/transparent"
-                                        app:backgroundTint="@android:color/transparent"
                                         android:padding="0dp"
-                                        app:cornerRadius="6dp"
+                                        app:backgroundTint="@android:color/transparent"
                                         app:icon="@drawable/ic_phone"
                                         app:iconPadding="0dp"
                                         app:iconSize="18dp"
@@ -394,6 +401,7 @@
                                 </LinearLayout>
 
                                 <TextView
+                                    android:id="@+id/tv_hairstylist_name_home"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="@string/label_placeholder"
@@ -436,6 +444,7 @@
                                 android:orientation="vertical">
 
                                 <TextView
+                                    android:id="@+id/tv_label_chosen_haircut"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginBottom="4dp"
@@ -443,14 +452,28 @@
                                     android:textColor="@color/black"
                                     android:textStyle="bold" />
 
-                                <com.google.android.material.imageview.ShapeableImageView
-                                    android:id="@+id/iv_hairPreview"
+                                <FrameLayout
                                     android:layout_width="120dp"
-                                    android:layout_height="120dp"
-                                    android:padding="2dp"
-                                    app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                                    app:strokeColor="@color/black"
-                                    app:strokeWidth="1dp" />
+                                    android:layout_height="120dp">
+
+                                    <!-- The border and background box -->
+                                    <com.google.android.material.imageview.ShapeableImageView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:padding="2dp"
+                                        android:src="@null"
+                                        app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
+                                        app:strokeColor="@color/black"
+                                        app:strokeWidth="1dp" />
+
+                                    <!-- The actual hairstyle image with pseudo padding -->
+                                    <ImageView
+                                        android:id="@+id/iv_hairPreview"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:padding="12dp"
+                                        android:src="@null" />
+                                </FrameLayout>
 
                                 <TextView
                                     android:id="@+id/tv_haircut_name_home"
@@ -476,6 +499,18 @@
                                 app:cornerRadius="24dp" />
                         </LinearLayout>
                     </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_no_booking_placeholder"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="32dp"
+                        android:text="No upcoming booking found. Schedule one now!"
+                        android:textColor="@color/grey_grey"
+                        android:textSize="14sp"
+                        android:textStyle="italic"
+                        android:visibility="visible" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -512,189 +547,29 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Stylist 1 -->
-                    <LinearLayout
-                        android:id="@+id/ll_stylist_item_1"
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_stylists_home"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
+                        android:nestedScrollingEnabled="false"
+                        tools:listitem="@layout/item_stylist_selection" />
 
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:layout_width="60dp"
-                            android:layout_height="60dp"
-                            android:padding="2dp"
-                            android:src="@drawable/ic_launcher_background"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                            app:strokeColor="@color/black"
-                            app:strokeWidth="1dp" />
+                    <ProgressBar
+                        android:id="@+id/pb_stylists_home"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_margin="16dp"
+                        android:visibility="gone" />
 
-                        <LinearLayout
-                            android:id="@+id/ll_stylist_info_1"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Ahmad"
-                                android:textColor="@color/black"
-                                android:textStyle="bold" />
-
-                            <RatingBar
-                                style="?android:attr/ratingBarStyleSmall"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:numStars="5"
-                                android:rating="5"
-                                android:isIndicator="true"
-                                android:progressTint="#016808"
-                                android:secondaryProgressTint="#016808" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/label_placeholder"
-                                android:textSize="13sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/label_placeholder"
-                                android:textSize="13sp" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginHorizontal="12dp"
-                        android:background="#EEEEEE" />
-
-                    <!-- Stylist 2 -->
-                    <LinearLayout
-                        android:id="@+id/ll_stylist_item_2"
+                    <TextView
+                        android:id="@+id/tv_no_stylists_home"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
-
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:layout_width="60dp"
-                            android:layout_height="60dp"
-                            android:padding="2dp"
-                            android:src="@drawable/ic_launcher_background"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                            app:strokeColor="@color/black"
-                            app:strokeWidth="1dp" />
-
-                        <LinearLayout
-                            android:id="@+id/ll_stylist_info_2"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Ali"
-                                android:textColor="@color/black"
-                                android:textStyle="bold" />
-
-                            <RatingBar
-                                style="?android:attr/ratingBarStyleSmall"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:numStars="5"
-                                android:rating="4.5"
-                                android:isIndicator="true"
-                                android:stepSize="0.5"
-                                android:progressTint="#016808"
-                                android:secondaryProgressTint="#016808" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/label_placeholder"
-                                android:textSize="13sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/label_placeholder"
-                                android:textSize="13sp" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginHorizontal="12dp"
-                        android:background="#EEEEEE" />
-
-                    <!-- Stylist 3 -->
-                    <LinearLayout
-                        android:id="@+id/ll_stylist_item_3"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
-
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:layout_width="60dp"
-                            android:layout_height="60dp"
-                            android:padding="2dp"
-                            android:src="@drawable/ic_launcher_background"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                            app:strokeColor="@color/black"
-                            app:strokeWidth="1dp" />
-
-                        <LinearLayout
-                            android:id="@+id/ll_stylist_info_3"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Abu"
-                                android:textColor="@color/black"
-                                android:textStyle="bold" />
-
-                            <RatingBar
-                                style="?android:attr/ratingBarStyleSmall"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:numStars="5"
-                                android:rating="5"
-                                android:isIndicator="true"
-                                android:progressTint="#016808"
-                                android:secondaryProgressTint="#016808" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/label_placeholder"
-                                android:textSize="13sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/label_placeholder"
-                                android:textSize="13sp" />
-                        </LinearLayout>
-                    </LinearLayout>
+                        android:gravity="center"
+                        android:padding="16dp"
+                        android:text="No stylists available."
+                        android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

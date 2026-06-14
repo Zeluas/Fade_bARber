@@ -16,20 +16,47 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 import com.google.android.material.card.MaterialCardView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.Source;
+import com.google.ai.client.generativeai.GenerativeModel;
+import com.google.ai.client.generativeai.java.GenerativeModelFutures;
+import com.google.ai.client.generativeai.type.Content;
+import com.google.ai.client.generativeai.type.GenerateContentResponse;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.zejyv.azizul.uitm.fadebarber.adapters.StylistAdapter;
+import com.zejyv.azizul.uitm.fadebarber.models.Employee;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 import java.util.Random;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * HomeFragment: The main dashboard for the Fade bARber app.
@@ -42,17 +69,85 @@ public class HomeFragment extends Fragment {
     private MaterialCardView mcvTopBar;
     private ScrollView svHomeContent;
     private TextView tvAiJab;
+
+    // Booking Details UI
+    private TextView tvBookingDate, tvBookingTime, tvHairstylist, tvHaircut;
+    private ImageView ivHairPreview;
+    private View llBookingDetailsRow, tvNoBookingPlaceholder;
+    private LinearLayout llLeftCol, llRightCol;
+    private TextView tvLabelDate, tvLabelTime, tvLabelStylist, tvLabelChosenHaircut;
+    private View btnCallStylist, btnCancelBooking, btnEditBooking;
     
+    // Stylist List UI
+    private RecyclerView rvStylists;
+    private ProgressBar pbStylists;
+    private TextView tvNoStylists;
+    private StylistAdapter stylistAdapter;
+    private List<Employee> stylistList = new ArrayList<>();
+    
+    private FirebaseFirestore db;
+    private FirebaseAuth mAuth;
+    private ListenerRegistration bookingListener;
+
+    // Nearest booking info for AI Jabs
+    private String nearestBookingTime = null;
+    private String nearestBookingHaircut = null;
+
     // UI State flags
     private boolean isExpanded = true;
     private boolean isAnimating = false;
     private boolean isLockedAtMin = false;
+    private boolean hasAnimatedBooking = false;
     
     // AI Jab related state
-    private static String sessionAiJab = null;
+    private static List<String> jabPool = new ArrayList<>();
+    private static String lastUsedBookingId = "initial_session";
+    private static boolean lastUsedShopStatusOpen = false;
+    private static boolean isPoolInitialized = false;
     private long lastJabTime = 0;
-    private static final long JAB_COOLDOWN = 30000; // 30 seconds cooldown for AI jab generation
+    private static final long JAB_COOLDOWN = 10000; // 10 seconds cooldown between showing jabs
     private Runnable typingRunnable;
+
+    private void saveJabPool() {
+        if (getContext() == null) return;
+        try {
+            android.content.SharedPreferences prefs = requireContext().getSharedPreferences("ai_jab_prefs", android.content.Context.MODE_PRIVATE);
+            android.content.SharedPreferences.Editor editor = prefs.edit();
+            
+            // Join pool with specialized separator to avoid conflict with /
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < jabPool.size(); i++) {
+                sb.append(jabPool.get(i));
+                if (i < jabPool.size() - 1) sb.append("|||");
+            }
+            
+            editor.putString("jab_pool", sb.toString());
+            editor.putString("last_booking_id", lastUsedBookingId);
+            editor.putBoolean("last_shop_open", lastUsedShopStatusOpen);
+            editor.putBoolean("pool_init", isPoolInitialized);
+            editor.apply();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadJabPool() {
+        if (getContext() == null) return;
+        try {
+            android.content.SharedPreferences prefs = requireContext().getSharedPreferences("ai_jab_prefs", android.content.Context.MODE_PRIVATE);
+            String savedPool = prefs.getString("jab_pool", "");
+            if (!savedPool.isEmpty()) {
+                String[] parts = savedPool.split("\\|\\|\\|");
+                jabPool.clear();
+                for (String p : parts) if (!p.isEmpty()) jabPool.add(p);
+            }
+            lastUsedBookingId = prefs.getString("last_booking_id", "initial_session");
+            lastUsedShopStatusOpen = prefs.getBoolean("last_shop_open", false);
+            isPoolInitialized = prefs.getBoolean("pool_init", false);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * Runnable to periodically update the time-based theme (e.g., background and greeting).
@@ -79,11 +174,42 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         handler = new Handler(Looper.getMainLooper());
 
+        db = FirebaseFirestore.getInstance();
+        mAuth = FirebaseAuth.getInstance();
+        
+        loadJabPool();
+
         // Initialize UI components
         mcvTopBar = view.findViewById(R.id.mcv_top_bar);
         svHomeContent = view.findViewById(R.id.sv_home_content);
         tvAiJab = view.findViewById(R.id.tv_ai_jab);
         LinearLayout llTextContainer = view.findViewById(R.id.ll_top_bar_text_container);
+
+        // Booking details initialization
+        tvBookingDate = view.findViewById(R.id.tv_booking_date_home);
+        tvBookingTime = view.findViewById(R.id.tv_booking_time_home);
+        tvHairstylist = view.findViewById(R.id.tv_hairstylist_name_home);
+        tvHaircut = view.findViewById(R.id.tv_haircut_name_home);
+        ivHairPreview = view.findViewById(R.id.iv_hairPreview);
+        llBookingDetailsRow = view.findViewById(R.id.ll_booking_details_row);
+        tvNoBookingPlaceholder = view.findViewById(R.id.tv_no_booking_placeholder);
+        llLeftCol = view.findViewById(R.id.ll_booking_details_left_col);
+        llRightCol = view.findViewById(R.id.ll_booking_details_right_col);
+
+        // Labels and Buttons for staggered animation
+        tvLabelDate = view.findViewById(R.id.tv_label_date);
+        tvLabelTime = view.findViewById(R.id.tv_label_time);
+        tvLabelStylist = view.findViewById(R.id.tv_label_stylist);
+        tvLabelChosenHaircut = view.findViewById(R.id.tv_label_chosen_haircut);
+        btnCallStylist = view.findViewById(R.id.btn_call_stylist);
+        btnCancelBooking = view.findViewById(R.id.btn_cancel_booking);
+        btnEditBooking = view.findViewById(R.id.btn_edit_booking);
+
+        // Stylist list initialization
+        rvStylists = view.findViewById(R.id.rv_stylists_home);
+        pbStylists = view.findViewById(R.id.pb_stylists_home);
+        tvNoStylists = view.findViewById(R.id.tv_no_stylists_home);
+        setupStylistRecyclerView();
 
         // Configure smooth layout transitions for the top bar's text container
         if (llTextContainer != null) {
@@ -96,17 +222,264 @@ public class HomeFragment extends Fragment {
             transition.setDuration(300); // Duration for text movement during resize
         }
 
-        // Initialize AI jab if not already present in the current session
-        if (sessionAiJab == null) {
-            Calendar calendar = Calendar.getInstance();
-            int hour = calendar.get(Calendar.HOUR_OF_DAY);
-            boolean isOpen = hour >= 10 && hour < 24; // Shop hours: 10 AM to 12 AM
-            updateAiJab(isOpen, false);
-        }
-
         setupScrollingLogic();
         setupClickLogic();
         populateWelcomeMessage(view);
+        fetchNearestBooking();
+        fetchStylists();
+    }
+
+    private void setupStylistRecyclerView() {
+        if (rvStylists == null) return;
+        rvStylists.setLayoutManager(new LinearLayoutManager(requireContext()));
+        stylistAdapter = new StylistAdapter(stylistList, false, employee -> {
+            // Unclickable on Home screen
+        });
+        rvStylists.setAdapter(stylistAdapter);
+    }
+
+    private void fetchStylists() {
+        if (pbStylists != null) pbStylists.setVisibility(View.VISIBLE);
+        db.collection("employees").get(Source.SERVER).addOnCompleteListener(task -> {
+            if (pbStylists != null) pbStylists.setVisibility(View.GONE);
+            if (task.isSuccessful() && task.getResult() != null) {
+                stylistList.clear();
+                for (QueryDocumentSnapshot document : task.getResult()) {
+                    Employee employee = document.toObject(Employee.class);
+                    stylistList.add(employee);
+                }
+                if (stylistAdapter != null) stylistAdapter.notifyDataSetChanged();
+                
+                if (tvNoStylists != null) {
+                    tvNoStylists.setVisibility(stylistList.isEmpty() ? View.VISIBLE : View.GONE);
+                }
+            } else {
+                if (tvNoStylists != null) {
+                    tvNoStylists.setVisibility(View.VISIBLE);
+                    tvNoStylists.setText("Error loading stylists.");
+                }
+            }
+        });
+    }
+
+    /**
+     * Fetches the nearest upcoming pending booking for the logged-in user.
+     */
+    private void fetchNearestBooking() {
+        if (mAuth.getCurrentUser() == null) return;
+
+        String uid = mAuth.getCurrentUser().getUid();
+
+        bookingListener = db.collection("bookings")
+                .whereEqualTo("customerId", uid)
+                .whereEqualTo("status", "Pending")
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        android.util.Log.e("HomeFragment", "Error fetching bookings: " + error.getMessage());
+                        return;
+                    }
+
+                    if (value != null && !value.isEmpty()) {
+                        List<QueryDocumentSnapshot> bookings = new ArrayList<>();
+                        for (QueryDocumentSnapshot doc : value) {
+                            bookings.add(doc);
+                        }
+
+                        // Sort bookings by date and time to find the nearest
+                        Collections.sort(bookings, new Comparator<QueryDocumentSnapshot>() {
+                            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault());
+                            @Override
+                            public int compare(QueryDocumentSnapshot b1, QueryDocumentSnapshot b2) {
+                                try {
+                                    Date d1 = sdf.parse(b1.getString("date") + " " + b1.getString("time"));
+                                    Date d2 = sdf.parse(b2.getString("date") + " " + b2.getString("time"));
+                                    if (d1 == null || d2 == null) return 0;
+                                    return d1.compareTo(d2);
+                                } catch (ParseException e) {
+                                    return 0;
+                                }
+                            }
+                        });
+
+                        updateBookingUI(bookings.get(0));
+                    } else {
+                        resetBookingUI();
+                    }
+                });
+    }
+
+    private void updateBookingUI(QueryDocumentSnapshot doc) {
+        String newBookingId = doc.getId();
+        nearestBookingTime = doc.getString("time");
+        nearestBookingHaircut = doc.getString("hairstyleName");
+
+        if (tvBookingDate != null) tvBookingDate.setText(doc.getString("date"));
+        if (tvBookingTime != null) tvBookingTime.setText(nearestBookingTime);
+        if (tvHairstylist != null) tvHairstylist.setText(doc.getString("employeeName"));
+        if (tvHaircut != null) tvHaircut.setText(nearestBookingHaircut);
+
+        if (ivHairPreview != null) {
+            loadHaircutImage(nearestBookingHaircut);
+        }
+
+        // Handle visibility and animation
+        if (tvNoBookingPlaceholder != null) tvNoBookingPlaceholder.setVisibility(View.GONE);
+        if (llBookingDetailsRow != null && llBookingDetailsRow.getVisibility() != View.VISIBLE) {
+            animateBookingArrival();
+        } else {
+            if (llBookingDetailsRow != null) llBookingDetailsRow.setVisibility(View.VISIBLE);
+        }
+        
+        // Context Check for AI Jabs
+        Calendar calendar = Calendar.getInstance();
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        boolean isOpen = hour >= 10 && hour < 24;
+        
+        boolean contextChanged = !newBookingId.equals(lastUsedBookingId) || (isOpen != lastUsedShopStatusOpen);
+        if (!isPoolInitialized || contextChanged) {
+            lastUsedBookingId = newBookingId;
+            lastUsedShopStatusOpen = isOpen;
+            isPoolInitialized = true;
+            updateAiJab(isOpen, true);
+        } else if (jabPool.isEmpty()) {
+            updateAiJab(isOpen, true);
+        } else {
+            showNextJabFromPool();
+        }
+    }
+
+    private void animateBookingArrival() {
+        if (llBookingDetailsRow == null || hasAnimatedBooking) {
+            if (llBookingDetailsRow != null) llBookingDetailsRow.setVisibility(View.VISIBLE);
+            return;
+        }
+        hasAnimatedBooking = true;
+
+        // 1. Prepare elements for animation
+        llBookingDetailsRow.setVisibility(View.VISIBLE);
+        llBookingDetailsRow.setAlpha(0f);
+        
+        // Hide values and buttons initially
+        final View[] labels = {tvLabelDate, tvLabelTime, tvLabelStylist, tvLabelChosenHaircut};
+        final View[] values = {tvBookingDate, tvBookingTime, tvHairstylist, tvHaircut, ivHairPreview};
+        final View[] buttons = {btnCallStylist, btnCancelBooking, btnEditBooking};
+
+        for (View v : labels) if (v != null) { v.setAlpha(0f); v.setTranslationX(-50f); }
+        for (View v : values) if (v != null) { v.setAlpha(0f); v.setTranslationX(-30f); }
+        for (View v : buttons) if (v != null) { v.setAlpha(0f); v.setTranslationY(20f); }
+
+        if (llRightCol != null) {
+            llRightCol.setAlpha(0f);
+            llRightCol.setTranslationX(100f);
+        }
+
+        // 2. Measure target height
+        llBookingDetailsRow.measure(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        final int targetHeight = llBookingDetailsRow.getMeasuredHeight();
+
+        // 3. Animate Height and Alpha of the row (Slowed down to 1.5s)
+        ValueAnimator heightAnimator = ValueAnimator.ofInt(0, targetHeight);
+        heightAnimator.setDuration(1500); 
+        heightAnimator.setInterpolator(new android.view.animation.BounceInterpolator());
+        heightAnimator.addUpdateListener(animation -> {
+            int val = (Integer) animation.getAnimatedValue();
+            ViewGroup.LayoutParams layoutParams = llBookingDetailsRow.getLayoutParams();
+            layoutParams.height = val;
+            llBookingDetailsRow.setLayoutParams(layoutParams);
+            llBookingDetailsRow.setAlpha((float) val / targetHeight);
+        });
+
+        // 4. Staggered animation for elements
+        heightAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                ViewGroup.LayoutParams layoutParams = llBookingDetailsRow.getLayoutParams();
+                layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                llBookingDetailsRow.setLayoutParams(layoutParams);
+
+                // A. Animate Labels (Starts immediately after row expansion begins or near end)
+                for (View v : labels) {
+                    if (v != null) v.animate().alpha(1f).translationX(0f).setDuration(800).start();
+                }
+
+                // B. Animate Values (0.8s later)
+                handler.postDelayed(() -> {
+                    for (View v : values) {
+                        if (v != null) v.animate().alpha(1f).translationX(0f).setDuration(800).start();
+                    }
+                    if (llRightCol != null) {
+                        llRightCol.animate().alpha(1f).translationX(0f).setDuration(1000).start();
+                    }
+                }, 800);
+
+                // C. Animate Buttons (Last)
+                handler.postDelayed(() -> {
+                    for (View v : buttons) {
+                        if (v != null) v.animate().alpha(1f).translationY(0f).setDuration(800).start();
+                    }
+                }, 1400);
+            }
+        });
+
+        heightAnimator.start();
+    }
+
+    private void loadHaircutImage(String name) {
+        if (name == null || ivHairPreview == null) return;
+        
+        try {
+            String[] images = requireContext().getAssets().list("images");
+            if (images != null) {
+                String cleanName = name.toLowerCase().replace(" ", "").replace("-", "");
+                for (String imageName : images) {
+                    String cleanImg = imageName.toLowerCase().split("\\.")[0].replace(" ", "").replace("-", "");
+                    if (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)) {
+                        try (java.io.InputStream is = requireContext().getAssets().open("images/" + imageName)) {
+                            android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(is);
+                            ivHairPreview.setImageBitmap(bitmap);
+                            return;
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        ivHairPreview.setImageResource(R.drawable.ic_hair);
+    }
+
+    private void resetBookingUI() {
+        nearestBookingTime = null;
+        nearestBookingHaircut = null;
+        
+        // Handle visibility
+        if (llBookingDetailsRow != null) llBookingDetailsRow.setVisibility(View.GONE);
+        if (tvNoBookingPlaceholder != null) tvNoBookingPlaceholder.setVisibility(View.VISIBLE);
+        hasAnimatedBooking = false; // Allow re-animation if they book again later
+        
+        // Context tracking for "no booking"
+        String newBookingId = "no_booking";
+        Calendar calendar = Calendar.getInstance();
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        boolean isOpen = hour >= 10 && hour < 24;
+
+        boolean contextChanged = !newBookingId.equals(lastUsedBookingId) || (isOpen != lastUsedShopStatusOpen);
+        if (!isPoolInitialized || contextChanged) {
+            lastUsedBookingId = newBookingId;
+            lastUsedShopStatusOpen = isOpen;
+            isPoolInitialized = true;
+            updateAiJab(isOpen, true);
+        } else if (jabPool.isEmpty()) {
+            updateAiJab(isOpen, true);
+        } else {
+            showNextJabFromPool();
+        }
+
+        if (tvBookingDate != null) tvBookingDate.setText("No active booking");
+        if (tvBookingTime != null) tvBookingTime.setText("--:--");
+        if (tvHairstylist != null) tvHairstylist.setText("N/A");
+        if (tvHaircut != null) tvHaircut.setText("Select a style");
+        if (ivHairPreview != null) ivHairPreview.setImageResource(R.drawable.ic_hair);
     }
 
     /**
@@ -196,7 +569,7 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * Handles clicks on the top bar to manually expand it and refresh the AI jab.
+     * Handles clicks on the top bar to manually show the next jab from the pool.
      */
     private void setupClickLogic() {
         mcvTopBar.setOnClickListener(v -> {
@@ -208,10 +581,7 @@ public class HomeFragment extends Fragment {
                 Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
             } else {
                 lastJabTime = currentTime;
-                Calendar calendar = Calendar.getInstance();
-                int hour = calendar.get(Calendar.HOUR_OF_DAY);
-                boolean isOpen = hour >= 10 && hour < 24;
-                updateAiJab(isOpen, true); // Force a new jab on click
+                showNextJabFromPool();
             }
 
             // Expand top bar if it's currently collapsed
@@ -263,60 +633,90 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * Fetches or updates the AI jab (roast).
-     * Currently uses fallback jabs to save API usage, but includes logic for Gemini AI.
+     * Fetches or updates the AI jab pool (roast).
+     * Uses Gemini AI with personalized booking context to generate 100 jabs.
      */
     private void updateAiJab(boolean isOpen, boolean forceNew) {
         if (tvAiJab == null) return;
 
-        if (sessionAiJab != null && !forceNew) {
-            startTypingAnimation(sessionAiJab);
+        if (!jabPool.isEmpty() && !forceNew) {
+            showNextJabFromPool();
             return;
         }
 
-        // Use pre-defined fallback jabs for multilingual support and stability
-        useFallbackJab(isOpen);
-    }
-    
-    /*
-        // Use API Key from local.properties via BuildConfig
         String apiKey = BuildConfig.GEMINI_API_KEY;
-        Log.d("HomeFragment", "API Key length: " + apiKey.length());
+        if (apiKey == null || apiKey.isEmpty() || apiKey.equals("PASTE_YOUR_API_KEY_HERE")) {
+            useFallbackJab(isOpen);
+            return;
+        }
 
         GenerativeModel gm = new GenerativeModel("gemini-3.1-flash-lite", apiKey);
         GenerativeModelFutures model = GenerativeModelFutures.from(gm);
 
         String shopStatus = isOpen ? "OPEN" : "CLOSED";
-        String prompt = "Generate a funny, short (max 20 words) jab/roast for a user at a barber shop app. " +
-                "Context: The shop is currently " + shopStatus + ". The user is looking at their home screen. " +
-                "Make it personal and cheeky about their potentially messy hair or need for a trim. " +
-                (forceNew ? "Make it different from the previous response, something more hurtful and biting but playful." : "");
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append("Generate EXACTLY 100 funny, unique, very short (max 20 words each) jabs/roasts for a user at a barber shop app. ");
+        promptBuilder.append("Separate each jab with a '/' character. DO NOT NUMBER THEM. No list formatting. ");
+        promptBuilder.append("Context: The shop is currently ").append(shopStatus).append(". ");
+        
+        if (nearestBookingTime != null && nearestBookingHaircut != null) {
+            promptBuilder.append("The user has an upcoming appointment for a '")
+                    .append(nearestBookingHaircut).append("' at ").append(nearestBookingTime).append(". ");
+            promptBuilder.append("Make them personal about this specific haircut choice or timing. ");
+        } else {
+            promptBuilder.append("The user hasn't booked anything yet. Roast them for their potentially messy hair and encourage them to book NOW. ");
+        }
+        
+        promptBuilder.append("Make them cheeky, playful, and slightly mean but professional for a barber shop. No emojis. ");
+        promptBuilder.append("Only output the raw text of the jabs separated by '/' and nothing else.");
 
-        Content content = new Content.Builder().addText(prompt).build();
+        Content content = new Content.Builder().addText(promptBuilder.toString()).build();
         Executor executor = Executors.newSingleThreadExecutor();
         ListenableFuture<GenerateContentResponse> response = model.generateContent(content);
 
-        Futures.addCallback(response, new FutureCallback<>() {
+        Futures.addCallback(response, new FutureCallback<GenerateContentResponse>() {
             @Override
             public void onSuccess(@NonNull GenerateContentResponse result) {
-                String jab = result.getText();
-                Log.d("HomeFragment", "Gemini AI Jab generated: " + jab);
-                if (jab != null && isAdded()) {
-                    handler.post(() -> {
-                        sessionAiJab = jab.trim();
-                        startTypingAnimation(sessionAiJab);
-                    });
+                String fullText = result.getText();
+                if (fullText != null && isAdded()) {
+                    String[] parts = fullText.split("/");
+                        handler.post(() -> {
+                            jabPool.clear();
+                            for (String part : parts) {
+                                String trimmed = part.trim();
+                                if (!trimmed.isEmpty()) jabPool.add(trimmed);
+                            }
+                            saveJabPool();
+                            showNextJabFromPool();
+                        });
                 }
             }
 
             @Override
             public void onFailure(@NonNull Throwable t) {
-                Log.e("HomeFragment", "Gemini API Error: " + t.getMessage(), t);
-                // Fallback to local jabs if API fails
+                android.util.Log.e("HomeFragment", "Gemini API Error: " + t.getMessage(), t);
                 handler.post(() -> useFallbackJab(isOpen));
             }
         }, executor);
-        */
+    }
+
+    private void showNextJabFromPool() {
+        if (jabPool.isEmpty()) {
+            Calendar calendar = Calendar.getInstance();
+            int hour = calendar.get(Calendar.HOUR_OF_DAY);
+            boolean isOpen = hour >= 10 && hour < 24;
+            updateAiJab(isOpen, true);
+            return;
+        }
+
+        // Pick a random jab from the pool and remove it so we don't repeat immediately
+        int index = new Random().nextInt(jabPool.size());
+        String jab = jabPool.get(index);
+        jabPool.remove(index);
+        saveJabPool();
+        
+        startTypingAnimation(jab);
+    }
     
     /**
      * Starts the typewriter effect for displaying the jab text.
@@ -399,8 +799,8 @@ public class HomeFragment extends Fragment {
                     getString(R.string.jab_closed_2)
             };
         }
-        sessionAiJab = fallbackJabs[new Random().nextInt(fallbackJabs.length)];
-        startTypingAnimation(sessionAiJab);
+        String jab = fallbackJabs[new Random().nextInt(fallbackJabs.length)];
+        startTypingAnimation(jab);
     }
 
     @Override
@@ -416,6 +816,14 @@ public class HomeFragment extends Fragment {
         super.onPause();
         if (handler != null) {
             handler.removeCallbacks(updateTimeThemeRunnable);
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (bookingListener != null) {
+            bookingListener.remove();
         }
     }
 

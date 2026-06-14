@@ -1,0 +1,120 @@
+package com.zejyv.azizul.uitm.fadebarber.adapters;
+
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.RatingBar;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.checkbox.MaterialCheckBox;
+import com.zejyv.azizul.uitm.fadebarber.R;
+import com.zejyv.azizul.uitm.fadebarber.models.Employee;
+
+import java.util.List;
+
+public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistViewHolder> {
+
+    private final List<Employee> stylistList;
+    private int selectedPosition = -1;
+    private OnStylistSelectedListener listener;
+    private final boolean isSelectionEnabled;
+
+    public interface OnStylistSelectedListener {
+        void onStylistSelected(Employee employee);
+    }
+
+    public StylistAdapter(List<Employee> stylistList, OnStylistSelectedListener listener) {
+        this(stylistList, true, listener);
+    }
+
+    public StylistAdapter(List<Employee> stylistList, boolean isSelectionEnabled, OnStylistSelectedListener listener) {
+        this.stylistList = stylistList;
+        this.isSelectionEnabled = isSelectionEnabled;
+        this.listener = listener;
+    }
+
+    @NonNull
+    @Override
+    public StylistViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_stylist_selection, parent, false);
+        return new StylistViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull StylistViewHolder holder, int position) {
+        Employee employee = stylistList.get(position);
+        holder.tvName.setText(employee.getFullname());
+        holder.tvSpecialty.setText(String.format("Specialty: %s", employee.getSpecialty()));
+        holder.rbRating.setRating(0); // Default rating as 0 for now
+        
+        if (isSelectionEnabled) {
+            holder.cbSelected.setVisibility(View.VISIBLE);
+            holder.cbSelected.setChecked(position == selectedPosition);
+            holder.rootContainer.setOnClickListener(v -> {
+                int previousSelected = selectedPosition;
+                selectedPosition = holder.getBindingAdapterPosition();
+                if (selectedPosition != RecyclerView.NO_POSITION) {
+                    if (previousSelected != -1) {
+                        notifyItemChanged(previousSelected);
+                    }
+                    notifyItemChanged(selectedPosition);
+                    if (listener != null) {
+                        listener.onStylistSelected(employee);
+                    }
+                }
+            });
+        } else {
+            holder.cbSelected.setVisibility(View.GONE);
+            holder.rootContainer.setOnClickListener(null);
+            holder.rootContainer.setClickable(false);
+            holder.rootContainer.setFocusable(false);
+        }
+
+        // Hide divider for the last item
+        holder.divider.setVisibility(position == stylistList.size() - 1 ? View.GONE : View.VISIBLE);
+    }
+
+    @Override
+    public int getItemCount() {
+        return stylistList.size();
+    }
+
+    public void setSelectedIndex(int position) {
+        if (position >= 0 && position < stylistList.size()) {
+            int previousSelected = selectedPosition;
+            selectedPosition = position;
+            if (previousSelected != -1) {
+                notifyItemChanged(previousSelected);
+            }
+            notifyItemChanged(selectedPosition);
+        }
+    }
+
+    public Employee getSelectedStylist() {
+        if (selectedPosition != -1 && selectedPosition < stylistList.size()) {
+            return stylistList.get(selectedPosition);
+        }
+        return null;
+    }
+
+    static class StylistViewHolder extends RecyclerView.ViewHolder {
+        View rootContainer;
+        TextView tvName, tvSpecialty;
+        RatingBar rbRating;
+        MaterialCheckBox cbSelected;
+        View divider;
+
+        public StylistViewHolder(@NonNull View itemView) {
+            super(itemView);
+            rootContainer = itemView.findViewById(R.id.ll_stylist_item);
+            tvName = itemView.findViewById(R.id.tv_stylist_name);
+            tvSpecialty = itemView.findViewById(R.id.tv_stylist_specialty);
+            rbRating = itemView.findViewById(R.id.rb_stylist_rating);
+            cbSelected = itemView.findViewById(R.id.cb_stylist);
+            divider = itemView.findViewById(R.id.v_stylist_divider);
+        }
+    }
+}
