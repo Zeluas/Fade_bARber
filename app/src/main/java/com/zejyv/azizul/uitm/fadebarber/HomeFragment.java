@@ -77,6 +77,7 @@ public class HomeFragment extends Fragment {
     private LinearLayout llLeftCol, llRightCol;
     private TextView tvLabelDate, tvLabelTime, tvLabelStylist, tvLabelChosenHaircut;
     private View btnCallStylist, btnCancelBooking, btnEditBooking;
+    private String nearestStylistPhone = "";
     
     // Stylist List UI
     private RecyclerView rvStylists;
@@ -312,6 +313,16 @@ public class HomeFragment extends Fragment {
         String newBookingId = doc.getId();
         nearestBookingTime = doc.getString("time");
         nearestBookingHaircut = doc.getString("hairstyleName");
+        
+        // Fetch stylist phone number from the employeeId
+        String employeeId = doc.getString("employeeId");
+        if (employeeId != null) {
+            db.collection("employees").document(employeeId).get().addOnSuccessListener(employeeDoc -> {
+                if (employeeDoc.exists()) {
+                    nearestStylistPhone = employeeDoc.getString("phone");
+                }
+            });
+        }
 
         if (tvBookingDate != null) tvBookingDate.setText(doc.getString("date"));
         if (tvBookingTime != null) tvBookingTime.setText(nearestBookingTime);
@@ -572,6 +583,16 @@ public class HomeFragment extends Fragment {
      * Handles clicks on the top bar to manually show the next jab from the pool.
      */
     private void setupClickLogic() {
+        if (btnCallStylist != null) {
+            btnCallStylist.setOnClickListener(v -> {
+                if (getActivity() instanceof MainActivity && nearestStylistPhone != null && !nearestStylistPhone.isEmpty()) {
+                    ((MainActivity) getActivity()).showCallStylistDialog(nearestStylistPhone);
+                } else if (nearestStylistPhone == null || nearestStylistPhone.isEmpty()) {
+                    Toast.makeText(getContext(), "Stylist phone number not available", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         mcvTopBar.setOnClickListener(v -> {
             long currentTime = System.currentTimeMillis();
             if (currentTime - lastJabTime < JAB_COOLDOWN) {

@@ -9,6 +9,8 @@ import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,10 +21,9 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import android.widget.Button;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Locale;
 
 /**
  * MainActivity: The primary host for the customer application interface.
@@ -44,6 +45,11 @@ public class MainActivity extends AppCompatActivity {
     private View layoutLogoutConfirmation, mcvLogoutDialog;
     private Button btnLogoutCancel;
 
+    // --- Call Stylist Dialog Components ---
+    private View layoutCallStylist, mcvCallDialog;
+    private TextView tvStylistPhone;
+    private String rawStylistPhone = "";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
         setupFab();
         setupExitDialog();
         setupLogoutDialog();
+        setupCallStylistDialog();
         setupBackPressed();
     }
 
@@ -194,6 +201,94 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Initializes and configures the call stylist dialog.
+     */
+    private void setupCallStylistDialog() {
+        layoutCallStylist = findViewById(R.id.layout_call_hairstylist);
+        mcvCallDialog = findViewById(R.id.mcv_call_dialog);
+        tvStylistPhone = findViewById(R.id.tv_hairstylist_phone_display);
+        View btnCallNow = findViewById(R.id.btn_call_now);
+
+        if (btnCallNow != null) {
+            btnCallNow.setOnClickListener(v -> {
+                if (rawStylistPhone != null && !rawStylistPhone.isEmpty()) {
+                    Intent intent = new Intent(Intent.ACTION_DIAL);
+                    intent.setData(android.net.Uri.parse("tel:" + rawStylistPhone));
+                    startActivity(intent);
+                }
+                hideCallStylistDialog();
+            });
+        }
+
+        if (layoutCallStylist != null) {
+            layoutCallStylist.setOnClickListener(v -> hideCallStylistDialog());
+        }
+    }
+
+    /**
+     * Shows the call stylist dialog with a formatted phone number.
+     * @param rawPhone Number in format like "012345678911"
+     */
+    public void showCallStylistDialog(String rawPhone) {
+        if (layoutCallStylist == null || mcvCallDialog == null || tvStylistPhone == null) return;
+
+        this.rawStylistPhone = rawPhone;
+
+        // Logic for formatting: "+60 12-3456 789..."
+        // Format: +60 (2 digits)-(4 digits) (remaining digits in groups of 4)
+        String formatted = rawPhone;
+        if (rawPhone != null && !rawPhone.isEmpty()) {
+            String digits = rawPhone;
+            if (rawPhone.startsWith("0")) {
+                digits = rawPhone.substring(1); // Remove leading 0 for +60
+            } else if (rawPhone.startsWith("+60")) {
+                digits = rawPhone.substring(3);
+            } else if (rawPhone.startsWith("60")) {
+                digits = rawPhone.substring(2);
+            }
+
+            if (digits.length() >= 6) {
+                StringBuilder sb = new StringBuilder("+60 ");
+                sb.append(digits.substring(0, 2)); // 12
+                sb.append("-");
+                sb.append(digits.substring(2, 6)); // 3245
+                
+                String remaining = digits.substring(6);
+                for (int i = 0; i < remaining.length(); i++) {
+                    if (i > 0 && i % 4 == 0) sb.append(" ");
+                    if (i == 0) sb.append(" ");
+                    sb.append(remaining.charAt(i));
+                }
+                formatted = sb.toString();
+            } else {
+                formatted = "+60 " + digits;
+            }
+        }
+
+        tvStylistPhone.setText(formatted);
+
+        layoutCallStylist.setVisibility(View.VISIBLE);
+        layoutCallStylist.setAlpha(0f);
+        layoutCallStylist.animate().alpha(1f).setDuration(200).start();
+
+        mcvCallDialog.post(() -> {
+            mcvCallDialog.setTranslationY(mcvCallDialog.getHeight());
+            mcvCallDialog.animate().translationY(0).setDuration(300).start();
+        });
+    }
+
+    /**
+     * Hides the call stylist dialog with animation.
+     */
+    public void hideCallStylistDialog() {
+        if (layoutCallStylist == null || mcvCallDialog == null) return;
+
+        mcvCallDialog.animate().translationY(mcvCallDialog.getHeight()).setDuration(200).start();
+        layoutCallStylist.animate().alpha(0f).setDuration(200)
+                .withEndAction(() -> layoutCallStylist.setVisibility(View.GONE)).start();
+    }
+
+    /**
      * Clears all stored credentials from EncryptedSharedPreferences.
      */
     private void clearStoredCredentials() {
@@ -272,7 +367,9 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (layoutLogoutConfirmation.getVisibility() == View.VISIBLE) {
+                if (layoutCallStylist.getVisibility() == View.VISIBLE) {
+                    hideCallStylistDialog();
+                } else if (layoutLogoutConfirmation.getVisibility() == View.VISIBLE) {
                     hideLogoutDialog();
                 } else if (layoutExitConfirmation.getVisibility() == View.VISIBLE) {
                     hideExitDialog();

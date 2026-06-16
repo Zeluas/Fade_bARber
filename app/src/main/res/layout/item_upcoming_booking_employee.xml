@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="12dp">
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/iv_upcoming_profile"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:padding="2dp"
+        android:src="@drawable/ic_launcher_background"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
+        app:strokeColor="@color/black"
+        app:strokeWidth="1dp" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_upcoming_customer_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Customer Name"
+            android:textColor="@color/black"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_upcoming_hairstyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hairstyle Name"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_call_upcoming"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="8dp"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp"
+        android:text="@string/call_label"
+        android:textColor="@color/primary_color"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        app:backgroundTint="#FFFFFF"
+        app:cornerRadius="24dp"
+        app:icon="@drawable/ic_phone"
+        app:iconPadding="4dp"
+        app:iconSize="16dp"
+        app:iconTint="@color/primary_color"
+        app:strokeColor="@color/primary_color"
+        app:strokeWidth="1.5dp" />
+
+    <TextView
+        android:id="@+id/tv_upcoming_time"
+        android:layout_width="70dp"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:text="11:00 AM"
+        android:textColor="@color/primary_color"
+        android:textStyle="bold" />
+</LinearLayout>

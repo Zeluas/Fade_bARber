@@ -333,11 +333,21 @@ public class BookingActivity extends AppCompatActivity {
         Dialog dialog = new Dialog(this);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.dialog_booking_status);
-        dialog.setCancelable(false);
+        dialog.setCancelable(false); // Disable clicking outside
 
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
+
+        // Handle physical back button to act as "OK"
+        dialog.setOnKeyListener((dialogInterface, keyCode, event) -> {
+            if (keyCode == android.view.KeyEvent.KEYCODE_BACK && event.getAction() == android.view.KeyEvent.ACTION_UP) {
+                dialog.dismiss();
+                if (shouldExit) finish();
+                return true;
+            }
+            return false;
+        });
 
         ImageView ivIcon = dialog.findViewById(R.id.iv_status_icon);
         TextView tvTitle = dialog.findViewById(R.id.tv_status_title);
@@ -374,36 +384,38 @@ public class BookingActivity extends AppCompatActivity {
     /**
      * Initializes the date and time displays with default values.
      * Logic: Uses synced server time (Kuala Lumpur), adjusted for business hours and availability.
+     * Follows the 10-minute leeway rule: if minutes > 10, jumps to next hour.
      */
     private void setDefaultDateTime() {
         Calendar c = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
         c.setTimeInMillis(System.currentTimeMillis() + serverTimeOffset);
-        
-        // If today is Friday (shop closed), default to tomorrow (Saturday)
-        if (c.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY) {
-            c.add(Calendar.DAY_OF_MONTH, 1);
-            // Default to start of business day on Saturday
-            c.set(Calendar.HOUR_OF_DAY, 10);
-            c.set(Calendar.MINUTE, 0);
-        }
 
+        // Initial formatting for today
         int year = c.get(Calendar.YEAR);
         int month = c.get(Calendar.MONTH);
         int day = c.get(Calendar.DAY_OF_MONTH);
-        
-        // Format: DD/MM/YY
-        String date = String.format(Locale.getDefault(), "%02d/%02d/%02d", day, month + 1, year % 100);
-        tvDate.setText(date);
+        tvDate.setText(String.format(Locale.getDefault(), "%02d/%02d/%02d", day, month + 1, year % 100));
 
-        // Initial hour/amPm from synced KL time
+        // Start with current hour adjusted by 10-min rule
+        if (c.get(Calendar.MINUTE) > 10) {
+            c.add(Calendar.HOUR_OF_DAY, 1);
+        }
         int hour = c.get(Calendar.HOUR);
         if (hour == 0) hour = 12;
         currentSelectedHour = hour;
         currentSelectedAmPm = (c.get(Calendar.AM_PM) == Calendar.AM) ? "AM" : "PM";
 
-        // Validate synced time against business hours and bookings
-        if (!isWithinBusinessHours(currentSelectedHour, currentSelectedAmPm) ||
-            bookedTimes.contains(String.format(Locale.getDefault(), "%02d:00 %s", currentSelectedHour, currentSelectedAmPm))) {
+        // If today is Friday (shop closed), default to tomorrow (Saturday) 10 AM
+        if (c.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY) {
+            c.add(Calendar.DAY_OF_MONTH, 1);
+            tvDate.setText(String.format(Locale.getDefault(), "%02d/%02d/%02d",
+                    c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.MONTH) + 1, c.get(Calendar.YEAR) % 100));
+            currentSelectedHour = 10;
+            currentSelectedAmPm = "AM";
+        }
+
+        // Validate if this slot is actually available (not booked, within hours, not in the past)
+        if (isSlotDisabled(currentSelectedHour, currentSelectedAmPm)) {
             findFirstAvailableSlot();
         }
 
@@ -634,11 +646,7 @@ public class BookingActivity extends AppCompatActivity {
 
         for (int i = 0; i < 12; i++) {
             int hour = i + 1;
-            String timeStr = String.format(Locale.getDefault(), "%02d:00 %s", hour, currentSelectedAmPm);
-            
-            boolean isBooked = bookedTimes.contains(timeStr);
-            boolean isBusinessHours = isWithinBusinessHours(hour, currentSelectedAmPm);
-            boolean isDisabled = isBooked || !isBusinessHours;
+            boolean isDisabled = isSlotDisabled(hour, currentSelectedAmPm);
 
             if (dialogHourButtons[i] != null) {
                 dialogHourButtons[i].setEnabled(!isDisabled);
@@ -652,16 +660,13 @@ public class BookingActivity extends AppCompatActivity {
             }
         }
         
-        // If the current selection was booked or is outside hours, shift to first available
+        // If the current selection was booked, passed, or is outside hours, shift to first available
         if (currentIsInvalid) {
             findFirstAvailableSlot();
             // Re-run the visual update for the new selection
             for (int i = 0; i < 12; i++) {
                 int hour = i + 1;
-                String timeStr = String.format(Locale.getDefault(), "%02d:00 %s", hour, currentSelectedAmPm);
-                boolean isBooked = bookedTimes.contains(timeStr);
-                boolean isBusinessHours = isWithinBusinessHours(hour, currentSelectedAmPm);
-                boolean isDisabled = isBooked || !isBusinessHours;
+                boolean isDisabled = isSlotDisabled(hour, currentSelectedAmPm);
                 
                 if (dialogHourButtons[i] != null) {
                     dialogHourButtons[i].setEnabled(!isDisabled);
@@ -687,14 +692,11 @@ public class BookingActivity extends AppCompatActivity {
 
     private boolean isPeriodFullyBooked(String amPm) {
         for (int h = 1; h <= 12; h++) {
-            if (isWithinBusinessHours(h, amPm)) {
-                String timeStr = String.format(Locale.getDefault(), "%02d:00 %s", h, amPm);
-                if (!bookedTimes.contains(timeStr)) {
-                    return false; // Found at least one valid and available slot
-                }
+            if (!isSlotDisabled(h, amPm)) {
+                return false; // Found at least one valid and available slot
             }
         }
-        return true; // All business hours for this period are booked
+        return true; // All business hours/valid slots for this period are booked or past
     }
 
     private boolean isWithinBusinessHours(int hour, String amPm) {
@@ -712,11 +714,51 @@ public class BookingActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Comprehensive check for a time slot's availability.
+     * Considers: Firestore bookings, business hours, and current time (for today's dates).
+     */
+    private boolean isSlotDisabled(int hour, String amPm) {
+        String timeStr = String.format(Locale.getDefault(), "%02d:00 %s", hour, amPm);
+        return bookedTimes.contains(timeStr) || !isWithinBusinessHours(hour, amPm) || isSlotInPast(hour, amPm);
+    }
+
+    /**
+     * Checks if a specific time slot has already passed based on server time and leeway.
+     */
+    private boolean isSlotInPast(int hour, String amPm) {
+        Calendar serverCal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+        serverCal.setTimeInMillis(System.currentTimeMillis() + serverTimeOffset);
+
+        String todayDate = String.format(Locale.getDefault(), "%02d/%02d/%02d",
+                serverCal.get(Calendar.DAY_OF_MONTH), serverCal.get(Calendar.MONTH) + 1, serverCal.get(Calendar.YEAR) % 100);
+
+        if (tvDate.getText().toString().equals(todayDate)) {
+            // Apply 10-minute leeway rule
+            Calendar cutoffCal = (Calendar) serverCal.clone();
+            if (cutoffCal.get(Calendar.MINUTE) > 10) {
+                cutoffCal.add(Calendar.HOUR_OF_DAY, 1);
+            }
+            cutoffCal.set(Calendar.MINUTE, 0);
+            cutoffCal.set(Calendar.SECOND, 0);
+            cutoffCal.set(Calendar.MILLISECOND, 0);
+
+            Calendar slotCal = (Calendar) serverCal.clone();
+            slotCal.set(Calendar.HOUR, hour == 12 ? 0 : hour);
+            slotCal.set(Calendar.AM_PM, amPm.equals("AM") ? Calendar.AM : Calendar.PM);
+            slotCal.set(Calendar.MINUTE, 0);
+            slotCal.set(Calendar.SECOND, 0);
+            slotCal.set(Calendar.MILLISECOND, 0);
+
+            return slotCal.before(cutoffCal);
+        }
+        return false;
+    }
+
     private void findFirstAvailableSlot() {
         // Try current AM/PM first
         for (int h = 1; h <= 12; h++) {
-            if (isWithinBusinessHours(h, currentSelectedAmPm) &&
-                !bookedTimes.contains(String.format(Locale.getDefault(), "%02d:00 %s", h, currentSelectedAmPm))) {
+            if (!isSlotDisabled(h, currentSelectedAmPm)) {
                 currentSelectedHour = h;
                 return;
             }
@@ -724,13 +766,15 @@ public class BookingActivity extends AppCompatActivity {
         // Try other AM/PM
         String otherAmPm = currentSelectedAmPm.equals("AM") ? "PM" : "AM";
         for (int h = 1; h <= 12; h++) {
-            if (isWithinBusinessHours(h, otherAmPm) &&
-                !bookedTimes.contains(String.format(Locale.getDefault(), "%02d:00 %s", h, otherAmPm))) {
+            if (!isSlotDisabled(h, otherAmPm)) {
                 currentSelectedHour = h;
                 currentSelectedAmPm = otherAmPm;
                 return;
             }
         }
+
+        // If no slots available today, jump to next day
+        findNextAvailableDate();
     }
 
     private void fetchBookedTimes() {
@@ -742,7 +786,6 @@ public class BookingActivity extends AppCompatActivity {
         }
 
         String date = tvDate.getText().toString();
-        String currentUid = mAuth.getUid();
         
         if (bookedTimesListener != null) {
             bookedTimesListener.remove();
@@ -759,8 +802,9 @@ public class BookingActivity extends AppCompatActivity {
                     }
                     if (value != null) {
                         bookedTimes.clear();
-                        String currentTime = tvTime.getText().toString();
+                        String currentUid = mAuth.getUid();
                         boolean conflictFromOtherUser = false;
+                        String selectedTime = String.format(Locale.getDefault(), "%02d:00 %s", currentSelectedHour, currentSelectedAmPm);
 
                         for (QueryDocumentSnapshot doc : value) {
                             String status = doc.getString("status");
@@ -772,22 +816,33 @@ public class BookingActivity extends AppCompatActivity {
                                 bookedTimes.add(time);
                                 
                                 // Check if someone ELSE took our currently selected slot
-                                if (time.equals(currentTime) && currentUid != null && !currentUid.equals(cid)) {
+                                if (time.equals(selectedTime) && currentUid != null && !currentUid.equals(cid)) {
                                     conflictFromOtherUser = true;
                                 }
                             }
                         }
                         
-                        // Only show toast and switch if it was booked by ANOTHER user
-                        if (conflictFromOtherUser) {
+                        // Re-validate current selection
+                        // We ONLY auto-switch if it's taken by someone else, or now in the past, or out of business hours.
+                        // This avoids the "Slot no longer available" toast when the user just booked it themselves.
+                        boolean isInvalid = conflictFromOtherUser || 
+                                           !isWithinBusinessHours(currentSelectedHour, currentSelectedAmPm) ||
+                                           isSlotInPast(currentSelectedHour, currentSelectedAmPm);
+
+                        if (isInvalid) {
                             findFirstAvailableSlot();
                             tvTime.setText(String.format(Locale.getDefault(), "%02d:00 %s", currentSelectedHour, currentSelectedAmPm));
-                            Toast.makeText(this, "The selected slot was just taken by someone else. Switched to next available.", Toast.LENGTH_SHORT).show();
+                            
+                            if (conflictFromOtherUser) {
+                                Toast.makeText(BookingActivity.this, "The selected slot was just taken. Switched to next available.", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(BookingActivity.this, "Slot no longer available. Switched to next available.", Toast.LENGTH_SHORT).show();
+                            }
                         }
 
                         // Refresh UI dynamically if dialog is open
                         if (timePickerDialog != null && timePickerDialog.isShowing()) {
-                            runOnUiThread(this::updateDialogHourButtons);
+                            runOnUiThread(BookingActivity.this::updateDialogHourButtons);
                         }
                     }
                 });

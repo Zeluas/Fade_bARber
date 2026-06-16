@@ -5,6 +5,7 @@
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/ll_employee_home_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -284,20 +285,25 @@
                     </LinearLayout>
 
                     <LinearLayout
+                        android:id="@+id/ll_employee_booking_details_row"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:baselineAligned="false"
                         android:orientation="horizontal"
-                        android:padding="12dp">
+                        android:padding="12dp"
+                        android:visibility="gone"
+                        tools:visibility="visible">
 
                         <!-- Details Column -->
                         <LinearLayout
+                            android:id="@+id/ll_employee_booking_details_left_col"
                             android:layout_width="0dp"
                             android:layout_height="match_parent"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
                             <LinearLayout
+                                android:id="@+id/ll_employee_booking_info_labels"
                                 android:layout_width="match_parent"
                                 android:layout_height="0dp"
                                 android:layout_marginBottom="10dp"
@@ -311,6 +317,7 @@
                                     android:orientation="horizontal">
 
                                     <TextView
+                                        android:id="@+id/tv_employee_label_customer"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:text="@string/customer_label"
@@ -321,14 +328,14 @@
                                     <com.google.android.material.button.MaterialButton
                                         android:id="@+id/btn_call_customer"
                                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
                                         android:layout_marginStart="8dp"
+                                        android:background="@android:color/transparent"
                                         android:minWidth="0dp"
                                         android:minHeight="0dp"
-                                        android:background="@android:color/transparent"
-                                        app:backgroundTint="@android:color/transparent"
                                         android:padding="0dp"
+                                        app:backgroundTint="@android:color/transparent"
                                         app:cornerRadius="6dp"
                                         app:icon="@drawable/ic_phone"
                                         app:iconPadding="0dp"
@@ -344,6 +351,7 @@
                                     android:textSize="16sp" />
 
                                 <TextView
+                                    android:id="@+id/tv_employee_label_time"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="12dp"
@@ -358,21 +366,21 @@
                                     android:layout_height="wrap_content"
                                     android:text="10:00 AM"
                                     android:textSize="16sp" />
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btn_edit_booking_employee"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginTop="8dp"
-                                    android:layout_marginEnd="6dp"
-                                    android:paddingVertical="15dp"
-                                    android:text="@string/edit_booking"
-                                    android:textColor="@color/white"
-                                    android:textSize="11sp"
-                                    android:textStyle="bold"
-                                    app:backgroundTint="@color/info_blue_icon"
-                                    app:cornerRadius="24dp" />
                             </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_edit_booking_employee"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="6dp"
+                                android:layout_marginBottom="6dp"
+                                android:paddingVertical="15dp"
+                                android:text="@string/edit_booking"
+                                android:textColor="@color/white"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                app:backgroundTint="@color/info_blue_icon"
+                                app:cornerRadius="24dp" />
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btn_no_show"
@@ -393,12 +401,14 @@
 
                         <!-- Service Preview Column -->
                         <LinearLayout
+                            android:id="@+id/ll_employee_booking_details_right_col"
                             android:layout_width="0dp"
                             android:layout_height="match_parent"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
                             <LinearLayout
+                                android:id="@+id/ll_employee_service_preview_container"
                                 android:layout_width="match_parent"
                                 android:layout_height="0dp"
                                 android:layout_marginBottom="10dp"
@@ -407,6 +417,7 @@
                                 android:orientation="vertical">
 
                                 <TextView
+                                    android:id="@+id/tv_employee_label_chosen_haircut"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginBottom="4dp"
@@ -414,15 +425,28 @@
                                     android:textColor="@color/black"
                                     android:textStyle="bold" />
 
-                                <com.google.android.material.imageview.ShapeableImageView
-                                    android:id="@+id/iv_service_preview"
-                                    android:layout_width="100dp"
-                                    android:layout_height="100dp"
-                                    android:padding="2dp"
-                                    android:src="@drawable/ic_launcher_background"
-                                    app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                                    app:strokeColor="@color/black"
-                                    app:strokeWidth="1dp" />
+                                <FrameLayout
+                                    android:layout_width="120dp"
+                                    android:layout_height="120dp">
+
+                                    <!-- The border and background box -->
+                                    <com.google.android.material.imageview.ShapeableImageView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:padding="2dp"
+                                        android:src="@null"
+                                        app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
+                                        app:strokeColor="@color/black"
+                                        app:strokeWidth="1dp" />
+
+                                    <!-- The actual service image with pseudo padding -->
+                                    <ImageView
+                                        android:id="@+id/iv_service_preview"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:padding="12dp"
+                                        android:src="@drawable/ic_launcher_background" />
+                                </FrameLayout>
 
                                 <TextView
                                     android:id="@+id/tv_service_name"
@@ -448,6 +472,18 @@
                                 app:cornerRadius="24dp" />
                         </LinearLayout>
                     </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_no_customer_placeholder"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="32dp"
+                        android:text="No customers scheduled at the moment."
+                        android:textColor="@color/grey_grey"
+                        android:textSize="14sp"
+                        android:textStyle="italic"
+                        android:visibility="visible" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -493,153 +529,24 @@
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Upcoming Item 1 -->
+                    <!-- Upcoming Bookings Container -->
                     <LinearLayout
+                        android:id="@+id/ll_upcoming_bookings_list"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
+                        android:orientation="vertical" />
 
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:layout_width="50dp"
-                            android:layout_height="50dp"
-                            android:padding="2dp"
-                            android:src="@drawable/ic_launcher_background"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                            app:strokeColor="@color/black"
-                            app:strokeWidth="1dp" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:ellipsize="end"
-                                android:maxLines="1"
-                                android:text="Haziq"
-                                android:textColor="@color/black"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/style_side_part"
-                                android:textSize="13sp" />
-                        </LinearLayout>
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_call_upcoming_1"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginHorizontal="8dp"
-                            android:minWidth="0dp"
-                            android:minHeight="0dp"
-                            android:paddingHorizontal="12dp"
-                            android:paddingVertical="8dp"
-                            android:text="@string/call_label"
-                            android:textColor="@color/primary_color"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            app:backgroundTint="#FFFFFF"
-                            app:cornerRadius="24dp"
-                            app:icon="@drawable/ic_phone"
-                            app:iconPadding="4dp"
-                            app:iconSize="16dp"
-                            app:iconTint="@color/primary_color"
-                            app:strokeColor="@color/primary_color"
-                            app:strokeWidth="1.5dp" />
-
-                        <TextView
-                            android:layout_width="70dp"
-                            android:layout_height="wrap_content"
-                            android:gravity="end"
-                            android:text="11:00 AM"
-                            android:textColor="@color/primary_color"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginHorizontal="12dp"
-                        android:background="#EEEEEE" />
-
-                    <!-- Upcoming Item 2 -->
-                    <LinearLayout
+                    <TextView
+                        android:id="@+id/tv_no_upcoming_placeholder"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
-
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:layout_width="50dp"
-                            android:layout_height="50dp"
-                            android:padding="2dp"
-                            android:src="@drawable/ic_launcher_background"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                            app:strokeColor="@color/black"
-                            app:strokeWidth="1dp" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:ellipsize="end"
-                                android:maxLines="1"
-                                android:text="Irfan"
-                                android:textColor="@color/black"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/style_buzz_cut"
-                                android:textSize="13sp" />
-                        </LinearLayout>
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_call_upcoming_2"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginHorizontal="8dp"
-                            android:minWidth="0dp"
-                            android:minHeight="0dp"
-                            android:paddingHorizontal="12dp"
-                            android:paddingVertical="8dp"
-                            android:text="@string/call_label"
-                            android:textColor="@color/primary_color"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            app:backgroundTint="#FFFFFF"
-                            app:cornerRadius="24dp"
-                            app:icon="@drawable/ic_phone"
-                            app:iconPadding="4dp"
-                            app:iconSize="16dp"
-                            app:iconTint="@color/primary_color"
-                            app:strokeColor="@color/primary_color"
-                            app:strokeWidth="1.5dp" />
-
-                        <TextView
-                            android:layout_width="70dp"
-                            android:layout_height="wrap_content"
-                            android:gravity="end"
-                            android:text="11:30 AM"
-                            android:textColor="@color/primary_color"
-                            android:textStyle="bold" />
-                    </LinearLayout>
+                        android:gravity="center"
+                        android:padding="32dp"
+                        android:text="No upcoming bookings today."
+                        android:textColor="@color/grey_grey"
+                        android:textSize="14sp"
+                        android:textStyle="italic"
+                        android:visibility="gone" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

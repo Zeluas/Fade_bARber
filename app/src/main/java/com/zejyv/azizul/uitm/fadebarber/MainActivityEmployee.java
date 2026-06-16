@@ -32,6 +32,11 @@ public class MainActivityEmployee extends AppCompatActivity {
 
     private View layoutLogoutConfirmation, mcvLogoutDialog;
 
+    // --- Call Customer Dialog Components ---
+    private View layoutCallCustomer, mcvCallDialog;
+    private android.widget.TextView tvCustomerPhone;
+    private String rawCustomerPhone = "";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,6 +47,7 @@ public class MainActivityEmployee extends AppCompatActivity {
         setupFab();
         setupExitDialog();
         setupLogoutDialog();
+        setupCallCustomerDialog();
         setupBackPressed();
     }
 
@@ -192,6 +198,93 @@ public class MainActivityEmployee extends AppCompatActivity {
                 .withEndAction(() -> layoutLogoutConfirmation.setVisibility(View.GONE)).start();
     }
 
+    /**
+     * Initializes and configures the call customer dialog.
+     */
+    private void setupCallCustomerDialog() {
+        layoutCallCustomer = findViewById(R.id.layout_call_customer);
+        mcvCallDialog = findViewById(R.id.mcv_call_dialog);
+        tvCustomerPhone = findViewById(R.id.tv_customer_phone_display);
+        View btnCallNow = findViewById(R.id.btn_call_now);
+
+        if (btnCallNow != null) {
+            btnCallNow.setOnClickListener(v -> {
+                if (rawCustomerPhone != null && !rawCustomerPhone.isEmpty()) {
+                    android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_DIAL);
+                    intent.setData(android.net.Uri.parse("tel:" + rawCustomerPhone));
+                    startActivity(intent);
+                }
+                hideCallCustomerDialog();
+            });
+        }
+
+        if (layoutCallCustomer != null) {
+            layoutCallCustomer.setOnClickListener(v -> hideCallCustomerDialog());
+        }
+    }
+
+    /**
+     * Shows the call customer dialog with a formatted phone number.
+     * @param rawPhone Number in format like "012345678911"
+     */
+    public void showCallCustomerDialog(String rawPhone) {
+        if (layoutCallCustomer == null || mcvCallDialog == null || tvCustomerPhone == null) return;
+
+        this.rawCustomerPhone = rawPhone;
+
+        // Logic for formatting: "+60 12-3456 789..."
+        String formatted = rawPhone;
+        if (rawPhone != null && !rawPhone.isEmpty()) {
+            String digits = rawPhone;
+            if (rawPhone.startsWith("0")) {
+                digits = rawPhone.substring(1);
+            } else if (rawPhone.startsWith("+60")) {
+                digits = rawPhone.substring(3);
+            } else if (rawPhone.startsWith("60")) {
+                digits = rawPhone.substring(2);
+            }
+
+            if (digits.length() >= 6) {
+                StringBuilder sb = new StringBuilder("+60 ");
+                sb.append(digits.substring(0, 2));
+                sb.append("-");
+                sb.append(digits.substring(2, 6));
+
+                String remaining = digits.substring(6);
+                for (int i = 0; i < remaining.length(); i++) {
+                    if (i > 0 && i % 4 == 0) sb.append(" ");
+                    if (i == 0) sb.append(" ");
+                    sb.append(remaining.charAt(i));
+                }
+                formatted = sb.toString();
+            } else {
+                formatted = "+60 " + digits;
+            }
+        }
+
+        tvCustomerPhone.setText(formatted);
+
+        layoutCallCustomer.setVisibility(View.VISIBLE);
+        layoutCallCustomer.setAlpha(0f);
+        layoutCallCustomer.animate().alpha(1f).setDuration(200).start();
+
+        mcvCallDialog.post(() -> {
+            mcvCallDialog.setTranslationY(mcvCallDialog.getHeight());
+            mcvCallDialog.animate().translationY(0).setDuration(300).start();
+        });
+    }
+
+    /**
+     * Hides the call customer dialog with animation.
+     */
+    public void hideCallCustomerDialog() {
+        if (layoutCallCustomer == null || mcvCallDialog == null) return;
+
+        mcvCallDialog.animate().translationY(mcvCallDialog.getHeight()).setDuration(200).start();
+        layoutCallCustomer.animate().alpha(0f).setDuration(200)
+                .withEndAction(() -> layoutCallCustomer.setVisibility(View.GONE)).start();
+    }
+
     private void hideExitDialog() {
         mcvExitDialog.animate().scaleX(0f).scaleY(0f).setDuration(200).start();
         layoutExitConfirmation.animate().alpha(0f).setDuration(200)
@@ -212,7 +305,9 @@ public class MainActivityEmployee extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (layoutLogoutConfirmation.getVisibility() == View.VISIBLE) {
+                if (layoutCallCustomer.getVisibility() == View.VISIBLE) {
+                    hideCallCustomerDialog();
+                } else if (layoutLogoutConfirmation.getVisibility() == View.VISIBLE) {
                     hideLogoutDialog();
                 } else if (layoutExitConfirmation.getVisibility() == View.VISIBLE) {
                     hideExitDialog();

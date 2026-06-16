@@ -1,10 +1,16 @@
 package com.zejyv.azizul.uitm.fadebarber;
 
 import android.animation.LayoutTransition;
+ import android.animation.ValueAnimator;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,16 +22,42 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 
 import com.google.android.material.card.MaterialCardView;
+import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.Source;
+import com.google.ai.client.generativeai.GenerativeModel;
+import com.google.ai.client.generativeai.java.GenerativeModelFutures;
+import com.google.ai.client.generativeai.type.Content;
+import com.google.ai.client.generativeai.type.GenerateContentResponse;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 import java.util.Random;
+import java.util.TimeZone;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * EmployeeHomeFragment: Dashboard for barbers/employees.
@@ -37,11 +69,84 @@ public class EmployeeHomeFragment extends Fragment {
     private MaterialCardView mcvTopBar;
     private ScrollView svHomeContent;
     private TextView tvAiJab, tvWelcome, tvBookingCounter, tvTotalUpcoming, tvShopStatus;
+
+    // Current Customer UI
+    private TextView tvCustomerName, tvBookingTime, tvServiceName;
+    private ImageView ivServicePreview;
+    private View llBookingDetailsRow, tvNoBookingPlaceholder;
+    private LinearLayout llLeftCol, llRightCol;
+    private TextView tvLabelCustomer, tvLabelTime, tvLabelChosenHaircut;
+    private View btnCallCustomer, btnNoShow, btnEditBooking, btnStartSession;
+    private String nearestCustomerPhone = "";
+
+    // Upcoming Bookings UI
+    private LinearLayout llUpcomingList;
+    private View tvNoUpcomingPlaceholder;
     
-    private String sessionAiJab = null;
+    private FirebaseFirestore db;
+    private FirebaseAuth mAuth;
+    private ListenerRegistration bookingListener;
+
+    // Nearest booking info for AI Jabs
+    private String nearestCustomerTime = null;
+    private String nearestCustomerName = null;
+    private String currentBookingId = null;
+    private String lastBookingId = null;
+    private List<String> lastUpcomingIds = new ArrayList<>();
+
+    // UI State flags
+    private boolean hasAnimatedBooking = false;
+    private boolean isAnimating = false;
+    private boolean isExpanded = true;
+    private boolean isLockedAtMin = false;
+
+    // AI Jab related state
+    private static List<String> jabPool = new ArrayList<>();
+    private static String lastUsedBookingId = "initial_session";
+    private static boolean lastUsedShopStatusOpen = false;
+    private static boolean isPoolInitialized = false;
+    private long lastJabTime = 0;
+    private static final long JAB_COOLDOWN = 10000;
     private Runnable typingRunnable;
-    private int completedBookings = 0;
-    private int totalBookings = 7;
+    private long serverTimeOffset = 0;
+
+    private void saveJabPool() {
+        if (getContext() == null) return;
+        try {
+            android.content.SharedPreferences prefs = requireContext().getSharedPreferences("ai_jab_prefs_emp", android.content.Context.MODE_PRIVATE);
+            android.content.SharedPreferences.Editor editor = prefs.edit();
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < jabPool.size(); i++) {
+                sb.append(jabPool.get(i));
+                if (i < jabPool.size() - 1) sb.append("|||");
+            }
+            editor.putString("jab_pool", sb.toString());
+            editor.putString("last_booking_id", lastUsedBookingId);
+            editor.putBoolean("last_shop_open", lastUsedShopStatusOpen);
+            editor.putBoolean("pool_init", isPoolInitialized);
+            editor.apply();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadJabPool() {
+        if (getContext() == null) return;
+        try {
+            android.content.SharedPreferences prefs = requireContext().getSharedPreferences("ai_jab_prefs_emp", android.content.Context.MODE_PRIVATE);
+            String savedPool = prefs.getString("jab_pool", "");
+            if (!savedPool.isEmpty()) {
+                String[] parts = savedPool.split("\\|\\|\\|");
+                jabPool.clear();
+                for (String p : parts) if (!p.isEmpty()) jabPool.add(p);
+            }
+            lastUsedBookingId = prefs.getString("last_booking_id", "initial_session");
+            lastUsedShopStatusOpen = prefs.getBoolean("last_shop_open", false);
+            isPoolInitialized = prefs.getBoolean("pool_init", false);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     private final Runnable updateTimeThemeRunnable = new Runnable() {
         @Override
@@ -63,14 +168,34 @@ public class EmployeeHomeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         handler = new Handler(Looper.getMainLooper());
+        db = FirebaseFirestore.getInstance();
+        mAuth = FirebaseAuth.getInstance();
 
+        loadJabPool();
         initializeViews(view);
         setupClickLogic(view);
         populateWelcomeMessage();
-        
-        if (sessionAiJab == null) {
-            updateAiJab();
-        }
+        syncServerTimeAndFetch();
+    }
+
+    private void syncServerTimeAndFetch() {
+        String uid = mAuth.getUid() != null ? mAuth.getUid() : "employee_sync";
+        java.util.Map<String, Object> syncData = new java.util.HashMap<>();
+        syncData.put("t", FieldValue.serverTimestamp());
+
+        db.collection("metadata").document("time_sync_" + uid).set(syncData)
+                .addOnSuccessListener(aVoid -> {
+                    db.collection("metadata").document("time_sync_" + uid).get(Source.SERVER)
+                            .addOnSuccessListener(doc -> {
+                                Timestamp serverTime = doc.getTimestamp("t");
+                                if (serverTime != null) {
+                                    serverTimeOffset = serverTime.toDate().getTime() - System.currentTimeMillis();
+                                }
+                                fetchNearestBooking();
+                            })
+                            .addOnFailureListener(e -> fetchNearestBooking());
+                })
+                .addOnFailureListener(e -> fetchNearestBooking());
     }
 
     private void initializeViews(View view) {
@@ -81,7 +206,35 @@ public class EmployeeHomeFragment extends Fragment {
         tvBookingCounter = view.findViewById(R.id.tv_booking_counter);
         tvTotalUpcoming = view.findViewById(R.id.tv_total_upcoming);
         tvShopStatus = view.findViewById(R.id.tv_shop_status_employee);
-        
+
+        // Booking details initialization
+        tvCustomerName = view.findViewById(R.id.tv_customer_name);
+        tvBookingTime = view.findViewById(R.id.tv_booking_time);
+        tvServiceName = view.findViewById(R.id.tv_service_name);
+        ivServicePreview = view.findViewById(R.id.iv_service_preview);
+        llBookingDetailsRow = view.findViewById(R.id.ll_employee_booking_details_row);
+        tvNoBookingPlaceholder = view.findViewById(R.id.tv_no_customer_placeholder);
+        llLeftCol = view.findViewById(R.id.ll_employee_booking_details_left_col);
+        llRightCol = view.findViewById(R.id.ll_employee_booking_details_right_col);
+
+        // Labels and Buttons for staggered animation
+        tvLabelCustomer = view.findViewById(R.id.tv_employee_label_customer);
+        tvLabelTime = view.findViewById(R.id.tv_employee_label_time);
+        tvLabelChosenHaircut = view.findViewById(R.id.tv_employee_label_chosen_haircut);
+        btnCallCustomer = view.findViewById(R.id.btn_call_customer);
+        btnNoShow = view.findViewById(R.id.btn_no_show);
+        btnEditBooking = view.findViewById(R.id.btn_edit_booking_employee);
+        btnStartSession = view.findViewById(R.id.btn_start_session);
+
+        // Upcoming bookings initialization
+        llUpcomingList = view.findViewById(R.id.ll_upcoming_bookings_list);
+        if (llUpcomingList != null) {
+            LayoutTransition transition = new LayoutTransition();
+            transition.enableTransitionType(LayoutTransition.CHANGING);
+            llUpcomingList.setLayoutTransition(transition);
+        }
+        tvNoUpcomingPlaceholder = view.findViewById(R.id.tv_no_upcoming_placeholder);
+
         LinearLayout llTextContainer = view.findViewById(R.id.ll_employee_top_text_container);
         if (llTextContainer != null) {
             LayoutTransition transition = new LayoutTransition();
@@ -89,14 +242,17 @@ public class EmployeeHomeFragment extends Fragment {
             transition.enableTransitionType(LayoutTransition.CHANGING);
         }
 
-        // Initialize counter
         updateBookingCounter();
-        tvTotalUpcoming.setText(getString(R.string.total_bookings_today_label, totalBookings)); // Mock value
+        // Counter UI will be updated by fetchNearestBooking
     }
 
     private void updateBookingCounter() {
+        // This will be called from fetchNearestBooking once we have data
+    }
+
+    private void updateBookingCounterUI(int count) {
         if (tvBookingCounter != null) {
-            tvBookingCounter.setText((completedBookings + 1) + "/" + totalBookings);
+            tvBookingCounter.setText(String.valueOf(count));
         }
     }
 
@@ -122,57 +278,539 @@ public class EmployeeHomeFragment extends Fragment {
         }
     }
 
-    private void setupClickLogic(View view) {
-        view.findViewById(R.id.btn_start_session).setOnClickListener(v -> {
-            if (completedBookings < totalBookings - 1) {
-                completedBookings++;
-                updateBookingCounter();
-                Toast.makeText(getContext(), "Session Started!", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(getContext(), "All bookings completed for today!", Toast.LENGTH_SHORT).show();
+    private void fetchNearestBooking() {
+        if (mAuth.getCurrentUser() == null) return;
+        String uid = mAuth.getCurrentUser().getUid();
+
+        if (bookingListener != null) bookingListener.remove();
+
+        bookingListener = db.collection("bookings")
+                .whereEqualTo("employeeId", uid)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) return;
+                    if (value != null) {
+                        List<QueryDocumentSnapshot> todayPendingBookings = new ArrayList<>();
+                        Calendar klCal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+                        klCal.setTimeInMillis(System.currentTimeMillis() + serverTimeOffset);
+                        String todayDateStr = String.format(Locale.getDefault(), "%02d/%02d/%02d",
+                                klCal.get(Calendar.DAY_OF_MONTH), klCal.get(Calendar.MONTH) + 1, klCal.get(Calendar.YEAR) % 100);
+
+                        int todayCount = 0;
+                        for (QueryDocumentSnapshot doc : value) {
+                            String date = doc.getString("date");
+                            String status = doc.getString("status");
+                            if (todayDateStr.equals(date) && !"Cancelled".equalsIgnoreCase(status)) {
+                                todayCount++;
+                                if ("Pending".equalsIgnoreCase(status)) {
+                                    todayPendingBookings.add(doc);
+                                }
+                            }
+                        }
+
+                        updateBookingCounterUI(todayCount);
+
+                        if (!todayPendingBookings.isEmpty()) {
+                            Collections.sort(todayPendingBookings, new Comparator<QueryDocumentSnapshot>() {
+                                SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+                                @Override
+                                public int compare(QueryDocumentSnapshot b1, QueryDocumentSnapshot b2) {
+                                    try {
+                                        Date d1 = sdf.parse(b1.getString("time"));
+                                        Date d2 = sdf.parse(b2.getString("time"));
+                                        if (d1 == null || d2 == null) return 0;
+                                        return d1.compareTo(d2);
+                                    } catch (ParseException e) {
+                                        return 0;
+                                    }
+                                }
+                            });
+                        }
+
+                        String newCurrentId = todayPendingBookings.isEmpty() ? null : todayPendingBookings.get(0).getId();
+                        List<String> newUpcomingIds = new ArrayList<>();
+                        for (int i = 1; i < todayPendingBookings.size(); i++) {
+                            newUpcomingIds.add(todayPendingBookings.get(i).getId());
+                        }
+
+                        // Determine the type of transition
+                        if (lastBookingId != null && !lastBookingId.equals(newCurrentId)) {
+                            // The current booking has changed (Cancelled or Completed)
+                            boolean movingFromUpcoming = !lastUpcomingIds.isEmpty() && lastUpcomingIds.get(0).equals(newCurrentId);
+                            
+                            if (movingFromUpcoming) {
+                                // First upcoming is moving to current slot
+                                animateBookingDeparture(() -> {
+                                    animateFirstUpcomingDeparture(() -> {
+                                        lastBookingId = newCurrentId;
+                                        lastUpcomingIds = newUpcomingIds;
+                                        updateBookingUI(todayPendingBookings.get(0));
+                                        updateUpcomingListUI(todayPendingBookings.subList(1, todayPendingBookings.size()));
+                                    });
+                                });
+                            } else {
+                                // Just a departure (e.g. cancelled and next is different or none)
+                                animateBookingDeparture(() -> {
+                                    lastBookingId = newCurrentId;
+                                    lastUpcomingIds = newUpcomingIds;
+                                    if (newCurrentId != null) {
+                                        updateBookingUI(todayPendingBookings.get(0));
+                                    } else {
+                                        resetBookingUI();
+                                    }
+                                    updateUpcomingListUI(todayPendingBookings.size() > 1 ? todayPendingBookings.subList(1, todayPendingBookings.size()) : new ArrayList<>());
+                                });
+                            }
+                        } else {
+                            // Initial load or no current change
+                            lastBookingId = newCurrentId;
+                            lastUpcomingIds = newUpcomingIds;
+                            if (newCurrentId != null) {
+                                updateBookingUI(todayPendingBookings.get(0));
+                            } else {
+                                resetBookingUI();
+                            }
+                            updateUpcomingListUI(todayPendingBookings.size() > 1 ? todayPendingBookings.subList(1, todayPendingBookings.size()) : new ArrayList<>());
+                        }
+                    }
+                });
+    }
+
+    private void animateBookingDeparture(Runnable onEnd) {
+        if (llBookingDetailsRow == null || llBookingDetailsRow.getVisibility() != View.VISIBLE) {
+            if (onEnd != null) onEnd.run();
+            return;
+        }
+
+        final View[] labels = {tvLabelCustomer, tvLabelTime, tvLabelChosenHaircut};
+        final View[] values = {tvCustomerName, tvBookingTime, tvServiceName, ivServicePreview};
+        final View[] buttons = {btnCallCustomer, btnNoShow, btnEditBooking, btnStartSession};
+
+        // Fade out elements and slide down
+        for (View v : buttons) if (v != null) v.animate().alpha(0f).translationY(20f).setDuration(500).start();
+        
+        handler.postDelayed(() -> {
+            for (View v : values) if (v != null) v.animate().alpha(0f).translationX(-30f).setDuration(500).start();
+            if (llRightCol != null) llRightCol.animate().alpha(0f).translationX(100f).setDuration(500).start();
+        }, 300);
+
+        handler.postDelayed(() -> {
+            for (View v : labels) if (v != null) v.animate().alpha(0f).translationX(-50f).setDuration(500).start();
+        }, 600);
+
+        handler.postDelayed(() -> {
+            final int initialHeight = llBookingDetailsRow.getHeight();
+            ValueAnimator heightAnimator = ValueAnimator.ofInt(initialHeight, 0);
+            heightAnimator.setDuration(800);
+            heightAnimator.setInterpolator(new android.view.animation.AccelerateInterpolator());
+            heightAnimator.addUpdateListener(animation -> {
+                int val = (Integer) animation.getAnimatedValue();
+                ViewGroup.LayoutParams lp = llBookingDetailsRow.getLayoutParams();
+                lp.height = val;
+                llBookingDetailsRow.setLayoutParams(lp);
+                llBookingDetailsRow.setAlpha((float) val / initialHeight);
+            });
+            heightAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(android.animation.Animator animation) {
+                    llBookingDetailsRow.setVisibility(View.GONE);
+                    ViewGroup.LayoutParams lp = llBookingDetailsRow.getLayoutParams();
+                    lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                    llBookingDetailsRow.setLayoutParams(lp);
+                    hasAnimatedBooking = false;
+                    if (onEnd != null) onEnd.run();
+                }
+            });
+            heightAnimator.start();
+        }, 1100);
+    }
+
+    private void animateFirstUpcomingDeparture(Runnable onEnd) {
+        if (llUpcomingList == null || llUpcomingList.getChildCount() == 0) {
+            if (onEnd != null) onEnd.run();
+            return;
+        }
+
+        View firstItem = llUpcomingList.getChildAt(0);
+        firstItem.animate()
+                .translationY(-100f)
+                .alpha(0f)
+                .setDuration(500)
+                .withEndAction(() -> {
+                    // We don't remove it here yet, the list update will do it.
+                    if (onEnd != null) onEnd.run();
+                }).start();
+    }
+
+    private void updateUpcomingListUI(List<QueryDocumentSnapshot> upcomingBookings) {
+        if (llUpcomingList == null) return;
+        
+        if (tvTotalUpcoming != null) {
+            tvTotalUpcoming.setText(upcomingBookings.size() + " Left");
+        }
+
+        boolean wasEmpty = llUpcomingList.getChildCount() == 0;
+        llUpcomingList.removeAllViews();
+
+        if (upcomingBookings.isEmpty()) {
+            if (tvNoUpcomingPlaceholder != null) tvNoUpcomingPlaceholder.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        if (tvNoUpcomingPlaceholder != null) tvNoUpcomingPlaceholder.setVisibility(View.GONE);
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        for (int i = 0; i < upcomingBookings.size(); i++) {
+            QueryDocumentSnapshot doc = upcomingBookings.get(i);
+            View itemView = inflater.inflate(R.layout.item_upcoming_booking_employee, llUpcomingList, false);
+            
+            TextView tvName = itemView.findViewById(R.id.tv_upcoming_customer_name);
+            TextView tvStyle = itemView.findViewById(R.id.tv_upcoming_hairstyle);
+            TextView tvTime = itemView.findViewById(R.id.tv_upcoming_time);
+            ImageView ivProfile = itemView.findViewById(R.id.iv_upcoming_profile);
+            View btnCall = itemView.findViewById(R.id.btn_call_upcoming);
+
+            tvName.setText(doc.getString("customerName"));
+            tvStyle.setText(doc.getString("hairstyleName"));
+            tvTime.setText(doc.getString("time"));
+
+            // Load image
+            loadHaircutImageToView(doc.getString("hairstyleName"), ivProfile);
+
+            btnCall.setOnClickListener(v -> Toast.makeText(getContext(), "Calling " + doc.getString("customerName"), Toast.LENGTH_SHORT).show());
+
+            llUpcomingList.addView(itemView);
+
+            // Animate arrival if it's the first time adding to an empty list
+            if (wasEmpty && i == 0) {
+                animateUpcomingArrival(itemView);
             }
-        });
 
-        view.findViewById(R.id.btn_no_show).setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Marked as No-Show", Toast.LENGTH_SHORT).show();
-        });
-
-        view.findViewById(R.id.btn_call_customer).setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Calling customer...", Toast.LENGTH_SHORT).show();
-        });
-
-        view.findViewById(R.id.btn_edit_booking_employee).setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Opening Edit Booking...", Toast.LENGTH_SHORT).show();
-        });
-
-        view.findViewById(R.id.btn_call_upcoming_1).setOnClickListener(v -> Toast.makeText(getContext(), "Calling Haziq...", Toast.LENGTH_SHORT).show());
-        view.findViewById(R.id.btn_call_upcoming_2).setOnClickListener(v -> Toast.makeText(getContext(), "Calling Irfan...", Toast.LENGTH_SHORT).show());
-
-        mcvTopBar.setOnClickListener(v -> {
-            updateAiJab(); // Simple refresh on click
-            if (svHomeContent != null) {
-                svHomeContent.smoothScrollTo(0, 0);
+            // Add divider if not the last item
+            if (i < upcomingBookings.size() - 1) {
+                View divider = new View(getContext());
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (int) (1 * getResources().getDisplayMetrics().density));
+                lp.setMargins((int) (12 * getResources().getDisplayMetrics().density), 0, (int) (12 * getResources().getDisplayMetrics().density), 0);
+                divider.setLayoutParams(lp);
+                divider.setBackgroundColor(Color.parseColor("#EEEEEE"));
+                llUpcomingList.addView(divider);
             }
+        }
+    }
+
+    private void animateUpcomingArrival(View itemView) {
+        itemView.setAlpha(0f);
+        itemView.post(() -> {
+            final int targetHeight = itemView.getHeight();
+            ValueAnimator animator = ValueAnimator.ofInt(0, targetHeight);
+            animator.setDuration(800);
+            animator.setInterpolator(new android.view.animation.DecelerateInterpolator());
+            animator.addUpdateListener(animation -> {
+                int val = (Integer) animation.getAnimatedValue();
+                ViewGroup.LayoutParams lp = itemView.getLayoutParams();
+                lp.height = val;
+                itemView.setLayoutParams(lp);
+                itemView.setAlpha((float) val / targetHeight);
+            });
+            animator.start();
         });
     }
 
-    private void updateAiJab() {
-        String[] jabs = {getString(R.string.employee_jab_1), getString(R.string.employee_jab_2)};
-        sessionAiJab = jabs[new Random().nextInt(jabs.length)];
-        startTypingAnimation(sessionAiJab);
+    private void loadHaircutImageToView(String name, ImageView imageView) {
+        if (name == null || imageView == null) return;
+        try {
+            String[] images = requireContext().getAssets().list("images");
+            if (images != null) {
+                String cleanName = name.toLowerCase().replace(" ", "").replace("-", "");
+                for (String imageName : images) {
+                    String cleanImg = imageName.toLowerCase().split("\\.")[0].replace(" ", "").replace("-", "");
+                    if (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)) {
+                        try (java.io.InputStream is = requireContext().getAssets().open("images/" + imageName)) {
+                            imageView.setImageBitmap(android.graphics.BitmapFactory.decodeStream(is));
+                            return;
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) { e.printStackTrace(); }
+        imageView.setImageResource(R.drawable.ic_hair);
+    }
+
+    private void updateBookingUI(QueryDocumentSnapshot doc) {
+        currentBookingId = doc.getId();
+        nearestCustomerTime = doc.getString("time");
+        nearestCustomerName = doc.getString("customerName");
+        String serviceName = doc.getString("hairstyleName");
+        
+        // Fetch customer phone number
+        String customerId = doc.getString("customerId");
+        if (customerId != null) {
+            db.collection("customers").document(customerId).get().addOnSuccessListener(userDoc -> {
+                if (userDoc.exists()) {
+                    nearestCustomerPhone = userDoc.getString("phone");
+                }
+            });
+        }
+
+        if (tvCustomerName != null) tvCustomerName.setText(nearestCustomerName);
+        if (tvBookingTime != null) tvBookingTime.setText(nearestCustomerTime);
+        if (tvServiceName != null) tvServiceName.setText(serviceName);
+
+        if (ivServicePreview != null) {
+            loadHaircutImage(serviceName);
+        }
+
+        if (tvNoBookingPlaceholder != null) tvNoBookingPlaceholder.setVisibility(View.GONE);
+        if (llBookingDetailsRow != null && llBookingDetailsRow.getVisibility() != View.VISIBLE) {
+            animateBookingArrival();
+        } else if (llBookingDetailsRow != null) {
+            llBookingDetailsRow.setVisibility(View.VISIBLE);
+        }
+
+        Calendar calendar = Calendar.getInstance();
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        boolean isOpen = hour >= 10 && hour < 24;
+
+        boolean contextChanged = !currentBookingId.equals(lastUsedBookingId) || (isOpen != lastUsedShopStatusOpen);
+        if (!isPoolInitialized || contextChanged) {
+            lastUsedBookingId = currentBookingId;
+            lastUsedShopStatusOpen = isOpen;
+            isPoolInitialized = true;
+            updateAiJab(isOpen, true);
+        } else if (jabPool.isEmpty()) {
+            updateAiJab(isOpen, true);
+        } else {
+            showNextJabFromPool();
+        }
+    }
+
+    private void animateBookingArrival() {
+        if (llBookingDetailsRow == null || hasAnimatedBooking) {
+            if (llBookingDetailsRow != null) llBookingDetailsRow.setVisibility(View.VISIBLE);
+            return;
+        }
+        hasAnimatedBooking = true;
+
+        llBookingDetailsRow.setVisibility(View.VISIBLE);
+        llBookingDetailsRow.setAlpha(0f);
+
+        final View[] labels = {tvLabelCustomer, tvLabelTime, tvLabelChosenHaircut};
+        final View[] values = {tvCustomerName, tvBookingTime, tvServiceName, ivServicePreview};
+        final View[] buttons = {btnCallCustomer, btnNoShow, btnEditBooking, btnStartSession};
+
+        for (View v : labels) if (v != null) { v.setAlpha(0f); v.setTranslationX(-50f); }
+        for (View v : values) if (v != null) { v.setAlpha(0f); v.setTranslationX(-30f); }
+        for (View v : buttons) if (v != null) { v.setAlpha(0f); v.setTranslationY(20f); }
+
+        if (llRightCol != null) {
+            llRightCol.setAlpha(0f);
+            llRightCol.setTranslationX(100f);
+        }
+
+        llBookingDetailsRow.measure(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        final int targetHeight = llBookingDetailsRow.getMeasuredHeight();
+
+        ValueAnimator heightAnimator = ValueAnimator.ofInt(0, targetHeight);
+        heightAnimator.setDuration(1500);
+        heightAnimator.setInterpolator(new android.view.animation.BounceInterpolator());
+        heightAnimator.addUpdateListener(animation -> {
+            int val = (Integer) animation.getAnimatedValue();
+            ViewGroup.LayoutParams lp = llBookingDetailsRow.getLayoutParams();
+            lp.height = val;
+            llBookingDetailsRow.setLayoutParams(lp);
+            llBookingDetailsRow.setAlpha((float) val / targetHeight);
+        });
+
+        heightAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                ViewGroup.LayoutParams lp = llBookingDetailsRow.getLayoutParams();
+                lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                llBookingDetailsRow.setLayoutParams(lp);
+
+                for (View v : labels) if (v != null) v.animate().alpha(1f).translationX(0f).setDuration(800).start();
+                handler.postDelayed(() -> {
+                    for (View v : values) if (v != null) v.animate().alpha(1f).translationX(0f).setDuration(800).start();
+                    if (llRightCol != null) llRightCol.animate().alpha(1f).translationX(0f).setDuration(1000).start();
+                }, 800);
+                handler.postDelayed(() -> {
+                    for (View v : buttons) if (v != null) v.animate().alpha(1f).translationY(0f).setDuration(800).start();
+                }, 1400);
+            }
+        });
+        heightAnimator.start();
+    }
+
+    private void resetBookingUI() {
+        currentBookingId = null;
+        nearestCustomerTime = null;
+        nearestCustomerName = null;
+        if (llBookingDetailsRow != null) llBookingDetailsRow.setVisibility(View.GONE);
+        if (tvNoBookingPlaceholder != null) tvNoBookingPlaceholder.setVisibility(View.VISIBLE);
+        hasAnimatedBooking = false;
+
+        Calendar calendar = Calendar.getInstance();
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        boolean isOpen = hour >= 10 && hour < 24;
+
+        boolean contextChanged = !"no_booking".equals(lastUsedBookingId) || (isOpen != lastUsedShopStatusOpen);
+        if (!isPoolInitialized || contextChanged) {
+            lastUsedBookingId = "no_booking";
+            lastUsedShopStatusOpen = isOpen;
+            isPoolInitialized = true;
+            updateAiJab(isOpen, true);
+        } else if (jabPool.isEmpty()) {
+            updateAiJab(isOpen, true);
+        } else {
+            showNextJabFromPool();
+        }
+    }
+
+    private void loadHaircutImage(String name) {
+        if (name == null || ivServicePreview == null) return;
+        try {
+            String[] images = requireContext().getAssets().list("images");
+            if (images != null) {
+                String cleanName = name.toLowerCase().replace(" ", "").replace("-", "");
+                for (String imageName : images) {
+                    String cleanImg = imageName.toLowerCase().split("\\.")[0].replace(" ", "").replace("-", "");
+                    if (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)) {
+                        try (java.io.InputStream is = requireContext().getAssets().open("images/" + imageName)) {
+                            ivServicePreview.setImageBitmap(android.graphics.BitmapFactory.decodeStream(is));
+                            return;
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) { e.printStackTrace(); }
+        ivServicePreview.setImageResource(R.drawable.ic_hair);
+    }
+
+    private void setupClickLogic(View view) {
+        view.findViewById(R.id.btn_start_session).setOnClickListener(v -> Toast.makeText(getContext(), "Session Started!", Toast.LENGTH_SHORT).show());
+        
+        btnNoShow.setOnClickListener(v -> {
+            if (currentBookingId != null) {
+                db.collection("bookings").document(currentBookingId)
+                        .update("status", "Cancelled")
+                        .addOnSuccessListener(aVoid -> Toast.makeText(getContext(), "Booking marked as No-Show", Toast.LENGTH_SHORT))
+                        .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to update status", Toast.LENGTH_SHORT).show());
+            }
+        });
+        
+        if (btnCallCustomer != null) {
+            btnCallCustomer.setOnClickListener(v -> {
+                if (getActivity() instanceof MainActivityEmployee && nearestCustomerPhone != null && !nearestCustomerPhone.isEmpty()) {
+                    ((MainActivityEmployee) getActivity()).showCallCustomerDialog(nearestCustomerPhone);
+                } else if (nearestCustomerPhone == null || nearestCustomerPhone.isEmpty()) {
+                    Toast.makeText(getContext(), "Customer phone number not available", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+        
+        view.findViewById(R.id.btn_edit_booking_employee).setOnClickListener(v -> Toast.makeText(getContext(), "Opening Edit Booking...", Toast.LENGTH_SHORT).show());
+
+        mcvTopBar.setOnClickListener(v -> {
+            showNextJabFromPool();
+            if (svHomeContent != null) svHomeContent.smoothScrollTo(0, 0);
+        });
+    }
+
+    private void updateAiJab(boolean isOpen, boolean forceNew) {
+        if (tvAiJab == null) return;
+        if (!jabPool.isEmpty() && !forceNew) {
+            showNextJabFromPool();
+            return;
+        }
+
+        String apiKey = BuildConfig.GEMINI_API_KEY;
+        if (apiKey == null || apiKey.isEmpty() || apiKey.equals("PASTE_YOUR_API_KEY_HERE")) {
+            useFallbackJab(isOpen);
+            return;
+        }
+
+        GenerativeModel gm = new GenerativeModel("gemini-3.1-flash-lite", apiKey);
+        GenerativeModelFutures model = GenerativeModelFutures.from(gm);
+
+        String shopStatus = isOpen ? "OPEN" : "CLOSED";
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append("Generate EXACTLY 100 funny, unique, very short (max 20 words each) jabs/roasts for a barber/employee at a barber shop app. ");
+        promptBuilder.append("Separate each jab with a '/' character. DO NOT NUMBER THEM. No list formatting. ");
+        promptBuilder.append("Context: The shop is currently ").append(shopStatus).append(". ");
+        
+        if (nearestCustomerTime != null && nearestCustomerName != null) {
+            promptBuilder.append("The employee has an upcoming customer named '")
+                    .append(nearestCustomerName).append("' at ").append(nearestCustomerTime).append(". ");
+            promptBuilder.append("Make them personal about the upcoming busy work or the specific customer name. ");
+        } else {
+            promptBuilder.append("The employee doesn't have any customers right now. Roast them for their laziness or being broke. ");
+        }
+        
+        promptBuilder.append("Make them cheeky, playful, and slightly mean but professional for a barber shop. No emojis. ");
+        promptBuilder.append("Only output the raw text of the jabs separated by '/' and nothing else.");
+
+        Content content = new Content.Builder().addText(promptBuilder.toString()).build();
+        Executor executor = Executors.newSingleThreadExecutor();
+        ListenableFuture<GenerateContentResponse> response = model.generateContent(content);
+
+        Futures.addCallback(response, new FutureCallback<GenerateContentResponse>() {
+            @Override
+            public void onSuccess(@NonNull GenerateContentResponse result) {
+                String fullText = result.getText();
+                if (fullText != null && isAdded()) {
+                    String[] parts = fullText.split("/");
+                    handler.post(() -> {
+                        jabPool.clear();
+                        for (String part : parts) {
+                            String trimmed = part.trim();
+                            if (!trimmed.isEmpty()) jabPool.add(trimmed);
+                        }
+                        saveJabPool();
+                        showNextJabFromPool();
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Throwable t) {
+                handler.post(() -> useFallbackJab(isOpen));
+            }
+        }, executor);
+    }
+
+    private void showNextJabFromPool() {
+        if (jabPool.isEmpty()) {
+            Calendar calendar = Calendar.getInstance();
+            int hour = calendar.get(Calendar.HOUR_OF_DAY);
+            boolean isOpen = hour >= 10 && hour < 24;
+            updateAiJab(isOpen, true);
+            return;
+        }
+        int index = new Random().nextInt(jabPool.size());
+        String jab = jabPool.get(index);
+        jabPool.remove(index);
+        saveJabPool();
+        startTypingAnimation(jab);
     }
 
     private void startTypingAnimation(final String text) {
         if (handler == null || tvAiJab == null) return;
         if (typingRunnable != null) handler.removeCallbacks(typingRunnable);
 
+        final String oldText = tvAiJab.getText().toString();
+        if (!oldText.isEmpty() && !oldText.equals(text)) {
+            startBackspaceAnimation(oldText, text);
+            return;
+        }
+
         typingRunnable = new Runnable() {
             int index = 0;
+            boolean cursorVisible = true;
             @Override
             public void run() {
                 if (index <= text.length()) {
-                    tvAiJab.setText(text.substring(0, index) + " |");
+                    tvAiJab.setText(text.substring(0, index) + (cursorVisible ? " |" : "  "));
                     index++;
+                    cursorVisible = !cursorVisible;
                     handler.postDelayed(this, 50);
                 } else {
                     tvAiJab.setText(text);
@@ -180,6 +818,31 @@ public class EmployeeHomeFragment extends Fragment {
             }
         };
         handler.post(typingRunnable);
+    }
+
+    private void startBackspaceAnimation(final String oldText, final String newText) {
+        final int charCount = oldText.length();
+        final int delay = charCount > 0 ? 1000 / charCount : 0;
+        typingRunnable = new Runnable() {
+            int index = charCount;
+            @Override
+            public void run() {
+                if (index > 0) {
+                    index--;
+                    tvAiJab.setText(oldText.substring(0, index) + " |");
+                    handler.postDelayed(this, delay);
+                } else {
+                    tvAiJab.setText("");
+                    startTypingAnimation(newText);
+                }
+            }
+        };
+        handler.post(typingRunnable);
+    }
+
+    private void useFallbackJab(boolean isOpen) {
+        String[] jabs = isOpen ? new String[]{getString(R.string.employee_jab_1)} : new String[]{getString(R.string.employee_jab_2)};
+        startTypingAnimation(jabs[new Random().nextInt(jabs.length)]);
     }
 
     @Override
@@ -192,6 +855,12 @@ public class EmployeeHomeFragment extends Fragment {
     public void onPause() {
         super.onPause();
         if (handler != null) handler.removeCallbacks(updateTimeThemeRunnable);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (bookingListener != null) bookingListener.remove();
     }
 
     private void updateTimeTheme() {
@@ -212,32 +881,33 @@ public class EmployeeHomeFragment extends Fragment {
         }
 
         if (tvShopStatus != null) {
-            String shiftStatus;
+            String prefix;
+            String keyword;
             int statusColor;
 
             if (hour >= 9 && hour < 10) {
-                shiftStatus = getString(R.string.shift_about_to_start);
-                statusColor = android.graphics.Color.parseColor("#FFBD00"); // Yellow/Alert
-            } else if ((hour >= 10 && hour < 13) || (hour >= 14 && hour < 20)) {
-                shiftStatus = getString(R.string.shift_starting);
-                statusColor = android.graphics.Color.parseColor("#05B109"); // Green
+                prefix = "Wakey wakey! ";
+                keyword = "Shop opens soon.";
+                statusColor = Color.parseColor("#FFBD00"); // Warning orange
+            } else if ((hour >= 10 && hour < 13) || (hour >= 14 && hour < 24)) {
+                prefix = "Hustle mode! ";
+                keyword = "Shift in progress.";
+                statusColor = ContextCompat.getColor(requireContext(), R.color.primary_color);
             } else if (hour >= 13 && hour < 14) {
-                shiftStatus = getString(R.string.shift_taking_a_break);
-                statusColor = android.graphics.Color.parseColor("#004CA2"); // Blue/Info
-            } else if (hour >= 20 && hour < 22) {
-                shiftStatus = getString(R.string.shift_near_the_end);
-                statusColor = android.graphics.Color.parseColor("#FFBD00"); // Yellow
+                prefix = "Hungry? ";
+                keyword = "Lunch break.";
+                statusColor = Color.parseColor("#004CA2"); // Info blue
             } else {
-                shiftStatus = getString(R.string.shift_over);
-                statusColor = android.graphics.Color.RED;
+                prefix = "Zzz... ";
+                keyword = "Shop is closed.";
+                statusColor = Color.RED;
             }
 
-            android.text.SpannableStringBuilder builder = new android.text.SpannableStringBuilder(getString(R.string.shift_status_prefix));
-            builder.append(" ");
+            SpannableStringBuilder builder = new SpannableStringBuilder(prefix);
             int start = builder.length();
-            builder.append(shiftStatus);
-            builder.setSpan(new android.text.style.ForegroundColorSpan(statusColor), start, builder.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            builder.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, builder.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            builder.append(keyword);
+            builder.setSpan(new ForegroundColorSpan(statusColor), start, builder.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            builder.setSpan(new StyleSpan(Typeface.BOLD), start, builder.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             tvShopStatus.setText(builder);
         }
 
