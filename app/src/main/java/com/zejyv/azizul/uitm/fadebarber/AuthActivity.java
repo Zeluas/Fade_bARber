@@ -561,12 +561,13 @@ public class AuthActivity extends AppCompatActivity {
                                                                                     showButtonLoading(false);
                                                                                     if (empTask.isSuccessful() && empTask.getResult().exists()) {
                                                                                         String fullname = empTask.getResult().getString("fullname");
+                                                                                        String shortname = empTask.getResult().getString("shortname");
                                                                                         if (cbRememberMe.isChecked()) {
                                                                                             saveCredentials(email, password);
-                                                                                            saveProfileData(user.getUid(), "", "", fullname);
+                                                                                            saveProfileData(user.getUid(), shortname, "", fullname);
                                                                                         } else {
                                                                                             clearSavedCredentials();
-                                                                                            saveProfileData(user.getUid(), "", "", fullname);
+                                                                                            saveProfileData(user.getUid(), shortname, "", fullname);
                                                                                         }
                                                                                         startActivity(new Intent(this, MainActivityEmployee.class));
                                                                                         finish();

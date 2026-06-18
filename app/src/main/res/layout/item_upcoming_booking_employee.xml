@@ -7,15 +7,26 @@
     android:orientation="horizontal"
     android:padding="12dp">
 
-    <com.google.android.material.imageview.ShapeableImageView
-        android:id="@+id/iv_upcoming_profile"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:padding="2dp"
-        android:src="@drawable/ic_launcher_background"
-        app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-        app:strokeColor="@color/black"
-        app:strokeWidth="1dp" />
+    <FrameLayout
+        android:layout_width="60dp"
+        android:layout_height="60dp">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="1dp"
+            android:src="@null"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
+            app:strokeColor="@color/black"
+            app:strokeWidth="1dp" />
+
+        <ImageView
+            android:id="@+id/iv_upcoming_service_preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="6dp"
+            android:src="@drawable/ic_launcher_background" />
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="0dp"

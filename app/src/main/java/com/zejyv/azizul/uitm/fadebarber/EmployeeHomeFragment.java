@@ -27,6 +27,7 @@ import androidx.fragment.app.Fragment;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -68,7 +69,8 @@ public class EmployeeHomeFragment extends Fragment {
     private Handler handler;
     private MaterialCardView mcvTopBar;
     private ScrollView svHomeContent;
-    private TextView tvAiJab, tvWelcome, tvBookingCounter, tvTotalUpcoming, tvShopStatus;
+    private TextView tvAiJab, tvWelcome, tvBookingCounter, tvTotalUpcoming, tvShopStatus, tvTimeEmployee, tvDateEmployee;
+    private ImageView ivProfile;
 
     // Current Customer UI
     private TextView tvCustomerName, tvBookingTime, tvServiceName;
@@ -206,6 +208,9 @@ public class EmployeeHomeFragment extends Fragment {
         tvBookingCounter = view.findViewById(R.id.tv_booking_counter);
         tvTotalUpcoming = view.findViewById(R.id.tv_total_upcoming);
         tvShopStatus = view.findViewById(R.id.tv_shop_status_employee);
+        tvTimeEmployee = view.findViewById(R.id.tv_time_employee);
+        tvDateEmployee = view.findViewById(R.id.tv_date_employee);
+        ivProfile = view.findViewById(R.id.iv_employee_profile);
 
         // Booking details initialization
         tvCustomerName = view.findViewById(R.id.tv_customer_name);
@@ -270,7 +275,7 @@ public class EmployeeHomeFragment extends Fragment {
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
 
-            String name = prefs.getString("name", "Barber");
+            String name = prefs.getString("fullname", "Barber");
             String welcomeTemplate = getString(R.string.welcome_employee);
             tvWelcome.setText(welcomeTemplate.replace("(Barber)", name));
         } catch (GeneralSecurityException | IOException e) {
@@ -282,7 +287,9 @@ public class EmployeeHomeFragment extends Fragment {
         if (mAuth.getCurrentUser() == null) return;
         String uid = mAuth.getCurrentUser().getUid();
 
-        if (bookingListener != null) bookingListener.remove();
+        if (bookingListener != null) {
+            bookingListener.remove();
+        }
 
         bookingListener = db.collection("bookings")
                 .whereEqualTo("employeeId", uid)
@@ -466,17 +473,43 @@ public class EmployeeHomeFragment extends Fragment {
             TextView tvName = itemView.findViewById(R.id.tv_upcoming_customer_name);
             TextView tvStyle = itemView.findViewById(R.id.tv_upcoming_hairstyle);
             TextView tvTime = itemView.findViewById(R.id.tv_upcoming_time);
-            ImageView ivProfile = itemView.findViewById(R.id.iv_upcoming_profile);
+            ImageView ivService = itemView.findViewById(R.id.iv_upcoming_service_preview);
             View btnCall = itemView.findViewById(R.id.btn_call_upcoming);
 
-            tvName.setText(doc.getString("customerName"));
             tvStyle.setText(doc.getString("hairstyleName"));
             tvTime.setText(doc.getString("time"));
 
-            // Load image
-            loadHaircutImageToView(doc.getString("hairstyleName"), ivProfile);
+            // Fetch customer name later
+            String cid = doc.getString("customerId");
+            if (cid != null) {
+                tvName.setText("Loading...");
+                db.collection("customers").document(cid).get().addOnSuccessListener(userDoc -> {
+                    if (userDoc.exists() && isAdded()) {
+                        String name = userDoc.getString("name");
+                        tvName.setText(name);
+                    } else {
+                        tvName.setText("Unknown Customer");
+                    }
+                });
+            }
 
-            btnCall.setOnClickListener(v -> Toast.makeText(getContext(), "Calling " + doc.getString("customerName"), Toast.LENGTH_SHORT).show());
+            // Load image
+            loadHaircutImageToView(doc.getString("hairstyleName"), ivService);
+
+            btnCall.setOnClickListener(v -> {
+                if (cid != null) {
+                    db.collection("customers").document(cid).get().addOnSuccessListener(userDoc -> {
+                        if (userDoc.exists() && isAdded()) {
+                            String phone = userDoc.getString("phone");
+                            if (getActivity() instanceof MainActivityEmployee && phone != null && !phone.isEmpty()) {
+                                ((MainActivityEmployee) getActivity()).showCallCustomerDialog(phone);
+                            } else {
+                                Toast.makeText(getContext(), "Phone number not available", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+                }
+            });
 
             llUpcomingList.addView(itemView);
 
@@ -536,22 +569,26 @@ public class EmployeeHomeFragment extends Fragment {
     }
 
     private void updateBookingUI(QueryDocumentSnapshot doc) {
+        String oldTime = nearestCustomerTime;
+        String oldHaircut = tvServiceName != null ? tvServiceName.getText().toString() : null;
         currentBookingId = doc.getId();
         nearestCustomerTime = doc.getString("time");
-        nearestCustomerName = doc.getString("customerName");
         String serviceName = doc.getString("hairstyleName");
         
-        // Fetch customer phone number
+        // Fetch customer info (name and phone)
         String customerId = doc.getString("customerId");
         if (customerId != null) {
             db.collection("customers").document(customerId).get().addOnSuccessListener(userDoc -> {
                 if (userDoc.exists()) {
+                    String name = userDoc.getString("name");
+                    nearestCustomerName = name;
                     nearestCustomerPhone = userDoc.getString("phone");
+                    
+                    if (tvCustomerName != null) tvCustomerName.setText(nearestCustomerName);
                 }
             });
         }
 
-        if (tvCustomerName != null) tvCustomerName.setText(nearestCustomerName);
         if (tvBookingTime != null) tvBookingTime.setText(nearestCustomerTime);
         if (tvServiceName != null) tvServiceName.setText(serviceName);
 
@@ -566,11 +603,16 @@ public class EmployeeHomeFragment extends Fragment {
             llBookingDetailsRow.setVisibility(View.VISIBLE);
         }
 
-        Calendar calendar = Calendar.getInstance();
+        TimeZone klTimeZone = TimeZone.getTimeZone("Asia/Kuala_Lumpur");
+        Calendar calendar = Calendar.getInstance(klTimeZone);
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        boolean isOpen = hour >= 10 && hour < 24;
+        boolean isOpen = (hour >= 10 && hour < 13) || (hour >= 14 && hour < 24);
 
-        boolean contextChanged = !currentBookingId.equals(lastUsedBookingId) || (isOpen != lastUsedShopStatusOpen);
+        boolean contextChanged = !currentBookingId.equals(lastUsedBookingId) 
+                || (isOpen != lastUsedShopStatusOpen)
+                || !serviceName.equals(oldHaircut)
+                || !nearestCustomerTime.equals(oldTime);
+
         if (!isPoolInitialized || contextChanged) {
             lastUsedBookingId = currentBookingId;
             lastUsedShopStatusOpen = isOpen;
@@ -686,14 +728,24 @@ public class EmployeeHomeFragment extends Fragment {
     }
 
     private void setupClickLogic(View view) {
+        if (ivProfile != null) {
+            ivProfile.setOnClickListener(v -> {
+                if (getActivity() instanceof MainActivityEmployee) {
+                    ((MainActivityEmployee) getActivity()).navigateToProfile();
+                }
+            });
+        }
+
         view.findViewById(R.id.btn_start_session).setOnClickListener(v -> Toast.makeText(getContext(), "Session Started!", Toast.LENGTH_SHORT).show());
         
         btnNoShow.setOnClickListener(v -> {
-            if (currentBookingId != null) {
-                db.collection("bookings").document(currentBookingId)
-                        .update("status", "Cancelled")
-                        .addOnSuccessListener(aVoid -> Toast.makeText(getContext(), "Booking marked as No-Show", Toast.LENGTH_SHORT))
-                        .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to update status", Toast.LENGTH_SHORT).show());
+            if (getActivity() instanceof MainActivityEmployee && currentBookingId != null) {
+                ((MainActivityEmployee) getActivity()).showNoShowDialog(() -> {
+                    db.collection("bookings").document(currentBookingId)
+                            .update("status", "Cancelled")
+                            .addOnSuccessListener(aVoid -> Toast.makeText(getContext(), "Booking marked as No-Show", Toast.LENGTH_SHORT).show())
+                            .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to update status", Toast.LENGTH_SHORT).show());
+                });
             }
         });
         
@@ -707,7 +759,16 @@ public class EmployeeHomeFragment extends Fragment {
             });
         }
         
-        view.findViewById(R.id.btn_edit_booking_employee).setOnClickListener(v -> Toast.makeText(getContext(), "Opening Edit Booking...", Toast.LENGTH_SHORT).show());
+        if (btnEditBooking != null) {
+            btnEditBooking.setOnClickListener(v -> {
+                if (currentBookingId != null) {
+                    android.content.Intent intent = new android.content.Intent(getActivity(), BookingActivity.class);
+                    intent.putExtra("EDIT_BOOKING_ID", currentBookingId);
+                    intent.putExtra("IS_EMPLOYEE_EDIT", true);
+                    startActivity(intent);
+                }
+            });
+        }
 
         mcvTopBar.setOnClickListener(v -> {
             showNextJabFromPool();
@@ -737,10 +798,11 @@ public class EmployeeHomeFragment extends Fragment {
         promptBuilder.append("Separate each jab with a '/' character. DO NOT NUMBER THEM. No list formatting. ");
         promptBuilder.append("Context: The shop is currently ").append(shopStatus).append(". ");
         
-        if (nearestCustomerTime != null && nearestCustomerName != null) {
-            promptBuilder.append("The employee has an upcoming customer named '")
-                    .append(nearestCustomerName).append("' at ").append(nearestCustomerTime).append(". ");
-            promptBuilder.append("Make them personal about the upcoming busy work or the specific customer name. ");
+        if (nearestCustomerTime != null && currentBookingId != null && !"no_booking".equals(currentBookingId)) {
+            String hairStyle = tvServiceName != null ? tvServiceName.getText().toString() : "a haircut";
+            promptBuilder.append("The employee has an upcoming session at ").append(nearestCustomerTime)
+                    .append(" for '").append(hairStyle).append("'. ");
+            promptBuilder.append("Make them personal about the work load, the specific haircut difficulty, or the timing. ");
         } else {
             promptBuilder.append("The employee doesn't have any customers right now. Roast them for their laziness or being broke. ");
         }
@@ -849,6 +911,33 @@ public class EmployeeHomeFragment extends Fragment {
     public void onResume() {
         super.onResume();
         if (handler != null) handler.post(updateTimeThemeRunnable);
+        populateWelcomeMessage();
+        loadProfileImage();
+        fetchNearestBooking();
+    }
+
+    private void loadProfileImage() {
+        if (ivProfile == null || mAuth.getCurrentUser() == null) return;
+        
+        String uid = mAuth.getCurrentUser().getUid();
+        
+        db.collection("profile_pics").document(uid).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (isAdded() && documentSnapshot.exists()) {
+                        String url = documentSnapshot.getString("url");
+                        if (url != null && !url.isEmpty()) {
+                            Glide.with(this)
+                                    .load(url)
+                                    .placeholder(R.drawable.ic_profile)
+                                    .into(ivProfile);
+                            return;
+                        }
+                    }
+                    if (isAdded()) ivProfile.setImageResource(R.drawable.ic_profile);
+                })
+                .addOnFailureListener(e -> {
+                    if (isAdded()) ivProfile.setImageResource(R.drawable.ic_profile);
+                });
     }
 
     @Override
@@ -872,14 +961,28 @@ public class EmployeeHomeFragment extends Fragment {
         TextView tvAmPm = view.findViewById(R.id.tv_ampm_employee);
         TextView tvShopStatus = view.findViewById(R.id.tv_shop_status_employee);
 
-        Calendar calendar = Calendar.getInstance();
+        TimeZone klTimeZone = TimeZone.getTimeZone("Asia/Kuala_Lumpur");
+        Calendar calendar = Calendar.getInstance(klTimeZone);
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
+
+        // Update Time and Date TextViews manually
+        if (tvTimeEmployee != null) {
+            SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm", Locale.getDefault());
+            timeFormat.setTimeZone(klTimeZone);
+            tvTimeEmployee.setText(timeFormat.format(calendar.getTime()));
+        }
+        if (tvDateEmployee != null) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yy", Locale.getDefault());
+            dateFormat.setTimeZone(klTimeZone);
+            tvDateEmployee.setText(dateFormat.format(calendar.getTime()));
+        }
 
         if (tvAmPm != null) {
             tvAmPm.setText(calendar.get(Calendar.AM_PM) == Calendar.AM ? 
                     getString(R.string.am_label) : getString(R.string.pm_label));
         }
 
+        boolean isOpen = (hour >= 10 && hour < 13) || (hour >= 14 && hour < 24);
         if (tvShopStatus != null) {
             String prefix;
             String keyword;
@@ -889,7 +992,7 @@ public class EmployeeHomeFragment extends Fragment {
                 prefix = "Wakey wakey! ";
                 keyword = "Shop opens soon.";
                 statusColor = Color.parseColor("#FFBD00"); // Warning orange
-            } else if ((hour >= 10 && hour < 13) || (hour >= 14 && hour < 24)) {
+            } else if (isOpen) {
                 prefix = "Hustle mode! ";
                 keyword = "Shift in progress.";
                 statusColor = ContextCompat.getColor(requireContext(), R.color.primary_color);
@@ -909,6 +1012,14 @@ public class EmployeeHomeFragment extends Fragment {
             builder.setSpan(new ForegroundColorSpan(statusColor), start, builder.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             builder.setSpan(new StyleSpan(Typeface.BOLD), start, builder.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             tvShopStatus.setText(builder);
+        }
+
+        // AI Jab refresh on context change (Shop status change)
+        if (isPoolInitialized) {
+            if (isOpen != lastUsedShopStatusOpen) {
+                lastUsedShopStatusOpen = isOpen;
+                updateAiJab(isOpen, true);
+            }
         }
 
         String timeName;

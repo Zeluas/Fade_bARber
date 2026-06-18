@@ -16,6 +16,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "IMGBB_API_KEY", "\"YOUR_IMGBB_API_KEY_HERE\"")
     }
 
     buildTypes {
@@ -48,6 +49,8 @@ dependencies {
     implementation(libs.splashscreen)
     implementation(libs.swiperefreshlayout)
     implementation(libs.security.crypto)
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     val cameraxVersion = "1.6.1"
     implementation(libs.camera.core)

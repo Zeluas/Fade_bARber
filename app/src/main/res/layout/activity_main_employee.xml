@@ -340,4 +340,174 @@
         </com.google.android.material.card.MaterialCardView>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <!-- Section 7: No-Show Confirmation Overlay -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_noshow_confirmation"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#B3000000"
+        android:clickable="true"
+        android:elevation="35dp"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/mcv_noshow_dialog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="40dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
+            app:cardPreventCornerOverlap="false"
+            app:cardUseCompatPadding="false"
+            app:contentPadding="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/tv_noshow_dialog_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/primary_color"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:text="@string/noshow_dialog_title"
+                    android:textColor="@color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/tv_noshow_dialog_msg"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="24dp"
+                    android:layout_marginTop="24dp"
+                    android:gravity="center"
+                    android:paddingHorizontal="12dp"
+                    android:text="@string/noshow_dialog_msg"
+                    android:textColor="@color/black"
+                    android:textSize="14sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/tv_noshow_dialog_title" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cb_noshow_confirm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/noshow_final_confirmation"
+                    android:textColor="@color/grey_grey"
+                    android:textSize="12sp"
+                    app:buttonTint="@color/primary_color"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/tv_noshow_dialog_msg" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_noshow_cancel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginBottom="24dp"
+                    android:paddingVertical="12dp"
+                    android:text="@string/noshow_dialog_btn_cancel"
+                    android:textColor="@color/primary_color"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/white"
+                    app:cornerRadius="24dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/btn_noshow_confirm"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/cb_noshow_confirm"
+                    app:rippleColor="@color/primary_color"
+                    app:strokeColor="@color/primary_color"
+                    app:strokeWidth="2dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_noshow_confirm"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="24dp"
+                    android:backgroundTint="@color/warning_red_icon"
+                    android:paddingVertical="12dp"
+                    android:text="@string/noshow_dialog_btn_confirm"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="24dp"
+                    app:layout_constraintBottom_toBottomOf="@id/btn_noshow_cancel"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/btn_noshow_cancel"
+                    app:layout_constraintTop_toTopOf="@id/btn_noshow_cancel"
+                    app:rippleColor="@color/trans_white" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Profile Image Preview Overlay -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_image_preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#B3000000"
+        android:clickable="true"
+        android:elevation="50dp"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/iv_full_preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="matrix" />
+
+        <View
+            android:id="@+id/v_preview_top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:background="#80000000"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/btn_close_preview"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginTop="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_back"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/white" />
+
+        <TextView
+            android:id="@+id/tv_preview_title"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginStart="10dp"
+            android:gravity="center"
+            android:text="Profile Picture"
+            android:textColor="@color/white"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@id/btn_close_preview"
+            app:layout_constraintStart_toEndOf="@id/btn_close_preview"
+            app:layout_constraintTop_toTopOf="@id/btn_close_preview" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

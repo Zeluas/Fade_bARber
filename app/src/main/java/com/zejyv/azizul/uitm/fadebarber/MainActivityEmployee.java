@@ -5,15 +5,21 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
+import android.view.GestureDetector;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -37,6 +43,21 @@ public class MainActivityEmployee extends AppCompatActivity {
     private android.widget.TextView tvCustomerPhone;
     private String rawCustomerPhone = "";
 
+    // --- No-Show Dialog Components ---
+    private View layoutNoShowConfirmation, mcvNoShowDialog;
+    private Runnable onNoShowConfirmAction;
+
+    // --- Profile Image Preview Components ---
+    private View layoutImagePreview, vPreviewTopBar;
+    private ImageView ivFullPreview;
+    private ScaleGestureDetector scaleGestureDetector;
+    private GestureDetector gestureDetector;
+    private final android.graphics.Matrix matrix = new android.graphics.Matrix();
+    private float scaleFactor = 1.0f;
+    private float minScale = 1.0f;
+    private final float[] lastTouch = new float[2];
+    private boolean isPanning = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,6 +69,8 @@ public class MainActivityEmployee extends AppCompatActivity {
         setupExitDialog();
         setupLogoutDialog();
         setupCallCustomerDialog();
+        setupNoShowDialog();
+        setupImagePreview();
         setupBackPressed();
     }
 
@@ -285,7 +308,77 @@ public class MainActivityEmployee extends AppCompatActivity {
                 .withEndAction(() -> layoutCallCustomer.setVisibility(View.GONE)).start();
     }
 
-    private void hideExitDialog() {
+    /**
+     * Initializes and configures the no-show confirmation dialog.
+     */
+    private void setupNoShowDialog() {
+        layoutNoShowConfirmation = findViewById(R.id.layout_noshow_confirmation);
+        mcvNoShowDialog = findViewById(R.id.mcv_noshow_dialog);
+        Button btnNoShowCancel = findViewById(R.id.btn_noshow_cancel);
+        Button btnNoShowConfirm = findViewById(R.id.btn_noshow_confirm);
+        com.google.android.material.checkbox.MaterialCheckBox cbConfirm = findViewById(R.id.cb_noshow_confirm);
+
+        if (btnNoShowCancel != null) btnNoShowCancel.setOnClickListener(v -> hideNoShowDialog());
+        if (btnNoShowConfirm != null) {
+            btnNoShowConfirm.setEnabled(false);
+            btnNoShowConfirm.setAlpha(0.5f);
+            btnNoShowConfirm.setOnClickListener(v -> {
+                if (onNoShowConfirmAction != null) onNoShowConfirmAction.run();
+                hideNoShowDialog();
+            });
+        }
+        
+        if (cbConfirm != null && btnNoShowConfirm != null) {
+            cbConfirm.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                btnNoShowConfirm.setEnabled(isChecked);
+                btnNoShowConfirm.setAlpha(isChecked ? 1.0f : 0.5f);
+            });
+        }
+
+        if (layoutNoShowConfirmation != null) {
+            layoutNoShowConfirmation.setOnClickListener(v -> hideNoShowDialog());
+        }
+    }
+
+    /**
+     * Shows the no-show confirmation dialog.
+     * @param confirmAction Callback to run when confirmed.
+     */
+    public void showNoShowDialog(Runnable confirmAction) {
+        if (layoutNoShowConfirmation == null || mcvNoShowDialog == null) return;
+        this.onNoShowConfirmAction = confirmAction;
+
+        // Reset state
+        com.google.android.material.checkbox.MaterialCheckBox cbConfirm = findViewById(R.id.cb_noshow_confirm);
+        Button btnNoShowConfirm = findViewById(R.id.btn_noshow_confirm);
+        if (cbConfirm != null) cbConfirm.setChecked(false);
+        if (btnNoShowConfirm != null) {
+            btnNoShowConfirm.setEnabled(false);
+            btnNoShowConfirm.setAlpha(0.5f);
+        }
+
+        layoutNoShowConfirmation.setVisibility(View.VISIBLE);
+        layoutNoShowConfirmation.setAlpha(0f);
+        layoutNoShowConfirmation.animate().alpha(1f).setDuration(200).start();
+
+        mcvNoShowDialog.setScaleX(0f);
+        mcvNoShowDialog.setScaleY(0f);
+        mcvNoShowDialog.animate().scaleX(1f).scaleY(1f).setDuration(300).start();
+    }
+
+    /**
+     * Hides the no-show confirmation dialog.
+     */
+    public void hideNoShowDialog() {
+        if (layoutNoShowConfirmation == null || mcvNoShowDialog == null) return;
+
+        mcvNoShowDialog.animate().scaleX(0f).scaleY(0f).setDuration(200).start();
+        layoutNoShowConfirmation.animate().alpha(0f).setDuration(200)
+                .withEndAction(() -> layoutNoShowConfirmation.setVisibility(View.GONE)).start();
+    }
+
+    public void hideExitDialog() {
+        if (mcvExitDialog == null || layoutExitConfirmation == null) return;
         mcvExitDialog.animate().scaleX(0f).scaleY(0f).setDuration(200).start();
         layoutExitConfirmation.animate().alpha(0f).setDuration(200)
                 .withEndAction(() -> layoutExitConfirmation.setVisibility(View.GONE)).start();
@@ -301,11 +394,239 @@ public class MainActivityEmployee extends AppCompatActivity {
         mcvExitDialog.animate().scaleX(1f).scaleY(1f).setDuration(300).start();
     }
 
+    public void navigateToProfile() {
+        if (viewPager != null) {
+            viewPager.setCurrentItem(2, true);
+        }
+    }
+
+    private void setupImagePreview() {
+        layoutImagePreview = findViewById(R.id.layout_image_preview);
+        ivFullPreview = findViewById(R.id.iv_full_preview);
+        vPreviewTopBar = findViewById(R.id.v_preview_top_bar);
+        View btnClose = findViewById(R.id.btn_close_preview);
+
+        if (btnClose != null) btnClose.setOnClickListener(v -> hideImagePreview());
+
+        scaleGestureDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                float factor = detector.getScaleFactor();
+                float nextScale = scaleFactor * factor;
+
+                if (nextScale > 0.5f && nextScale < 6.0f) {
+                    scaleFactor = nextScale;
+                    matrix.postScale(factor, factor, detector.getFocusX(), detector.getFocusY());
+                    ivFullPreview.setImageMatrix(matrix);
+                }
+                return true;
+            }
+        });
+
+        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDoubleTap(android.view.MotionEvent e) {
+                if (scaleFactor > minScale * 1.1f) {
+                    animateMatrixReset();
+                } else {
+                    animateMatrixZoom(2.25f, e.getX(), e.getY());
+                }
+                return true;
+            }
+
+            @Override
+            public boolean onSingleTapConfirmed(android.view.MotionEvent e) {
+                if (!isPanning) togglePreviewTopBar();
+                return true;
+            }
+        });
+
+        ivFullPreview.setOnTouchListener((v, event) -> {
+            scaleGestureDetector.onTouchEvent(event);
+            gestureDetector.onTouchEvent(event);
+
+            int action = event.getAction() & android.view.MotionEvent.ACTION_MASK;
+            switch (action) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    lastTouch[0] = event.getX();
+                    lastTouch[1] = event.getY();
+                    isPanning = false;
+                    break;
+
+                case android.view.MotionEvent.ACTION_POINTER_DOWN:
+                    isPanning = false;
+                    break;
+
+                case android.view.MotionEvent.ACTION_MOVE:
+                    if (!scaleGestureDetector.isInProgress() && event.getPointerCount() == 1) {
+                        float dx = event.getX() - lastTouch[0];
+                        float dy = event.getY() - lastTouch[1];
+
+                        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                            isPanning = true;
+                            matrix.postTranslate(dx, dy);
+                            ivFullPreview.setImageMatrix(matrix);
+                            lastTouch[0] = event.getX();
+                            lastTouch[1] = event.getY();
+                        }
+                    }
+                    break;
+
+                case android.view.MotionEvent.ACTION_POINTER_UP:
+                    int remainingPointerIndex = (event.getActionIndex() == 0) ? 1 : 0;
+                    lastTouch[0] = event.getX(remainingPointerIndex);
+                    lastTouch[1] = event.getY(remainingPointerIndex);
+                    break;
+            }
+            return true;
+        });
+    }
+
+    private void animateMatrixZoom(float targetFactor, float focusX, float focusY) {
+        android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofFloat(1.0f, targetFactor);
+        animator.setDuration(300);
+        animator.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+        
+        final float[] lastVal = {1.0f};
+        animator.addUpdateListener(animation -> {
+            float currentVal = (float) animation.getAnimatedValue();
+            float deltaScale = currentVal / lastVal[0];
+            lastVal[0] = currentVal;
+            
+            scaleFactor *= deltaScale;
+            matrix.postScale(deltaScale, deltaScale, focusX, focusY);
+            ivFullPreview.setImageMatrix(matrix);
+        });
+        animator.start();
+    }
+
+    private void animateMatrixReset() {
+        if (ivFullPreview.getDrawable() == null) return;
+
+        float viewWidth = ivFullPreview.getWidth();
+        float viewHeight = ivFullPreview.getHeight();
+        float imgWidth = ivFullPreview.getDrawable().getIntrinsicWidth();
+        float imgHeight = ivFullPreview.getDrawable().getIntrinsicHeight();
+
+        float targetScale = Math.min(viewWidth / imgWidth, viewHeight / imgHeight);
+        float targetDx = (viewWidth - imgWidth * targetScale) / 2;
+        float targetDy = (viewHeight - imgHeight * targetScale) / 2;
+
+        float[] startValues = new float[9];
+        matrix.getValues(startValues);
+
+        android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofFloat(0f, 1f);
+        animator.setDuration(300);
+        animator.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+        animator.addUpdateListener(animation -> {
+            float fraction = animation.getAnimatedFraction();
+            float currScale = startValues[android.graphics.Matrix.MSCALE_X] + (targetScale - startValues[android.graphics.Matrix.MSCALE_X]) * fraction;
+            float currDx = startValues[android.graphics.Matrix.MTRANS_X] + (targetDx - startValues[android.graphics.Matrix.MTRANS_X]) * fraction;
+            float currDy = startValues[android.graphics.Matrix.MTRANS_Y] + (targetDy - startValues[android.graphics.Matrix.MTRANS_Y]) * fraction;
+
+            matrix.reset();
+            matrix.postScale(currScale, currScale);
+            matrix.postTranslate(currDx, currDy);
+            scaleFactor = currScale;
+            ivFullPreview.setImageMatrix(matrix);
+        });
+        animator.start();
+    }
+
+    private void resetImageMatrix() {
+        if (ivFullPreview.getDrawable() == null) return;
+
+        float viewWidth = ivFullPreview.getWidth();
+        float viewHeight = ivFullPreview.getHeight();
+        float imgWidth = ivFullPreview.getDrawable().getIntrinsicWidth();
+        float imgHeight = ivFullPreview.getDrawable().getIntrinsicHeight();
+
+        float scaleX = viewWidth / imgWidth;
+        float scaleY = viewHeight / imgHeight;
+        scaleFactor = Math.min(scaleX, scaleY);
+        minScale = scaleFactor;
+
+        matrix.reset();
+        matrix.postScale(scaleFactor, scaleFactor);
+
+        float dx = (viewWidth - imgWidth * scaleFactor) / 2;
+        float dy = (viewHeight - imgHeight * scaleFactor) / 2;
+        matrix.postTranslate(dx, dy);
+
+        ivFullPreview.setImageMatrix(matrix);
+    }
+
+    public void showImagePreview(String imageUrl) {
+        if (layoutImagePreview == null || ivFullPreview == null || imageUrl == null || imageUrl.isEmpty()) return;
+
+        Glide.with(this)
+                .asBitmap()
+                .load(imageUrl)
+                .placeholder(R.drawable.ic_profile)
+                .into(new com.bumptech.glide.request.target.CustomTarget<android.graphics.Bitmap>() {
+                    @Override
+                    public void onResourceReady(@NonNull android.graphics.Bitmap resource, @Nullable com.bumptech.glide.request.transition.Transition<? super android.graphics.Bitmap> transition) {
+                        ivFullPreview.setImageBitmap(resource);
+                        resetImageMatrix();
+                    }
+
+                    @Override
+                    public void onLoadCleared(@Nullable android.graphics.drawable.Drawable placeholder) {
+                        ivFullPreview.setImageDrawable(placeholder);
+                    }
+                });
+
+        layoutImagePreview.setVisibility(View.VISIBLE);
+        layoutImagePreview.setAlpha(0f);
+        layoutImagePreview.animate().alpha(1f).setDuration(200).start();
+
+        layoutImagePreview.setScaleX(0.7f);
+        layoutImagePreview.setScaleY(0.7f);
+        layoutImagePreview.animate().scaleX(1.0f).scaleY(1.0f).setDuration(300).start();
+
+        vPreviewTopBar.setVisibility(View.VISIBLE);
+        vPreviewTopBar.setAlpha(1f);
+        View btnClose = findViewById(R.id.btn_close_preview);
+        View tvTitle = findViewById(R.id.tv_preview_title);
+        if (btnClose != null) { btnClose.setVisibility(View.VISIBLE); btnClose.setAlpha(1f); }
+        if (tvTitle != null) { tvTitle.setVisibility(View.VISIBLE); tvTitle.setAlpha(1f); }
+    }
+
+    public void hideImagePreview() {
+        if (layoutImagePreview == null) return;
+        layoutImagePreview.animate().scaleX(0f).scaleY(0f).setDuration(200).start();
+        layoutImagePreview.animate().alpha(0f).setDuration(200)
+                .withEndAction(() -> layoutImagePreview.setVisibility(View.GONE)).start();
+    }
+
+    private void togglePreviewTopBar() {
+        if (vPreviewTopBar == null) return;
+        View btnClose = findViewById(R.id.btn_close_preview);
+        View tvTitle = findViewById(R.id.tv_preview_title);
+
+        boolean isVisible = vPreviewTopBar.getVisibility() == View.VISIBLE;
+        if (isVisible) {
+            vPreviewTopBar.animate().alpha(0f).setDuration(300).withEndAction(() -> vPreviewTopBar.setVisibility(View.GONE)).start();
+            if (btnClose != null) btnClose.animate().alpha(0f).setDuration(300).withEndAction(() -> btnClose.setVisibility(View.GONE)).start();
+            if (tvTitle != null) tvTitle.animate().alpha(0f).setDuration(300).withEndAction(() -> tvTitle.setVisibility(View.GONE)).start();
+        } else {
+            vPreviewTopBar.setVisibility(View.VISIBLE);
+            vPreviewTopBar.setAlpha(0f);
+            vPreviewTopBar.animate().alpha(1f).setDuration(300).start();
+            if (btnClose != null) { btnClose.setVisibility(View.VISIBLE); btnClose.setAlpha(0f); btnClose.animate().alpha(1f).setDuration(300).start(); }
+            if (tvTitle != null) { tvTitle.setVisibility(View.VISIBLE); tvTitle.setAlpha(0f); tvTitle.animate().alpha(1f).setDuration(300).start(); }
+        }
+    }
+
     private void setupBackPressed() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (layoutCallCustomer.getVisibility() == View.VISIBLE) {
+                if (layoutImagePreview != null && layoutImagePreview.getVisibility() == View.VISIBLE) {
+                    hideImagePreview();
+                } else if (layoutNoShowConfirmation != null && layoutNoShowConfirmation.getVisibility() == View.VISIBLE) {
+                    hideNoShowDialog();
+                } else if (layoutCallCustomer.getVisibility() == View.VISIBLE) {
                     hideCallCustomerDialog();
                 } else if (layoutLogoutConfirmation.getVisibility() == View.VISIBLE) {
                     hideLogoutDialog();

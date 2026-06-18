@@ -75,6 +75,13 @@ public class BookingActivity extends AppCompatActivity {
     private Employee selectedEmployee = null;
     private String selectedHairstyleName = "";
     private String selectedHairstyleId = "";
+    private String editingBookingId = null;
+    private boolean isEditMode = false;
+    private boolean isEmployeeEdit = false;
+    private String originalTime = "";
+    private String originalDate = "";
+    private String originalEmployeeId = "";
+    private String originalCustomerId = "";
     private List<String> bookedTimes = new ArrayList<>();
     private List<String> fullDates = new ArrayList<>();
     private long serverTimeOffset = 0;
@@ -113,10 +120,20 @@ public class BookingActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         initEncryptedPrefs();
 
+        // Check if we are in Edit Mode
+        if (getIntent().hasExtra("EDIT_BOOKING_ID")) {
+            editingBookingId = getIntent().getStringExtra("EDIT_BOOKING_ID");
+            isEditMode = true;
+            isEmployeeEdit = getIntent().getBooleanExtra("IS_EMPLOYEE_EDIT", false);
+        }
+
         // --- View Initialization ---
 
         // Navigation and Header elements
         ImageView ivBack = findViewById(R.id.iv_back_booking);
+        if (isEditMode) {
+            ivBack.setVisibility(View.GONE);
+        }
         
         // Picker triggers
         LinearLayout llDatePicker = findViewById(R.id.ll_date_picker_controls);
@@ -134,20 +151,38 @@ public class BookingActivity extends AppCompatActivity {
         // Action Buttons
         MaterialButton btnChooseHairstyle = findViewById(R.id.btn_choose_hairstyle);
         MaterialButton btnConfirmBooking = findViewById(R.id.btn_confirm_booking);
+        MaterialButton btnCancelEdit = findViewById(R.id.btn_cancel_edit_booking);
+
+        if (isEditMode) {
+            btnConfirmBooking.setText("Update Booking");
+            if (btnCancelEdit != null) {
+                btnCancelEdit.setVisibility(View.VISIBLE);
+                btnCancelEdit.setOnClickListener(v -> finish());
+            }
+        }
 
         // Loading Overlay
         loadingOverlay = findViewById(R.id.loading_overlay);
 
         // --- Initial Setup ---
         
-        // Synchronize with Firebase Server Time before setting defaults
+        // Synchronize with Firebase Server Time
         syncServerTimeAndInit();
         
         // Configure stylist selection RecyclerView
         setupStylistRecyclerView();
 
-        // Fetch stylists from Firebase
-        fetchStylists();
+        if (isEditMode) {
+            fetchBookingDetails();
+        } else {
+            // Fetch stylists normally
+            fetchStylists();
+        }
+
+        if (isEmployeeEdit) {
+            View mcvCustomer = findViewById(R.id.mcv_customer_name);
+            if (mcvCustomer != null) mcvCustomer.setVisibility(View.VISIBLE);
+        }
 
         // --- Click Listeners ---
 
@@ -235,6 +270,63 @@ public class BookingActivity extends AppCompatActivity {
         return false;
     }
 
+    private void fetchBookingDetails() {
+        if (editingBookingId == null) return;
+        if (loadingOverlay != null) loadingOverlay.setVisibility(View.VISIBLE);
+
+        db.collection("bookings").document(editingBookingId).get().addOnSuccessListener(doc -> {
+            if (doc.exists()) {
+                originalDate = doc.getString("date");
+                originalTime = doc.getString("time");
+                originalEmployeeId = doc.getString("employeeId");
+                originalCustomerId = doc.getString("customerId");
+                selectedHairstyleName = doc.getString("hairstyleName");
+                selectedHairstyleId = doc.getString("hairstyleId");
+
+                if (tvDate != null) tvDate.setText(originalDate);
+                if (tvTime != null) tvTime.setText(originalTime);
+
+                if (isEmployeeEdit) {
+                    // Fetch customer info
+                    if (originalCustomerId != null) {
+                        db.collection("customers").document(originalCustomerId).get().addOnSuccessListener(userDoc -> {
+                            if (userDoc.exists()) {
+                                TextView tvCustName = findViewById(R.id.tv_booking_customer_name);
+                                TextView tvUsername = findViewById(R.id.tv_booking_customer_username);
+                                TextView tvPhone = findViewById(R.id.tv_booking_customer_phone);
+                                
+                                String name = userDoc.getString("name");
+                                String username = userDoc.getString("username");
+                                String phone = userDoc.getString("phone");
+                                
+                                if (tvCustName != null) tvCustName.setText(name != null ? name : "-");
+                                if (tvUsername != null) tvUsername.setText(username != null ? username : "-");
+                                if (tvPhone != null) tvPhone.setText(phone != null ? formatPhoneNumber(phone) : "-");
+                            }
+                        });
+                    }
+                }
+
+                // Now that we have the originalEmployeeId, fetch the stylists
+                fetchStylists();
+                
+                // Prefill hairstyle preview
+                updateHairstylePreview(selectedHairstyleName, "Current selection", selectedHairstyleName);
+            } else {
+                // If booking not found, fallback to defaults
+                setDefaultDateTime();
+                fetchStylists();
+            }
+            if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
+        }).addOnFailureListener(e -> {
+            if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
+            Toast.makeText(this, "Failed to load booking details", Toast.LENGTH_SHORT).show();
+            // Fallback
+            setDefaultDateTime();
+            fetchStylists();
+        });
+    }
+
     private void syncServerTimeAndInit() {
         if (!isNetworkAvailable()) {
             setDefaultDateTime();
@@ -257,16 +349,25 @@ public class BookingActivity extends AppCompatActivity {
                                     serverTimeOffset = serverTime.toDate().getTime() - System.currentTimeMillis();
                                 }
                                 if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
-                                setDefaultDateTime();
+                                
+                                // Only set default date/time if we are NOT in edit mode
+                                // because edit mode will fetch its own from Firestore
+                                if (!isEditMode) {
+                                    setDefaultDateTime();
+                                }
                             })
                             .addOnFailureListener(e -> {
                                 if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
-                                setDefaultDateTime();
+                                if (!isEditMode) {
+                                    setDefaultDateTime();
+                                }
                             });
                 })
                 .addOnFailureListener(e -> {
                     if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
-                    setDefaultDateTime();
+                    if (!isEditMode) {
+                        setDefaultDateTime();
+                    }
                 });
     }
 
@@ -285,17 +386,21 @@ public class BookingActivity extends AppCompatActivity {
 
         if (loadingOverlay != null) loadingOverlay.setVisibility(View.VISIBLE);
 
-        String bookingId = "FB-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        String customerId = currentUser.getUid();
-        String customerName = encryptedPrefs != null ? encryptedPrefs.getString("name", "Unknown Customer") : "Unknown Customer";
+        String bookingId = isEditMode ? editingBookingId : "FB-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        
+        // Preserve original customer data if in edit mode
+        String customerId = isEditMode ? originalCustomerId : currentUser.getUid();
+
         String employeeId = selectedEmployee.getUid();
-        String employeeName = selectedEmployee.getFullname();
         String date = tvDate.getText().toString();
         String time = tvTime.getText().toString();
         String status = "Pending";
 
         // Final check before sending to Firestore
-        if (bookedTimes.contains(time)) {
+        // In Edit Mode, we allow the slot if it matches the original slot
+        boolean isSameSlotAsOriginal = isEditMode && date.equals(originalDate) && time.equals(originalTime) && employeeId.equals(originalEmployeeId);
+        
+        if (bookedTimes.contains(time) && !isSameSlotAsOriginal) {
             if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
             showStatusDialog(false, "Slot Unavailable", "This time slot was just taken. Please choose another.", false);
             confirmButton.setEnabled(true);
@@ -305,26 +410,30 @@ public class BookingActivity extends AppCompatActivity {
         java.util.Map<String, Object> bookingMap = new java.util.HashMap<>();
         bookingMap.put("bookingId", bookingId);
         bookingMap.put("customerId", customerId);
-        bookingMap.put("customerName", customerName);
         bookingMap.put("employeeId", employeeId);
-        bookingMap.put("employeeName", employeeName);
         bookingMap.put("date", date);
         bookingMap.put("time", time);
         bookingMap.put("hairstyleName", selectedHairstyleName);
         bookingMap.put("hairstyleId", selectedHairstyleId);
         bookingMap.put("status", status);
-        bookingMap.put("createdAt", FieldValue.serverTimestamp());
+        if (!isEditMode) {
+            bookingMap.put("createdAt", FieldValue.serverTimestamp());
+        } else {
+            bookingMap.put("updatedAt", FieldValue.serverTimestamp());
+        }
 
-        db.collection("bookings").document(bookingId).set(bookingMap)
+        db.collection("bookings").document(bookingId).set(bookingMap, com.google.firebase.firestore.SetOptions.merge())
                 .addOnSuccessListener(aVoid -> {
                     if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
-                    showStatusDialog(true, "Booking Successful!", "Your appointment has been scheduled. We look forward to seeing you!", true);
+                    String successTitle = isEditMode ? "Booking Updated!" : "Booking Successful!";
+                    showStatusDialog(true, successTitle, "Your appointment has been scheduled. We look forward to seeing you!", true);
                 })
                 .addOnFailureListener(e -> {
                     if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
                     confirmButton.setEnabled(true);
                     String errorMsg = getFriendlyError(e.getMessage());
-                    showStatusDialog(false, "Booking Failed", errorMsg, false);
+                    String failTitle = isEditMode ? "Update Failed" : "Booking Failed";
+                    showStatusDialog(false, failTitle, errorMsg, false);
                     android.util.Log.e("BookingActivity", "Firebase Error: " + e.getMessage());
                 });
     }
@@ -720,6 +829,16 @@ public class BookingActivity extends AppCompatActivity {
      */
     private boolean isSlotDisabled(int hour, String amPm) {
         String timeStr = String.format(Locale.getDefault(), "%02d:00 %s", hour, amPm);
+        
+        // In Edit Mode, if the slot is the ORIGINAL slot of this booking, it's NOT disabled
+        if (isEditMode && 
+            tvDate.getText().toString().equals(originalDate) && 
+            timeStr.equals(originalTime) && 
+            selectedEmployee != null && 
+            selectedEmployee.getUid().equals(originalEmployeeId)) {
+            return false;
+        }
+
         return bookedTimes.contains(timeStr) || !isWithinBusinessHours(hour, amPm) || isSlotInPast(hour, amPm);
     }
 
@@ -777,6 +896,40 @@ public class BookingActivity extends AppCompatActivity {
         findNextAvailableDate();
     }
 
+    /**
+     * Formats a raw phone string into the standardized Malaysian format.
+     * Logic synchronized with MainActivityEmployee: "+60 XX-XXXX XXXX..."
+     */
+    private String formatPhoneNumber(String rawPhone) {
+        if (rawPhone == null || rawPhone.isEmpty()) return "-";
+        
+        String digits = rawPhone;
+        if (rawPhone.startsWith("0")) {
+            digits = rawPhone.substring(1);
+        } else if (rawPhone.startsWith("+60")) {
+            digits = rawPhone.substring(3);
+        } else if (rawPhone.startsWith("60")) {
+            digits = rawPhone.substring(2);
+        }
+
+        if (digits.length() >= 6) {
+            StringBuilder sb = new StringBuilder("+60 ");
+            sb.append(digits.substring(0, 2));
+            sb.append("-");
+            sb.append(digits.substring(2, 6));
+
+            String remaining = digits.substring(6);
+            for (int i = 0; i < remaining.length(); i++) {
+                if (i > 0 && i % 4 == 0) sb.append(" ");
+                if (i == 0) sb.append(" ");
+                sb.append(remaining.charAt(i));
+            }
+            return sb.toString();
+        } else {
+            return "+60 " + digits;
+        }
+    }
+
     private void fetchBookedTimes() {
         if (selectedEmployee == null) return;
         
@@ -810,7 +963,7 @@ public class BookingActivity extends AppCompatActivity {
                             String status = doc.getString("status");
                             String time = doc.getString("time");
                             String cid = doc.getString("customerId");
-                            
+
                             // Only count non-cancelled bookings
                             if (time != null && !"Cancelled".equalsIgnoreCase(status)) {
                                 bookedTimes.add(time);
@@ -825,7 +978,7 @@ public class BookingActivity extends AppCompatActivity {
                         // Re-validate current selection
                         // We ONLY auto-switch if it's taken by someone else, or now in the past, or out of business hours.
                         // This avoids the "Slot no longer available" toast when the user just booked it themselves.
-                        boolean isInvalid = conflictFromOtherUser || 
+                        boolean isInvalid = conflictFromOtherUser ||
                                            !isWithinBusinessHours(currentSelectedHour, currentSelectedAmPm) ||
                                            isSlotInPast(currentSelectedHour, currentSelectedAmPm);
 
@@ -834,7 +987,14 @@ public class BookingActivity extends AppCompatActivity {
                             tvTime.setText(String.format(Locale.getDefault(), "%02d:00 %s", currentSelectedHour, currentSelectedAmPm));
                             
                             if (conflictFromOtherUser) {
-                                Toast.makeText(BookingActivity.this, "The selected slot was just taken. Switched to next available.", Toast.LENGTH_SHORT).show();
+                                // Suppress toast if employee is editing and it's their original slot
+                                boolean isOriginalSlot = isEmployeeEdit && date.equals(originalDate) &&
+                                                       selectedTime.equals(originalTime) &&
+                                                       selectedEmployee != null && selectedEmployee.getUid().equals(originalEmployeeId);
+
+                                if (!isOriginalSlot) {
+                                    Toast.makeText(BookingActivity.this, "The selected slot was just taken. Switched to next available.", Toast.LENGTH_SHORT).show();
+                                }
                             } else {
                                 Toast.makeText(BookingActivity.this, "Slot no longer available. Switched to next available.", Toast.LENGTH_SHORT).show();
                             }
@@ -980,11 +1140,28 @@ public class BookingActivity extends AppCompatActivity {
             pbStylists.setVisibility(View.GONE);
             if (task.isSuccessful() && task.getResult() != null) {
                 stylistList.clear();
+                int targetPosition = -1;
                 for (QueryDocumentSnapshot document : task.getResult()) {
                     Employee employee = document.toObject(Employee.class);
                     stylistList.add(employee);
+                    
+                    // If in edit mode and this is the original employee, select them
+                    if (isEditMode && employee.getUid() != null && employee.getUid().equals(originalEmployeeId)) {
+                        selectedEmployee = employee;
+                        targetPosition = stylistList.size() - 1;
+                    }
                 }
                 stylistAdapter.notifyDataSetChanged();
+
+                // Correctly set the selection in the adapter
+                if (targetPosition != -1) {
+                    stylistAdapter.setSelectedIndex(targetPosition);
+                }
+                
+                // If we selected an employee (pre-selection in edit mode), fetch their booked times
+                if (selectedEmployee != null) {
+                    fetchBookedTimes();
+                }
                 
                 if (stylistList.isEmpty()) {
                     tvNoStylists.setVisibility(View.VISIBLE);

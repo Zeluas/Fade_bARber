@@ -48,6 +48,16 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.FadeBARber" />
 
+        <activity
+            android:name=".ProfileEditActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ImageCropActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <uses-native-library
             android:name="libOpenCL.so"
             android:required="false" />

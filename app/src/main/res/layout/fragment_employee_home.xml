@@ -197,15 +197,14 @@
                                         android:layout_height="wrap_content"
                                         android:orientation="horizontal">
 
-                                        <TextClock
+                                        <TextView
                                             android:id="@+id/tv_time_employee"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-                                            android:format12Hour="h:mm"
-                                            android:format24Hour="HH:mm"
                                             android:textColor="@color/white"
                                             android:textSize="19sp"
-                                            android:textStyle="bold" />
+                                            android:textStyle="bold"
+                                            tools:text="10:00" />
 
                                         <TextView
                                             android:id="@+id/tv_ampm_employee"
@@ -218,14 +217,13 @@
                                             android:textStyle="bold" />
                                     </LinearLayout>
 
-                                    <TextClock
+                                    <TextView
                                         android:id="@+id/tv_date_employee"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:format12Hour="dd/MM/yy"
-                                        android:format24Hour="dd/MM/yy"
                                         android:textColor="@color/white"
-                                        android:textSize="14sp" />
+                                        android:textSize="14sp"
+                                        tools:text="12/05/24" />
                                 </LinearLayout>
 
                                 <TextView

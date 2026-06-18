@@ -7,11 +7,13 @@ import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.view.MotionEvent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,6 +23,8 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
+
+import com.bumptech.glide.Glide;
 import com.google.android.material.card.MaterialCardView;
 
 import java.io.IOException;
@@ -42,6 +46,8 @@ public class ProfileFragment extends Fragment {
     private MaterialCardView mcvProfileHeader;
     private MaterialCardView mcvTopBar;
     private TextView tvUserName, tvUserId;
+    private ImageView ivProfileLarge;
+    private String currentImageUrl = "";
 
     // --- State & Constants ---
     private boolean isAnimating = false;
@@ -65,6 +71,11 @@ public class ProfileFragment extends Fragment {
         setupCollapsingTopBar();
         setupLogoutAction(view);
         adjustLayoutForEmployee();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
         populateUserData();
     }
 
@@ -73,14 +84,18 @@ public class ProfileFragment extends Fragment {
      */
     private void adjustLayoutForEmployee() {
         View view = getView();
-        if (getActivity() instanceof MainActivityEmployee && view != null) {
+        if (view == null) return;
+        
+        if (getActivity() instanceof MainActivityEmployee) {
             View cutHistory = view.findViewById(R.id.mcv_cut_history);
             View privacyPolicy = view.findViewById(R.id.mcv_privacy_policy);
             View userAgreement = view.findViewById(R.id.mcv_user_agreement);
+            View colleagues = view.findViewById(R.id.mcv_colleagues);
 
             if (cutHistory != null) cutHistory.setVisibility(View.GONE);
             if (privacyPolicy != null) privacyPolicy.setVisibility(View.GONE);
             if (userAgreement != null) userAgreement.setVisibility(View.GONE);
+            if (colleagues != null) colleagues.setVisibility(View.VISIBLE);
         }
     }
 
@@ -94,6 +109,7 @@ public class ProfileFragment extends Fragment {
         mcvTopBar = view.findViewById(R.id.mcv_top_bar);
         tvUserName = view.findViewById(R.id.tv_user_name);
         tvUserId = view.findViewById(R.id.tv_user_id);
+        ivProfileLarge = view.findViewById(R.id.iv_profile_large);
     }
 
     /**
@@ -122,28 +138,24 @@ public class ProfileFragment extends Fragment {
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
 
-            String name = prefs.getString("name", "User");
-            String username = prefs.getString("username", "user");
+            String name = prefs.getString("name", ""); // Real name/Shortname
+            String username = prefs.getString("username", ""); // Username
             String uid = prefs.getString("uid", "000000");
-            String fullname = prefs.getString("fullname", "");
+            String fullname = prefs.getString("fullname", ""); // Full name (Employee only)
+            currentImageUrl = prefs.getString("profile_pic_url", "");
+
+            fetchLatestProfilePic(uid);
 
             if (tvUserName != null) {
                 String fullDisplayName;
                 if (!fullname.isEmpty()) {
-                    // It's an employee
-                    fullDisplayName = fullname;
+                    // It's an employee: fullname (shortname)
+                    fullDisplayName = String.format("%s (%s)", fullname, name);
                 } else {
-                    // It's a customer
-                    fullDisplayName = String.format("%s (%s)", username, name);
+                    // It's a customer: name (username)
+                    fullDisplayName = String.format("%s (%s)", name, username);
                 }
                 tvUserName.setText(fullDisplayName);
-
-                // Adjust display if text exceeds 2 lines
-                tvUserName.post(() -> {
-                    if (tvUserName.getLineCount() > 2 && fullname.isEmpty()) {
-                        tvUserName.setText(username);
-                    }
-                });
             }
             if (tvUserId != null) {
                 tvUserId.setText(getString(R.string.profile_user_id_label, uid));
@@ -167,6 +179,37 @@ public class ProfileFragment extends Fragment {
                 tvUserId.setText(getString(R.string.profile_user_id_label, "123456"));
             }
         }
+    }
+
+    private void fetchLatestProfilePic(String uid) {
+        if (ivProfileLarge == null) return;
+        
+        com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("profile_pics").document(uid).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (isAdded() && documentSnapshot.exists()) {
+                        String url = documentSnapshot.getString("url");
+                        if (url != null && !url.isEmpty()) {
+                            currentImageUrl = url;
+                            Glide.with(this)
+                                    .load(url)
+                                    .placeholder(R.drawable.ic_profile)
+                                    .into(ivProfileLarge);
+                            
+                            ivProfileLarge.setOnClickListener(v -> {
+                                if (getActivity() instanceof MainActivity) {
+                                    ((MainActivity) getActivity()).showImagePreview(url);
+                                } else if (getActivity() instanceof MainActivityEmployee) {
+                                    ((MainActivityEmployee) getActivity()).showImagePreview(url);
+                                }
+                            });
+                            return;
+                        }
+                    }
+                    if (isAdded()) ivProfileLarge.setImageResource(R.drawable.ic_profile);
+                })
+                .addOnFailureListener(e -> {
+                    if (isAdded()) ivProfileLarge.setImageResource(R.drawable.ic_profile);
+                });
     }
 
     /**
@@ -358,5 +401,15 @@ public class ProfileFragment extends Fragment {
                 }
             });
         }
+
+        // --- Edit Profile Action ---
+        View btnEdit = view.findViewById(R.id.btn_edit_profile);
+        View ivPencil = view.findViewById(R.id.iv_pencil_edit);
+        View.OnClickListener editListener = v -> {
+            Intent intent = new Intent(requireContext(), ProfileEditActivity.class);
+            startActivity(intent);
+        };
+        if (btnEdit != null) btnEdit.setOnClickListener(editListener);
+        if (ivPencil != null) ivPencil.setOnClickListener(editListener);
     }
 }
