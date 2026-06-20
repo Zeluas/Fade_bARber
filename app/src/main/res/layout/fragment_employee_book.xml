@@ -142,18 +142,19 @@
                             android:orientation="vertical">
 
                             <TextView
+                                android:id="@+id/tv_label_month"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="2026"
+                                android:text="This Month"
                                 android:textColor="@color/black"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
 
                             <TextView
-                                android:id="@+id/tv_earn_year_book"
+                                android:id="@+id/tv_earn_month_book"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="RM 15,420.00"
+                                android:text="RM 0.00"
                                 android:textColor="@color/primary_color"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
@@ -265,35 +266,32 @@
                 tools:visibility="visible" />
 
             <!-- Section 4: Collected Bookings -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_all_bookings"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:nestedScrollingEnabled="false"
-                tools:itemCount="5"
-                tools:listitem="@layout/item_employee_booking" />
+                android:layout_marginTop="8dp">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_all_bookings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    tools:itemCount="5"
+                    tools:listitem="@layout/item_employee_booking" />
+
+                <TextView
+                    android:id="@+id/tv_no_bookings_info"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:gravity="center"
+                    android:text="No information available for the selected date/filters"
+                    android:textColor="@color/grey_grey"
+                    android:textSize="16sp"
+                    android:textStyle="italic"
+                    android:visibility="gone" />
+            </FrameLayout>
 
         </LinearLayout>
     </ScrollView>
-
-    <!-- Overlay Container for Filter Bubble -->
-    <FrameLayout
-        android:id="@+id/layout_overlay_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#B3000000"
-        android:clickable="true"
-        android:elevation="20dp"
-        android:focusable="true"
-        android:visibility="gone">
-
-        <include
-            android:id="@+id/include_filter_overlay"
-            layout="@layout/layout_filter_overlay"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center" />
-    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

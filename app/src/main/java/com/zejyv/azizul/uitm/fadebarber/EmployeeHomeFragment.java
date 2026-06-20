@@ -313,7 +313,7 @@ public class EmployeeHomeFragment extends Fragment {
                             String status = doc.getString("status");
                             if (todayDateStr.equals(date) && !"Cancelled".equalsIgnoreCase(status)) {
                                 todayCount++;
-                                if ("Pending".equalsIgnoreCase(status) || "Starting".equalsIgnoreCase(status)) {
+                                if ("Pending".equalsIgnoreCase(status) || "Starting".equalsIgnoreCase(status) || "Paying".equalsIgnoreCase(status)) {
                                     todayPendingBookings.add(doc);
                                 }
                             }
@@ -613,10 +613,29 @@ public class EmployeeHomeFragment extends Fragment {
 
         // Session State Handling
         String status = doc.getString("status");
-        if ("Starting".equals(status)) {
+        if ("Starting".equals(status) || "Paying".equals(status) || "Rating".equals(status)) {
+            // Force redirect for Employees ONLY if in "Paying" status
+            if ("Paying".equals(status) && isAdded() && getContext() != null && !SessionActivity.isRunning) {
+                android.content.Intent intent = new android.content.Intent(getActivity(), SessionActivity.class);
+                intent.putExtra("BOOKING_ID", currentBookingId);
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+            }
+
             if (btnStartSession != null) btnStartSession.setVisibility(View.GONE);
             if (btnNoShow != null) btnNoShow.setVisibility(View.GONE);
-            if (btnEnterSession != null) btnEnterSession.setVisibility(View.VISIBLE);
+            
+            if ("Starting".equals(status)) {
+                if (btnEnterSession != null) btnEnterSession.setVisibility(View.VISIBLE);
+            } else if ("Paying".equals(status)) {
+                if (btnEnterSession != null) {
+                    btnEnterSession.setVisibility(View.VISIBLE);
+                    ((com.google.android.material.button.MaterialButton) btnEnterSession).setText("Manage Payment");
+                }
+            } else {
+                // Rating status
+                if (btnEnterSession != null) btnEnterSession.setVisibility(View.GONE);
+            }
             
             if (btnEditBooking != null) btnEditBooking.setVisibility(View.GONE);
             if (tvLabelSessionTimer != null) tvLabelSessionTimer.setVisibility(View.VISIBLE);
@@ -678,16 +697,34 @@ public class EmployeeHomeFragment extends Fragment {
                     if (e != null || doc == null || !doc.exists()) return;
 
                     com.google.firebase.Timestamp ts = doc.getTimestamp("startTime");
+                    com.google.firebase.Timestamp ets = doc.getTimestamp("endTime");
                     isPaused = doc.getBoolean("isPaused") != null && doc.getBoolean("isPaused");
                     totalPausedMillis = doc.getLong("totalPausedMillis") != null ? doc.getLong("totalPausedMillis") : 0;
 
                     if (ts != null) {
                         sessionStartTime = ts.toDate().getTime();
-                        if (isPaused) {
-                            com.google.firebase.Timestamp pts = doc.getTimestamp("pausedAt");
-                            pausedAtMillis = pts != null ? pts.toDate().getTime() : System.currentTimeMillis();
+                        if (ets != null) {
+                            long sessionEndTime = ets.toDate().getTime();
+                            long diff = sessionEndTime - sessionStartTime - totalPausedMillis;
+                            if (diff < 0) diff = 0;
+                            
+                            int seconds = (int) (diff / 1000);
+                            int minutes = seconds / 60;
+                            int hours = minutes / 60;
+                            seconds = seconds % 60;
+                            minutes = minutes % 60;
+                            
+                            String finalTime = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds);
+                            if (tvSessionTimer != null) tvSessionTimer.setText(finalTime);
+                            // Stop recurring updates if session has ended
+                            if (handler != null) handler.removeCallbacksAndMessages(null); 
+                        } else {
+                            if (isPaused) {
+                                com.google.firebase.Timestamp pts = doc.getTimestamp("pausedAt");
+                                pausedAtMillis = pts != null ? pts.toDate().getTime() : System.currentTimeMillis();
+                            }
+                            updateEmployeeHomeTimer();
                         }
-                        updateEmployeeHomeTimer();
                     }
                 });
     }

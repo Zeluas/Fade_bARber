@@ -5,6 +5,8 @@ import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,9 +15,11 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.CalendarView;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -27,11 +31,24 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.zejyv.azizul.uitm.fadebarber.adapters.EmployeeBookingAdapter;
+import com.zejyv.azizul.uitm.fadebarber.models.Booking;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * EmployeeBookFragment: Manages the history and schedule of bookings for employees.
@@ -45,6 +62,7 @@ public class EmployeeBookFragment extends Fragment {
     private View filterBarContainer;
     private MaterialButton btnReset;
     private RecyclerView rvBookings;
+    private TextView tvNoBookingsInfo;
     
     // Filter Overlay Components
     private View overlayContainer;
@@ -53,12 +71,25 @@ public class EmployeeBookFragment extends Fragment {
 
     // Filter State
     private final List<String> statusHaircutFilters = new ArrayList<>();
-    private String activeKeyword = null;
-    private String activeSort = "ID"; 
+    private final List<String> activeKeywords = new ArrayList<>();
+    private String activeSort = null; // Will set in initialize
     private boolean isAscending = true;
 
     // To prevent re-animating existing tags
     private final Set<String> existingTags = new HashSet<>();
+
+    private CalendarView calendarView;
+    private TextView tvEarnToday, tvEarnMonth, tvLabelMonth;
+
+    // Firebase
+    private FirebaseFirestore db;
+    private String currentEmployeeId;
+
+    // Data
+    private List<Booking> allBookings = new ArrayList<>();
+    private List<Booking> filteredBookings = new ArrayList<>();
+    private java.util.Map<String, String> customerNames = new java.util.HashMap<>();
+    private String selectedDate; // format dd/MM/yy
 
     @Nullable
     @Override
@@ -70,10 +101,22 @@ public class EmployeeBookFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        db = FirebaseFirestore.getInstance();
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            currentEmployeeId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        }
+
+        activeSort = getString(R.string.sort_time);
+
         initializeViews(view);
+        setupCalendarLogic();
         setupSearchLogic(view);
         setupOverlayLogic(view);
-        setupDummyData();
+        
+        // Default to today
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yy", Locale.getDefault());
+        selectedDate = sdf.format(new Date());
+        fetchBookings();
         
         // Initial build
         rebuildFilterBar();
@@ -85,24 +128,256 @@ public class EmployeeBookFragment extends Fragment {
         filterBarContainer = view.findViewById(R.id.ll_filter_bar_container);
         btnReset = view.findViewById(R.id.btn_reset_filters);
         
-        overlayContainer = view.findViewById(R.id.layout_overlay_container);
-        rvBookings = view.findViewById(R.id.rv_all_bookings);
+        calendarView = view.findViewById(R.id.calendar_view_employee);
+        tvEarnToday = view.findViewById(R.id.tv_earn_today_book);
+        tvEarnMonth = view.findViewById(R.id.tv_earn_month_book);
+        tvLabelMonth = view.findViewById(R.id.tv_label_month);
 
-        // Overlay specific views
+        overlayContainer = getActivity().findViewById(R.id.layout_filter_overlay_container);
+        rvBookings = view.findViewById(R.id.rv_all_bookings);
+        rvBookings.setLayoutManager(new LinearLayoutManager(getContext()));
+        tvNoBookingsInfo = view.findViewById(R.id.tv_no_bookings_info);
+
+        // Overlay specific views (Found in Activity now)
         overlayFilterChips.clear();
-        overlayFilterChips.add(view.findViewById(R.id.chip_filter_pending));
-        overlayFilterChips.add(view.findViewById(R.id.chip_filter_completed));
-        overlayFilterChips.add(view.findViewById(R.id.chip_filter_brazilian));
-        overlayFilterChips.add(view.findViewById(R.id.chip_filter_bird));
-        overlayFilterChips.add(view.findViewById(R.id.chip_filter_side_sweep));
-        overlayFilterChips.add(view.findViewById(R.id.chip_filter_wolf));
-        overlayFilterChips.add(view.findViewById(R.id.chip_filter_afro));
-        overlayFilterChips.add(view.findViewById(R.id.chip_filter_curtain));
-        overlayFilterChips.add(view.findViewById(R.id.chip_filter_disconnect));
-        overlayFilterChips.add(view.findViewById(R.id.chip_filter_afro_tapper));
-        overlayFilterChips.add(view.findViewById(R.id.chip_filter_punk));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_pending));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_completed));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_cancelled));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_starting));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_paying));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_rating));
         
-        sortDropdown = view.findViewById(R.id.actv_sort_dropdown);
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_brazilian));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_bird));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_side_sweep));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_wolf));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_afro));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_curtain));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_disconnect));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_afro_tapper));
+        overlayFilterChips.add(getActivity().findViewById(R.id.chip_filter_punk));
+        
+        sortDropdown = getActivity().findViewById(R.id.actv_sort_dropdown);
+    }
+
+    private void setupCalendarLogic() {
+        calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(year, month, dayOfMonth);
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yy", Locale.getDefault());
+            selectedDate = sdf.format(calendar.getTime());
+            fetchBookings();
+        });
+    }
+
+    private void fetchBookings() {
+        if (currentEmployeeId == null) return;
+
+        db.collection("bookings")
+                .whereEqualTo("employeeId", currentEmployeeId)
+                .whereEqualTo("date", selectedDate)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        if (isAdded()) Toast.makeText(getContext(), "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (value != null) {
+                        allBookings.clear();
+                        customerNames.clear();
+                        for (QueryDocumentSnapshot doc : value) {
+                            Booking booking = doc.toObject(Booking.class);
+                            allBookings.add(booking);
+                            
+                            // Fetch customer name for filtering
+                            db.collection("customers").document(booking.getCustomerId()).get()
+                                    .addOnSuccessListener(customerDoc -> {
+                                        if (customerDoc.exists()) {
+                                            customerNames.put(booking.getBookingId(), customerDoc.getString("name"));
+                                            applyFiltersAndSort(); // Re-apply to include name keyword match
+                                        }
+                                    });
+                        }
+                        applyFiltersAndSort();
+                        calculateEarnings();
+                    }
+                });
+    }
+
+    private void calculateEarnings() {
+        if (allBookings.isEmpty()) {
+            tvEarnToday.setText("RM 0.00");
+        }
+
+        // 1. Calculate Today (Selected Date)
+        List<String> todayIds = new ArrayList<>();
+        for (Booking b : allBookings) {
+            if ("Completed".equalsIgnoreCase(b.getStatus())) todayIds.add(b.getBookingId());
+        }
+        fetchSum(todayIds, tvEarnToday);
+
+        // 2. Calculate Monthly Cumulative
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yy", Locale.getDefault());
+            Date d = sdf.parse(selectedDate);
+            if (d != null) {
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(d);
+                int month = cal.get(Calendar.MONTH) + 1;
+                int year = cal.get(Calendar.YEAR);
+                String monthYear = String.format(Locale.getDefault(), "%02d/%02d", month, year % 100);
+                
+                String monthName = new SimpleDateFormat("MMMM", Locale.getDefault()).format(d);
+                tvLabelMonth.setText(monthName);
+
+                db.collection("bookings")
+                        .whereEqualTo("employeeId", currentEmployeeId)
+                        .whereEqualTo("status", "Completed")
+                        .get().addOnSuccessListener(queryDocumentSnapshots -> {
+                            List<String> monthIds = new ArrayList<>();
+                            for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                                String date = doc.getString("date");
+                                if (date != null && date.endsWith("/" + monthYear.split("/")[1]) && date.contains("/" + monthYear.split("/")[0] + "/")) {
+                                    monthIds.add(doc.getId());
+                                }
+                            }
+                            fetchSum(monthIds, tvEarnMonth);
+                        });
+            }
+        } catch (Exception e) {
+            tvEarnMonth.setText("RM ---");
+        }
+    }
+
+    private void fetchSum(List<String> ids, TextView target) {
+        if (ids.isEmpty()) {
+            target.setText("RM 0.00");
+            return;
+        }
+        double[] total = {0};
+        int[] count = {0};
+        for (String id : ids) {
+            db.collection("session_payments").document(id).get().addOnSuccessListener(doc -> {
+                if (doc.exists()) {
+                    Double amount = doc.getDouble("paymentAmount");
+                    if (amount != null) total[0] += amount;
+                }
+                count[0]++;
+                if (count[0] == ids.size()) {
+                    if (isAdded()) target.setText(String.format(Locale.getDefault(), "RM %.2f", total[0]));
+                }
+            }).addOnFailureListener(e -> {
+                count[0]++;
+                if (count[0] == ids.size()) {
+                    if (isAdded()) target.setText(String.format(Locale.getDefault(), "RM %.2f", total[0]));
+                }
+            });
+        }
+    }
+
+    private void applyFiltersAndSort() {
+        filteredBookings = new ArrayList<>(allBookings);
+
+        // Filter by Status or Haircut from Chips
+        if (!statusHaircutFilters.isEmpty()) {
+            filteredBookings = filteredBookings.stream().filter(b -> 
+                statusHaircutFilters.contains(b.getStatus()) || 
+                statusHaircutFilters.contains(b.getHairstyleName())
+            ).collect(Collectors.toList());
+        }
+
+        // Filter by Keyword (matching Customer Name or ID or Style)
+        if (!activeKeywords.isEmpty()) {
+            filteredBookings = filteredBookings.stream().filter(b -> {
+                String name = customerNames.get(b.getBookingId());
+                String id = b.getBookingId().toLowerCase();
+                String style = b.getHairstyleName().toLowerCase();
+                String customer = (name != null) ? name.toLowerCase() : "";
+                
+                // OR matching: if item matches ANY of the keyword tags
+                for (String kw : activeKeywords) {
+                    String lowerKw = kw.toLowerCase();
+                    if (id.contains(lowerKw) || style.contains(lowerKw) || customer.contains(lowerKw)) {
+                        return true;
+                    }
+                }
+                return false;
+            }).collect(Collectors.toList());
+        }
+
+        // Sort
+        Collections.sort(filteredBookings, (b1, b2) -> {
+            int result = 0;
+            if (activeSort.equals("ID")) {
+                result = b1.getBookingId().compareTo(b2.getBookingId());
+            } else if (activeSort.equals(getString(R.string.sort_time))) {
+                result = b1.getTime().compareTo(b2.getTime());
+            } else if (activeSort.equals(getString(R.string.sort_name))) {
+                String name1 = customerNames.get(b1.getBookingId());
+                String name2 = customerNames.get(b2.getBookingId());
+                if (name1 == null) name1 = "";
+                if (name2 == null) name2 = "";
+                result = name1.compareTo(name2);
+            }
+            return isAscending ? result : -result;
+        });
+
+        updateRecyclerView();
+    }
+
+    private void updateRecyclerView() {
+        if (tvNoBookingsInfo != null) {
+            tvNoBookingsInfo.setVisibility(filteredBookings.isEmpty() ? View.VISIBLE : View.GONE);
+        }
+
+        if (rvBookings.getAdapter() == null) {
+            EmployeeBookingAdapter adapter = new EmployeeBookingAdapter(getContext(), filteredBookings, new EmployeeBookingAdapter.OnBookingActionListener() {
+                @Override
+                public void onCancelBooking(Booking booking) {
+                    showCancelConfirmation(booking);
+                }
+
+                @Override
+                public void onEditBooking(Booking booking) {
+                    android.content.Intent intent = new android.content.Intent(getActivity(), BookingActivity.class);
+                    intent.putExtra("EDIT_BOOKING_ID", booking.getBookingId());
+                    intent.putExtra("IS_EMPLOYEE_EDIT", true);
+                    startActivity(intent);
+                }
+            });
+            rvBookings.setAdapter(adapter);
+        } else {
+            ((EmployeeBookingAdapter) rvBookings.getAdapter()).updateData(filteredBookings);
+        }
+        
+        // Apply Pop-up animation to the list
+        runLayoutAnimation(rvBookings);
+    }
+
+    private void runLayoutAnimation(final RecyclerView recyclerView) {
+        final Context context = recyclerView.getContext();
+        final android.view.animation.LayoutAnimationController controller =
+                android.view.animation.AnimationUtils.loadLayoutAnimation(context, R.anim.layout_animation_pop_up);
+
+        recyclerView.setLayoutAnimation(controller);
+        if (recyclerView.getAdapter() != null) {
+            recyclerView.getAdapter().notifyDataSetChanged();
+        }
+        recyclerView.scheduleLayoutAnimation();
+    }
+
+    private void showCancelConfirmation(Booking booking) {
+        if (getActivity() instanceof MainActivityEmployee) {
+             ((MainActivityEmployee) getActivity()).showNoShowDialog(() -> {
+                 db.collection("bookings").document(booking.getBookingId())
+                         .update("status", "Cancelled")
+                         .addOnSuccessListener(aVoid -> {
+                             if (isAdded()) Toast.makeText(getContext(), "Booking Cancelled", Toast.LENGTH_SHORT).show();
+                         })
+                         .addOnFailureListener(e -> {
+                             if (isAdded()) Toast.makeText(getContext(), "Failed to cancel", Toast.LENGTH_SHORT).show();
+                         });
+             });
+        }
     }
 
     private void setupSearchLogic(View view) {
@@ -119,13 +394,16 @@ public class EmployeeBookFragment extends Fragment {
 
         etSearch.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
-                String keyword = etSearch.getText().toString().trim();
-                if (!keyword.isEmpty()) {
-                    activeKeyword = keyword;
-                    rebuildFilterBar();
+                String text = etSearch.getText().toString().trim();
+                if (!text.isEmpty()) {
+                    if (!activeKeywords.contains(text.toLowerCase())) {
+                        activeKeywords.add(text);
+                        applyFiltersAndSort();
+                        rebuildFilterBar();
+                    }
                     etSearch.setText("");
-                    hideKeyboard();
                 }
+                hideKeyboard();
                 return true;
             }
             return false;
@@ -133,11 +411,11 @@ public class EmployeeBookFragment extends Fragment {
 
         btnReset.setOnClickListener(v -> animateOutAllChips(() -> {
             statusHaircutFilters.clear();
-            activeKeyword = null;
-            activeSort = "ID"; 
+            activeKeywords.clear();
+            activeSort = getString(R.string.sort_time);
             isAscending = true;
             existingTags.clear();
-            rebuildFilterBar();
+            etSearch.setText("");
             
             for (Chip chip : overlayFilterChips) {
                 if (chip != null) {
@@ -145,11 +423,14 @@ public class EmployeeBookFragment extends Fragment {
                     resetChipStyle(chip);
                 }
             }
+            applyFiltersAndSort();
+            rebuildFilterBar();
+            hideKeyboard();
         }));
     }
 
     private void setupOverlayLogic(View view) {
-        String[] sortOptions = {"ID", getString(R.string.sort_time), getString(R.string.sort_name)};
+        String[] sortOptions = {getString(R.string.sort_time), "ID", getString(R.string.sort_name)};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, sortOptions);
         sortDropdown.setAdapter(adapter);
 
@@ -162,16 +443,17 @@ public class EmployeeBookFragment extends Fragment {
         }
 
         overlayContainer.setOnClickListener(v -> showOverlay(false));
-        View dialog = view.findViewById(R.id.mcv_filter_dialog);
+        View dialog = getActivity().findViewById(R.id.mcv_filter_dialog);
         if (dialog != null) dialog.setOnClickListener(v -> {});
 
-        view.findViewById(R.id.btn_apply_filters).setOnClickListener(v -> {
+        getActivity().findViewById(R.id.btn_apply_filters).setOnClickListener(v -> {
             statusHaircutFilters.clear();
             for (Chip chip : overlayFilterChips) {
                 if (chip != null && chip.isChecked()) {
                     statusHaircutFilters.add(chip.getText().toString());
                 }
             }
+            applyFiltersAndSort();
             rebuildFilterBar();
             showOverlay(false);
         });
@@ -237,12 +519,10 @@ public class EmployeeBookFragment extends Fragment {
             hasContent = true;
         }
         
-        if (activeKeyword != null) {
+        if (!activeKeywords.isEmpty()) {
             if (hasContent) addDivider();
-            List<String> list = new ArrayList<>();
-            list.add(activeKeyword);
-            addCategorySection(getString(R.string.label_keyword), list, TagType.KEYWORD, true);
-            newExistingTags.add("KEYWORD:" + activeKeyword);
+            addCategorySection(getString(R.string.label_keyword), activeKeywords, TagType.KEYWORD, true);
+            for (String s : activeKeywords) newExistingTags.add("KEYWORD:" + s);
             hasContent = true;
         }
 
@@ -389,11 +669,12 @@ public class EmployeeBookFragment extends Fragment {
                 }
                 break;
             case KEYWORD:
-                activeKeyword = null;
+                activeKeywords.remove(text);
                 break;
             case SORT:
                 return;
         }
+        applyFiltersAndSort();
         rebuildFilterBar();
     }
 
@@ -402,7 +683,7 @@ public class EmployeeBookFragment extends Fragment {
             if (filterBarContainer.getVisibility() == View.GONE) {
                 animateFilterBar(true);
             }
-            boolean canReset = !statusHaircutFilters.isEmpty() || activeKeyword != null || (activeSort != null && !activeSort.equals("ID"));
+            boolean canReset = !statusHaircutFilters.isEmpty() || !activeKeywords.isEmpty() || (activeSort != null && !activeSort.equals(getString(R.string.sort_time)));
             btnReset.setVisibility(canReset ? View.VISIBLE : View.GONE);
         } else {
             animateFilterBar(false);
@@ -445,44 +726,6 @@ public class EmployeeBookFragment extends Fragment {
         if (getActivity() != null && getActivity().getCurrentFocus() != null) {
             InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(getActivity().getCurrentFocus().getWindowToken(), 0);
-        }
-    }
-
-    private void setupDummyData() {
-        rvBookings.setLayoutManager(new LinearLayoutManager(getContext()));
-        rvBookings.setAdapter(new RecyclerView.Adapter<DummyViewHolder>() {
-            @NonNull
-            @Override
-            public DummyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-                View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_employee_booking, parent, false);
-                return new DummyViewHolder(v);
-            }
-
-            @Override
-            public void onBindViewHolder(@NonNull DummyViewHolder holder, int position) {
-                String[] names = {"Azizul", "Haziq", "Irfan", "Zul", "Ahmad"};
-                String[] styles = {getString(R.string.style_fade), getString(R.string.style_side_part), 
-                                 getString(R.string.style_buzz_cut), getString(R.string.style_pompadour), 
-                                 getString(R.string.style_undercut)};
-                holder.tvName.setText(names[position % names.length]);
-                holder.tvStyle.setText(styles[position % styles.length]);
-                holder.tvId.setText("#FB-" + (1024 + position));
-            }
-
-            @Override
-            public int getItemCount() {
-                return 10;
-            }
-        });
-    }
-
-    static class DummyViewHolder extends RecyclerView.ViewHolder {
-        TextView tvName, tvStyle, tvId;
-        DummyViewHolder(View v) {
-            super(v);
-            tvName = v.findViewById(R.id.tv_customer_name_book);
-            tvStyle = v.findViewById(R.id.tv_hairstyle_name_book);
-            tvId = v.findViewById(R.id.tv_booking_id);
         }
     }
 }

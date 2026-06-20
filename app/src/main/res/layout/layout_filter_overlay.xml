@@ -106,6 +106,50 @@
                             app:chipStrokeColor="@color/primary_color"
                             app:chipStrokeWidth="1dp"
                             android:textColor="@color/primary_color" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_filter_cancelled"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/booking_status_cancelled"
+                            app:chipBackgroundColor="@color/white"
+                            app:chipStrokeColor="@color/primary_color"
+                            app:chipStrokeWidth="1dp"
+                            android:textColor="@color/primary_color" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_filter_starting"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/booking_status_starting"
+                            app:chipBackgroundColor="@color/white"
+                            app:chipStrokeColor="@color/primary_color"
+                            app:chipStrokeWidth="1dp"
+                            android:textColor="@color/primary_color" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_filter_paying"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/booking_status_paying"
+                            app:chipBackgroundColor="@color/white"
+                            app:chipStrokeColor="@color/primary_color"
+                            app:chipStrokeWidth="1dp"
+                            android:textColor="@color/primary_color" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_filter_rating"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/booking_status_rating"
+                            app:chipBackgroundColor="@color/white"
+                            app:chipStrokeColor="@color/primary_color"
+                            app:chipStrokeWidth="1dp"
+                            android:textColor="@color/primary_color" />
                     </com.google.android.material.chip.ChipGroup>
 
                     <TextView

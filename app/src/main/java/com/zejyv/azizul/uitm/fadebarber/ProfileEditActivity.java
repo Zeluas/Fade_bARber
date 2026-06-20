@@ -223,10 +223,8 @@ public class ProfileEditActivity extends AppCompatActivity {
                 loadCustomerData();
             }
 
-            String currentPicUrl = prefs.getString("profile_pic_url", "");
-            if (!currentPicUrl.isEmpty()) {
-                Glide.with(this).load(currentPicUrl).placeholder(R.drawable.ic_profile).into(ivProfileLarge);
-            }
+            // Always fetch latest from Firestore instead of using cached URL
+            fetchLatestProfilePic();
         } catch (GeneralSecurityException | IOException e) {
             e.printStackTrace();
             loadCustomerData();

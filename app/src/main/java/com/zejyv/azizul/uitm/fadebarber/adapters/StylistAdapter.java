@@ -3,13 +3,16 @@ package com.zejyv.azizul.uitm.fadebarber.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.checkbox.MaterialCheckBox;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.zejyv.azizul.uitm.fadebarber.R;
 import com.zejyv.azizul.uitm.fadebarber.models.Employee;
 
@@ -49,6 +52,25 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
         holder.tvName.setText(employee.getFullname());
         holder.tvSpecialty.setText(String.format("Specialty: %s", employee.getSpecialty()));
         holder.rbRating.setRating(0); // Default rating as 0 for now
+
+        // Load profile picture from profile_pics collection
+        FirebaseFirestore.getInstance().collection("profile_pics").document(employee.getUid()).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String url = documentSnapshot.getString("url");
+                        if (url != null && !url.isEmpty()) {
+                            Glide.with(holder.itemView.getContext())
+                                    .load(url)
+                                    .placeholder(R.drawable.ic_profile)
+                                    .into(holder.ivStylist);
+                        } else {
+                            holder.ivStylist.setImageResource(R.drawable.ic_profile);
+                        }
+                    } else {
+                        holder.ivStylist.setImageResource(R.drawable.ic_profile);
+                    }
+                })
+                .addOnFailureListener(e -> holder.ivStylist.setImageResource(R.drawable.ic_profile));
         
         if (isSelectionEnabled) {
             holder.cbSelected.setVisibility(View.VISIBLE);
@@ -105,6 +127,7 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
         TextView tvName, tvSpecialty;
         RatingBar rbRating;
         MaterialCheckBox cbSelected;
+        ImageView ivStylist;
         View divider;
 
         public StylistViewHolder(@NonNull View itemView) {
@@ -114,6 +137,7 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
             tvSpecialty = itemView.findViewById(R.id.tv_stylist_specialty);
             rbRating = itemView.findViewById(R.id.rb_stylist_rating);
             cbSelected = itemView.findViewById(R.id.cb_stylist);
+            ivStylist = itemView.findViewById(R.id.iv_stylist_img);
             divider = itemView.findViewById(R.id.v_stylist_divider);
         }
     }

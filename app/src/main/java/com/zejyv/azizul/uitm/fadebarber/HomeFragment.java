@@ -70,14 +70,14 @@ import java.util.concurrent.Executors;
 public class HomeFragment extends Fragment {
 
     private Handler handler;
-    private MaterialCardView mcvTopBar;
+    private MaterialCardView mcvTopBar, mcvStatusHome;
     private ScrollView svHomeContent;
     private TextView tvAiJab, tvTimeHome, tvDateHome;
     private ImageView ivProfile;
 
     // Booking Details UI
-    private TextView tvBookingDate, tvBookingTime, tvHairstylist, tvHaircut;
-    private ImageView ivHairPreview;
+    private TextView tvBookingDate, tvBookingTime, tvHairstylist, tvHaircut, tvStatusHome;
+    private ImageView ivHairPreview, ivStatusIcon;
     private View llBookingDetailsRow, tvNoBookingPlaceholder;
     private LinearLayout llLeftCol, llRightCol;
     private TextView tvLabelDate, tvLabelTime, tvLabelStylist, tvLabelChosenHaircut;
@@ -95,8 +95,10 @@ public class HomeFragment extends Fragment {
     private FirebaseAuth mAuth;
     private ListenerRegistration bookingListener;
 
-    // Nearest booking info for AI Jabs
+    // Nearest booking info for AI Jabs and Status
     private String nearestBookingTime = null;
+    private String nearestBookingDate = null;
+    private String nearestBookingStatus = null;
     private String nearestBookingHaircut = null;
     private String currentBookingId = null;
     private String lastBookingId = null;
@@ -195,6 +197,7 @@ public class HomeFragment extends Fragment {
 
         // Initialize UI components
         mcvTopBar = view.findViewById(R.id.mcv_top_bar);
+        mcvStatusHome = view.findViewById(R.id.mcv_status_home);
         svHomeContent = view.findViewById(R.id.sv_home_content);
         tvAiJab = view.findViewById(R.id.tv_ai_jab);
         tvTimeHome = view.findViewById(R.id.tv_time_home);
@@ -212,6 +215,8 @@ public class HomeFragment extends Fragment {
         tvNoBookingPlaceholder = view.findViewById(R.id.tv_no_booking_placeholder);
         llLeftCol = view.findViewById(R.id.ll_booking_details_left_col);
         llRightCol = view.findViewById(R.id.ll_booking_details_right_col);
+        tvStatusHome = view.findViewById(R.id.tv_status_home);
+        ivStatusIcon = view.findViewById(R.id.iv_status_icon);
 
         // Labels and Buttons for staggered animation
         tvLabelDate = view.findViewById(R.id.tv_label_date);
@@ -294,7 +299,6 @@ public class HomeFragment extends Fragment {
 
         bookingListener = db.collection("bookings")
                 .whereEqualTo("customerId", uid)
-                .whereEqualTo("status", "Pending")
                 .addSnapshotListener((value, error) -> {
                     if (error != null) {
                         android.util.Log.e("HomeFragment", "Error fetching bookings: " + error.getMessage());
@@ -304,7 +308,10 @@ public class HomeFragment extends Fragment {
                     if (value != null) {
                         List<QueryDocumentSnapshot> bookings = new ArrayList<>();
                         for (QueryDocumentSnapshot doc : value) {
-                            bookings.add(doc);
+                            String status = doc.getString("status");
+                            if ("Pending".equalsIgnoreCase(status) || "Starting".equalsIgnoreCase(status) || "Paying".equalsIgnoreCase(status) || "Rating".equalsIgnoreCase(status)) {
+                                bookings.add(doc);
+                            }
                         }
 
                         // Sort bookings by date and time to find the nearest
@@ -355,7 +362,7 @@ public class HomeFragment extends Fragment {
 
         final View[] labels = {tvLabelDate, tvLabelTime, tvLabelStylist, tvLabelChosenHaircut};
         final View[] values = {tvBookingDate, tvBookingTime, tvHairstylist, tvHaircut, ivHairPreview};
-        final View[] buttons = {btnCallStylist, btnCancelBooking, btnEditBooking};
+        final View[] buttons = {btnCallStylist, btnCancelBooking, btnEditBooking, btnSessionInProgress};
 
         // Fade out elements and slide down
         for (View v : buttons) if (v != null) v.animate().alpha(0f).translationY(20f).setDuration(500).start();
@@ -400,8 +407,10 @@ public class HomeFragment extends Fragment {
         String oldHaircut = nearestBookingHaircut;
         currentBookingId = doc.getId();
         nearestBookingTime = doc.getString("time");
+        nearestBookingDate = doc.getString("date");
+        nearestBookingStatus = doc.getString("status");
         nearestBookingHaircut = doc.getString("hairstyleName");
-        String status = doc.getString("status");
+        String status = nearestBookingStatus;
 
         // Fetch stylist info (name and phone) from the employeeId
         String employeeId = doc.getString("employeeId");
@@ -420,16 +429,43 @@ public class HomeFragment extends Fragment {
         if (tvBookingTime != null) tvBookingTime.setText(nearestBookingTime);
         if (tvHaircut != null) tvHaircut.setText(nearestBookingHaircut);
 
+        updateFriendlyStatus(nearestBookingDate, nearestBookingTime, nearestBookingStatus);
+
         if (ivHairPreview != null) {
             loadHaircutImage(nearestBookingHaircut);
         }
 
         // Handle Session in Progress for Customers
-        if ("Starting".equals(status)) {
+        if ("Starting".equals(status) || "Paying".equals(status) || "Rating".equals(status)) {
+            // Force redirect to SessionActivity ONLY if status is "Paying" or "Rating"
+            if (("Paying".equals(status) || "Rating".equals(status)) && isAdded() && getContext() != null && !SessionActivity.isRunning) {
+                Intent intent = new Intent(getActivity(), SessionActivity.class);
+                intent.putExtra("BOOKING_ID", currentBookingId);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+            }
+
             if (btnCancelBooking != null) btnCancelBooking.setVisibility(View.GONE);
             if (btnEditBooking != null) btnEditBooking.setVisibility(View.GONE);
             if (btnSessionInProgress != null) {
                 btnSessionInProgress.setVisibility(View.VISIBLE);
+                btnSessionInProgress.setClickable("Paying".equals(status) || "Rating".equals(status));
+                btnSessionInProgress.setFocusable("Paying".equals(status) || "Rating".equals(status));
+                
+                if ("Paying".equals(status)) {
+                    ((com.google.android.material.button.MaterialButton) btnSessionInProgress).setText("Payment in Progress - Click to Pay");
+                } else if ("Rating".equals(status)) {
+                    ((com.google.android.material.button.MaterialButton) btnSessionInProgress).setText("Review Session - Please Rate");
+                }
+                
+                btnSessionInProgress.setOnClickListener(v -> {
+                    if ("Paying".equals(status) || "Rating".equals(status)) {
+                        Intent intent = new Intent(getActivity(), SessionActivity.class);
+                        intent.putExtra("BOOKING_ID", currentBookingId);
+                        startActivity(intent);
+                    }
+                });
+
                 startSessionTimerListener();
             }
         } else {
@@ -482,7 +518,7 @@ public class HomeFragment extends Fragment {
         // Hide values and buttons initially
         final View[] labels = {tvLabelDate, tvLabelTime, tvLabelStylist, tvLabelChosenHaircut};
         final View[] values = {tvBookingDate, tvBookingTime, tvHairstylist, tvHaircut, ivHairPreview};
-        final View[] buttons = {btnCallStylist, btnCancelBooking, btnEditBooking};
+        final View[] buttons = {btnCallStylist, btnCancelBooking, btnEditBooking, btnSessionInProgress};
 
         for (View v : labels) if (v != null) { v.setAlpha(0f); v.setTranslationX(-50f); }
         for (View v : values) if (v != null) { v.setAlpha(0f); v.setTranslationX(-30f); }
@@ -571,7 +607,22 @@ public class HomeFragment extends Fragment {
     private void resetBookingUI() {
         currentBookingId = null;
         nearestBookingTime = null;
+        nearestBookingDate = null;
+        nearestBookingStatus = null;
         nearestBookingHaircut = null;
+
+        if (tvStatusHome != null) {
+            tvStatusHome.setText("No active booking");
+            tvStatusHome.setTextColor(Color.parseColor("#9E9E9E"));
+        }
+        if (mcvStatusHome != null) {
+            mcvStatusHome.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(Color.WHITE));
+        }
+        if (ivStatusIcon != null) {
+            ivStatusIcon.setVisibility(View.VISIBLE);
+            ivStatusIcon.setImageResource(R.drawable.ic_calendar);
+            ivStatusIcon.setColorFilter(Color.parseColor("#9E9E9E"));
+        }
         
         // Handle visibility
         if (llBookingDetailsRow != null) llBookingDetailsRow.setVisibility(View.GONE);
@@ -824,6 +875,88 @@ public class HomeFragment extends Fragment {
                 }
             }
         });
+    }
+
+    private void updateFriendlyStatus(String dateStr, String timeStr, String status) {
+        if (tvStatusHome == null) return;
+
+        if ("Starting".equalsIgnoreCase(status)) {
+            tvStatusHome.setText("In Progress");
+            tvStatusHome.setTextColor(Color.parseColor("#FF9800"));
+            if (mcvStatusHome != null) mcvStatusHome.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#FFF3E0")));
+            if (ivStatusIcon != null) {
+                ivStatusIcon.setVisibility(View.VISIBLE);
+                ivStatusIcon.setImageResource(R.drawable.ic_clock);
+                ivStatusIcon.setColorFilter(Color.parseColor("#FF9800"));
+            }
+            return;
+        }
+
+        if ("Paying".equalsIgnoreCase(status) || "Rating".equalsIgnoreCase(status)) {
+            tvStatusHome.setText("Finalizing...");
+            tvStatusHome.setTextColor(Color.parseColor("#05B109"));
+            if (mcvStatusHome != null) mcvStatusHome.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#E8F5E9")));
+            if (ivStatusIcon != null) {
+                ivStatusIcon.setVisibility(View.VISIBLE);
+                ivStatusIcon.setImageResource(R.drawable.ic_check_circle);
+                ivStatusIcon.setColorFilter(Color.parseColor("#05B109"));
+            }
+            return;
+        }
+
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault());
+        try {
+            Date bookingDate = sdf.parse(dateStr + " " + timeStr);
+            if (bookingDate == null) return;
+
+            long diff = bookingDate.getTime() - System.currentTimeMillis();
+            long days = diff / (24 * 60 * 60 * 1000);
+            long hours = diff / (60 * 60 * 1000);
+            long minutes = diff / (60 * 1000);
+
+            if (diff < 0) {
+                // Time has passed or is very close
+                tvStatusHome.setText("Ready to serve");
+                tvStatusHome.setTextColor(Color.parseColor("#05B109"));
+                if (mcvStatusHome != null) mcvStatusHome.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#E8F5E9")));
+                if (ivStatusIcon != null) {
+                    ivStatusIcon.setVisibility(View.VISIBLE);
+                    ivStatusIcon.setImageResource(R.drawable.ic_check_circle);
+                    ivStatusIcon.setColorFilter(Color.parseColor("#05B109"));
+                }
+            } else if (days > 0) {
+                tvStatusHome.setText(days + (days == 1 ? " day" : " days") + " until cut");
+                tvStatusHome.setTextColor(Color.parseColor("#2196F3"));
+                if (mcvStatusHome != null) mcvStatusHome.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#E3F2FD")));
+                if (ivStatusIcon != null) {
+                    ivStatusIcon.setVisibility(View.VISIBLE);
+                    ivStatusIcon.setImageResource(R.drawable.ic_calendar);
+                    ivStatusIcon.setColorFilter(Color.parseColor("#2196F3"));
+                }
+            } else if (hours > 0) {
+                tvStatusHome.setText(hours + (hours == 1 ? " hour" : " hours") + " to go");
+                tvStatusHome.setTextColor(Color.parseColor("#FF9800"));
+                if (mcvStatusHome != null) mcvStatusHome.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#FFF3E0")));
+                if (ivStatusIcon != null) {
+                    ivStatusIcon.setVisibility(View.VISIBLE);
+                    ivStatusIcon.setImageResource(R.drawable.ic_clock);
+                    ivStatusIcon.setColorFilter(Color.parseColor("#FF9800"));
+                }
+            } else {
+                tvStatusHome.setText(minutes + " mins left!");
+                tvStatusHome.setTextColor(Color.parseColor("#F44336"));
+                if (mcvStatusHome != null) mcvStatusHome.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#FFEBEE")));
+                if (ivStatusIcon != null) {
+                    ivStatusIcon.setVisibility(View.VISIBLE);
+                    ivStatusIcon.setImageResource(R.drawable.ic_clock);
+                    ivStatusIcon.setColorFilter(Color.parseColor("#F44336"));
+                }
+            }
+        } catch (ParseException e) {
+            tvStatusHome.setText("Ready to serve");
+            tvStatusHome.setTextColor(Color.parseColor("#05B109"));
+            if (mcvStatusHome != null) mcvStatusHome.setCardBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#E8F5E9")));
+        }
     }
 
     private void animateTopBar(int from, int to, int duration) {
@@ -1086,6 +1219,11 @@ public class HomeFragment extends Fragment {
     private void updateTimeTheme() {
         View view = getView();
         if (view == null || !isAdded()) return;
+
+        // Update Friendly Status if there's an active booking
+        if (currentBookingId != null && nearestBookingDate != null && nearestBookingTime != null) {
+            updateFriendlyStatus(nearestBookingDate, nearestBookingTime, nearestBookingStatus);
+        }
 
         ImageView ivBg = view.findViewById(R.id.iv_time_bg);
         TextView tvTimeName = view.findViewById(R.id.tv_time_name);

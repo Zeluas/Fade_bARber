@@ -510,4 +510,23 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <!-- Global Filter Overlay for Employee Book -->
+    <FrameLayout
+        android:id="@+id/layout_filter_overlay_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#B3000000"
+        android:clickable="true"
+        android:elevation="60dp"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <include
+            android:id="@+id/include_filter_overlay"
+            layout="@layout/layout_filter_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center" />
+    </FrameLayout>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

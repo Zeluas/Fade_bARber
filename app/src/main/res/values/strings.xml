@@ -157,6 +157,9 @@
     <string name="booking_status_pending">Pending</string>
     <string name="booking_status_completed">Completed</string>
     <string name="booking_status_cancelled">Cancelled</string>
+    <string name="booking_status_starting">Starting</string>
+    <string name="booking_status_paying">Paying</string>
+    <string name="booking_status_rating">Rating</string>
     <string name="welcome_employee">Hello, (Barber)</string>
     <string name="booking_number_label">Booking #</string>
     <string name="current_customer_label">Current Customer</string>
