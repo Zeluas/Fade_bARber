@@ -287,187 +287,238 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:baselineAligned="false"
-                        android:orientation="horizontal"
+                        android:orientation="vertical"
                         android:padding="12dp"
                         android:visibility="gone"
                         tools:visibility="visible">
 
-                        <!-- Details Column -->
                         <LinearLayout
-                            android:id="@+id/ll_employee_booking_details_left_col"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:baselineAligned="false"
+                            android:orientation="horizontal">
 
+                            <!-- Details Column -->
                             <LinearLayout
-                                android:id="@+id/ll_employee_booking_info_labels"
-                                android:layout_width="match_parent"
-                                android:layout_height="0dp"
-                                android:layout_marginBottom="10dp"
+                                android:id="@+id/ll_employee_booking_details_left_col"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
                                 android:layout_weight="1"
                                 android:orientation="vertical">
 
                                 <LinearLayout
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:gravity="center_vertical"
-                                    android:orientation="horizontal">
+                                    android:id="@+id/ll_employee_booking_info_labels"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="0dp"
+                                    android:layout_marginBottom="10dp"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
 
-                                    <TextView
-                                        android:id="@+id/tv_employee_label_customer"
+                                    <LinearLayout
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="@string/customer_label"
+                                        android:gravity="center_vertical"
+                                        android:orientation="horizontal">
+
+                                        <TextView
+                                            android:id="@+id/tv_employee_label_customer"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="@string/customer_label"
+                                            android:textColor="@color/black"
+                                            android:textSize="16sp"
+                                            android:textStyle="bold" />
+
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btn_call_customer"
+                                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="match_parent"
+                                            android:layout_marginStart="8dp"
+                                            android:background="@android:color/transparent"
+                                            android:minWidth="0dp"
+                                            android:minHeight="0dp"
+                                            android:padding="0dp"
+                                            app:backgroundTint="@android:color/transparent"
+                                            app:cornerRadius="6dp"
+                                            app:icon="@drawable/ic_phone"
+                                            app:iconPadding="0dp"
+                                            app:iconSize="18dp"
+                                            app:iconTint="@color/primary_color" />
+                                    </LinearLayout>
+
+                                    <TextView
+                                        android:id="@+id/tv_customer_name"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Azizul"
+                                        android:textSize="16sp" />
+
+                                    <TextView
+                                        android:id="@+id/tv_employee_label_time"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="12dp"
+                                        android:text="@string/time_label"
                                         android:textColor="@color/black"
                                         android:textSize="16sp"
                                         android:textStyle="bold" />
 
-                                    <com.google.android.material.button.MaterialButton
-                                        android:id="@+id/btn_call_customer"
-                                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="match_parent"
-                                        android:layout_marginStart="8dp"
-                                        android:background="@android:color/transparent"
-                                        android:minWidth="0dp"
-                                        android:minHeight="0dp"
-                                        android:padding="0dp"
-                                        app:backgroundTint="@android:color/transparent"
-                                        app:cornerRadius="6dp"
-                                        app:icon="@drawable/ic_phone"
-                                        app:iconPadding="0dp"
-                                        app:iconSize="18dp"
-                                        app:iconTint="@color/primary_color" />
+                                    <TextView
+                                        android:id="@+id/tv_booking_time"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="10:00 AM"
+                                        android:textSize="16sp" />
+
+                                    <TextView
+                                        android:id="@+id/tv_employee_label_session_timer"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="12dp"
+                                        android:text="Session Timer"
+                                        android:textColor="@color/black"
+                                        android:textSize="16sp"
+                                        android:textStyle="bold"
+                                        android:visibility="gone"
+                                        tools:visibility="visible" />
+
+                                    <TextView
+                                        android:id="@+id/tv_employee_session_timer"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="00:00:00"
+                                        android:textColor="@color/primary_color"
+                                        android:textSize="16sp"
+                                        android:textStyle="bold|italic"
+                                        android:visibility="gone"
+                                        tools:visibility="visible" />
                                 </LinearLayout>
 
-                                <TextView
-                                    android:id="@+id/tv_customer_name"
-                                    android:layout_width="wrap_content"
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btn_edit_booking_employee"
+                                    android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:text="Azizul"
-                                    android:textSize="16sp" />
+                                    android:layout_marginEnd="6dp"
+                                    android:layout_marginBottom="6dp"
+                                    android:paddingVertical="15dp"
+                                    android:text="@string/edit_booking"
+                                    android:textColor="@color/white"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    app:backgroundTint="@color/info_blue_icon"
+                                    app:cornerRadius="24dp" />
 
-                                <TextView
-                                    android:id="@+id/tv_employee_label_time"
-                                    android:layout_width="wrap_content"
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btn_no_show"
+                                    android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginTop="12dp"
-                                    android:text="@string/time_label"
-                                    android:textColor="@color/black"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:id="@+id/tv_booking_time"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="10:00 AM"
-                                    android:textSize="16sp" />
+                                    android:layout_marginEnd="6dp"
+                                    android:paddingVertical="15dp"
+                                    android:text="@string/btn_no_show"
+                                    android:textColor="@color/warning_red_icon"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    app:backgroundTint="#FFFFFF"
+                                    app:cornerRadius="24dp"
+                                    app:rippleColor="#FF7979"
+                                    app:strokeColor="@color/warning_red_icon"
+                                    app:strokeWidth="2dp" />
                             </LinearLayout>
 
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_edit_booking_employee"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="6dp"
-                                android:layout_marginBottom="6dp"
-                                android:paddingVertical="15dp"
-                                android:text="@string/edit_booking"
-                                android:textColor="@color/white"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                app:backgroundTint="@color/info_blue_icon"
-                                app:cornerRadius="24dp" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_no_show"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="6dp"
-                                android:paddingVertical="15dp"
-                                android:text="@string/btn_no_show"
-                                android:textColor="@color/warning_red_icon"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                app:backgroundTint="#FFFFFF"
-                                app:cornerRadius="24dp"
-                                app:rippleColor="#FF7979"
-                                app:strokeColor="@color/warning_red_icon"
-                                app:strokeWidth="2dp" />
-                        </LinearLayout>
-
-                        <!-- Service Preview Column -->
-                        <LinearLayout
-                            android:id="@+id/ll_employee_booking_details_right_col"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
+                            <!-- Service Preview Column -->
                             <LinearLayout
-                                android:id="@+id/ll_employee_service_preview_container"
-                                android:layout_width="match_parent"
-                                android:layout_height="0dp"
-                                android:layout_marginBottom="10dp"
+                                android:id="@+id/ll_employee_booking_details_right_col"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
                                 android:layout_weight="1"
-                                android:gravity="center"
                                 android:orientation="vertical">
 
-                                <TextView
-                                    android:id="@+id/tv_employee_label_chosen_haircut"
-                                    android:layout_width="wrap_content"
+                                <LinearLayout
+                                    android:id="@+id/ll_employee_service_preview_container"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="0dp"
+                                    android:layout_marginBottom="10dp"
+                                    android:layout_weight="1"
+                                    android:gravity="center"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:id="@+id/tv_employee_label_chosen_haircut"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginBottom="4dp"
+                                        android:text="@string/chosen_haircut"
+                                        android:textColor="@color/black"
+                                        android:textStyle="bold" />
+
+                                    <FrameLayout
+                                        android:layout_width="120dp"
+                                        android:layout_height="120dp">
+
+                                        <!-- The border and background box -->
+                                        <com.google.android.material.imageview.ShapeableImageView
+                                            android:layout_width="match_parent"
+                                            android:layout_height="match_parent"
+                                            android:padding="2dp"
+                                            android:src="@null"
+                                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
+                                            app:strokeColor="@color/black"
+                                            app:strokeWidth="1dp" />
+
+                                        <!-- The actual service image with pseudo padding -->
+                                        <ImageView
+                                            android:id="@+id/iv_service_preview"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="match_parent"
+                                            android:padding="12dp"
+                                            android:src="@drawable/ic_launcher_background" />
+                                    </FrameLayout>
+
+                                    <TextView
+                                        android:id="@+id/tv_service_name"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="3dp"
+                                        android:text="@string/style_fade"
+                                        android:textColor="@color/black"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btn_start_session"
+                                    android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginBottom="4dp"
-                                    android:text="@string/chosen_haircut"
-                                    android:textColor="@color/black"
-                                    android:textStyle="bold" />
-
-                                <FrameLayout
-                                    android:layout_width="120dp"
-                                    android:layout_height="120dp">
-
-                                    <!-- The border and background box -->
-                                    <com.google.android.material.imageview.ShapeableImageView
-                                        android:layout_width="match_parent"
-                                        android:layout_height="match_parent"
-                                        android:padding="2dp"
-                                        android:src="@null"
-                                        app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                                        app:strokeColor="@color/black"
-                                        app:strokeWidth="1dp" />
-
-                                    <!-- The actual service image with pseudo padding -->
-                                    <ImageView
-                                        android:id="@+id/iv_service_preview"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="match_parent"
-                                        android:padding="12dp"
-                                        android:src="@drawable/ic_launcher_background" />
-                                </FrameLayout>
-
-                                <TextView
-                                    android:id="@+id/tv_service_name"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginTop="3dp"
-                                    android:text="@string/style_fade"
-                                    android:textColor="@color/black"
-                                    android:textStyle="bold" />
+                                    android:layout_marginStart="6dp"
+                                    android:paddingVertical="15dp"
+                                    android:text="@string/btn_start_session"
+                                    android:textColor="@color/white"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    app:backgroundTint="@color/primary_color"
+                                    app:cornerRadius="24dp" />
                             </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- Professional Session Entry Container -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
 
                             <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_start_session"
+                                android:id="@+id/btn_enter_session"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="6dp"
                                 android:paddingVertical="15dp"
-                                android:text="@string/btn_start_session"
+                                android:text="Enter Session Screen"
                                 android:textColor="@color/white"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
+                                android:visibility="gone"
                                 app:backgroundTint="@color/primary_color"
-                                app:cornerRadius="24dp" />
+                                app:cornerRadius="24dp"
+                                tools:visibility="visible" />
                         </LinearLayout>
                     </LinearLayout>
 

@@ -81,7 +81,7 @@ public class HomeFragment extends Fragment {
     private View llBookingDetailsRow, tvNoBookingPlaceholder;
     private LinearLayout llLeftCol, llRightCol;
     private TextView tvLabelDate, tvLabelTime, tvLabelStylist, tvLabelChosenHaircut;
-    private View btnCallStylist, btnCancelBooking, btnEditBooking;
+    private View btnCallStylist, btnCancelBooking, btnEditBooking, btnSessionInProgress;
     private String nearestStylistPhone = "";
     
     // Stylist List UI
@@ -115,6 +115,12 @@ public class HomeFragment extends Fragment {
     private long lastJabTime = 0;
     private static final long JAB_COOLDOWN = 10000; // 10 seconds cooldown between showing jabs
     private Runnable typingRunnable;
+
+    private ListenerRegistration sessionTimerListener;
+    private long sessionStartTime = 0;
+    private long totalPausedMillis = 0;
+    private boolean isPaused = false;
+    private long pausedAtMillis = 0;
 
     private void saveJabPool() {
         if (getContext() == null) return;
@@ -215,6 +221,7 @@ public class HomeFragment extends Fragment {
         btnCallStylist = view.findViewById(R.id.btn_call_stylist);
         btnCancelBooking = view.findViewById(R.id.btn_cancel_booking);
         btnEditBooking = view.findViewById(R.id.btn_edit_booking);
+        btnSessionInProgress = view.findViewById(R.id.btn_session_in_progress);
 
         // Stylist list initialization
         rvStylists = view.findViewById(R.id.rv_stylists_home);
@@ -394,7 +401,8 @@ public class HomeFragment extends Fragment {
         currentBookingId = doc.getId();
         nearestBookingTime = doc.getString("time");
         nearestBookingHaircut = doc.getString("hairstyleName");
-        
+        String status = doc.getString("status");
+
         // Fetch stylist info (name and phone) from the employeeId
         String employeeId = doc.getString("employeeId");
         if (employeeId != null) {
@@ -414,6 +422,21 @@ public class HomeFragment extends Fragment {
 
         if (ivHairPreview != null) {
             loadHaircutImage(nearestBookingHaircut);
+        }
+
+        // Handle Session in Progress for Customers
+        if ("Starting".equals(status)) {
+            if (btnCancelBooking != null) btnCancelBooking.setVisibility(View.GONE);
+            if (btnEditBooking != null) btnEditBooking.setVisibility(View.GONE);
+            if (btnSessionInProgress != null) {
+                btnSessionInProgress.setVisibility(View.VISIBLE);
+                startSessionTimerListener();
+            }
+        } else {
+            if (btnCancelBooking != null) btnCancelBooking.setVisibility(View.VISIBLE);
+            if (btnEditBooking != null) btnEditBooking.setVisibility(View.VISIBLE);
+            if (btnSessionInProgress != null) btnSessionInProgress.setVisibility(View.GONE);
+            stopSessionTimerListener();
         }
 
         // Handle visibility and animation
@@ -739,6 +762,70 @@ public class HomeFragment extends Fragment {
     /**
      * Animates the height change of the top bar.
      */
+    private void startSessionTimerListener() {
+        if (currentBookingId == null || sessionTimerListener != null) return;
+
+        sessionTimerListener = db.collection("session_timers").document(currentBookingId)
+                .addSnapshotListener((doc, e) -> {
+                    if (e != null || doc == null || !doc.exists()) return;
+
+                    com.google.firebase.Timestamp ts = doc.getTimestamp("startTime");
+                    isPaused = doc.getBoolean("isPaused") != null && doc.getBoolean("isPaused");
+                    totalPausedMillis = doc.getLong("totalPausedMillis") != null ? doc.getLong("totalPausedMillis") : 0;
+
+                    if (ts != null) {
+                        sessionStartTime = ts.toDate().getTime();
+                        if (isPaused) {
+                            com.google.firebase.Timestamp pts = doc.getTimestamp("pausedAt");
+                            pausedAtMillis = pts != null ? pts.toDate().getTime() : System.currentTimeMillis();
+                        }
+                        updateHomeTimer();
+                    }
+                });
+    }
+
+    private void stopSessionTimerListener() {
+        if (sessionTimerListener != null) {
+            sessionTimerListener.remove();
+            sessionTimerListener = null;
+        }
+    }
+
+    private void updateHomeTimer() {
+        if (handler == null || sessionTimerListener == null || btnSessionInProgress == null) return;
+
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (sessionTimerListener == null) return;
+
+                long now = System.currentTimeMillis();
+                long diff;
+                if (isPaused) {
+                    diff = pausedAtMillis - sessionStartTime - totalPausedMillis;
+                } else {
+                    diff = now - sessionStartTime - totalPausedMillis;
+                }
+                if (diff < 0) diff = 0;
+
+                int seconds = (int) (diff / 1000);
+                int minutes = seconds / 60;
+                int hours = minutes / 60;
+                seconds = seconds % 60;
+                minutes = minutes % 60;
+
+                String timeStr = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds);
+                if (btnSessionInProgress instanceof com.google.android.material.button.MaterialButton) {
+                    ((com.google.android.material.button.MaterialButton) btnSessionInProgress).setText("Session in progress (" + timeStr + ")");
+                }
+
+                if (!isPaused) {
+                    handler.postDelayed(this, 1000);
+                }
+            }
+        });
+    }
+
     private void animateTopBar(int from, int to, int duration) {
         isAnimating = true;
         ValueAnimator animator = ValueAnimator.ofInt(from, to);

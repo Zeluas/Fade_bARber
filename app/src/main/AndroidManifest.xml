@@ -58,6 +58,11 @@
             android:exported="false"
             android:screenOrientation="portrait" />
 
+        <activity
+            android:name=".SessionActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <uses-native-library
             android:name="libOpenCL.so"
             android:required="false" />

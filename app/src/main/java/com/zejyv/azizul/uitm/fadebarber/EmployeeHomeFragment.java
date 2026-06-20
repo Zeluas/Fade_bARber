@@ -78,7 +78,8 @@ public class EmployeeHomeFragment extends Fragment {
     private View llBookingDetailsRow, tvNoBookingPlaceholder;
     private LinearLayout llLeftCol, llRightCol;
     private TextView tvLabelCustomer, tvLabelTime, tvLabelChosenHaircut;
-    private View btnCallCustomer, btnNoShow, btnEditBooking, btnStartSession;
+    private View btnCallCustomer, btnNoShow, btnEditBooking, btnStartSession, btnEnterSession;
+    private TextView tvLabelSessionTimer, tvSessionTimer;
     private String nearestCustomerPhone = "";
 
     // Upcoming Bookings UI
@@ -230,6 +231,10 @@ public class EmployeeHomeFragment extends Fragment {
         btnNoShow = view.findViewById(R.id.btn_no_show);
         btnEditBooking = view.findViewById(R.id.btn_edit_booking_employee);
         btnStartSession = view.findViewById(R.id.btn_start_session);
+        btnEnterSession = view.findViewById(R.id.btn_enter_session);
+
+        tvLabelSessionTimer = view.findViewById(R.id.tv_employee_label_session_timer);
+        tvSessionTimer = view.findViewById(R.id.tv_employee_session_timer);
 
         // Upcoming bookings initialization
         llUpcomingList = view.findViewById(R.id.ll_upcoming_bookings_list);
@@ -308,7 +313,7 @@ public class EmployeeHomeFragment extends Fragment {
                             String status = doc.getString("status");
                             if (todayDateStr.equals(date) && !"Cancelled".equalsIgnoreCase(status)) {
                                 todayCount++;
-                                if ("Pending".equalsIgnoreCase(status)) {
+                                if ("Pending".equalsIgnoreCase(status) || "Starting".equalsIgnoreCase(status)) {
                                     todayPendingBookings.add(doc);
                                 }
                             }
@@ -321,6 +326,14 @@ public class EmployeeHomeFragment extends Fragment {
                                 SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
                                 @Override
                                 public int compare(QueryDocumentSnapshot b1, QueryDocumentSnapshot b2) {
+                                    String s1 = b1.getString("status");
+                                    String s2 = b2.getString("status");
+                                    boolean start1 = "Starting".equalsIgnoreCase(s1);
+                                    boolean start2 = "Starting".equalsIgnoreCase(s2);
+
+                                    if (start1 && !start2) return -1;
+                                    if (!start1 && start2) return 1;
+
                                     try {
                                         Date d1 = sdf.parse(b1.getString("time"));
                                         Date d2 = sdf.parse(b2.getString("time"));
@@ -388,9 +401,9 @@ public class EmployeeHomeFragment extends Fragment {
             return;
         }
 
-        final View[] labels = {tvLabelCustomer, tvLabelTime, tvLabelChosenHaircut};
-        final View[] values = {tvCustomerName, tvBookingTime, tvServiceName, ivServicePreview};
-        final View[] buttons = {btnCallCustomer, btnNoShow, btnEditBooking, btnStartSession};
+        final View[] labels = {tvLabelCustomer, tvLabelTime, tvLabelChosenHaircut, tvLabelSessionTimer};
+        final View[] values = {tvCustomerName, tvBookingTime, tvServiceName, ivServicePreview, tvSessionTimer};
+        final View[] buttons = {btnCallCustomer, btnNoShow, btnEditBooking, btnStartSession, btnEnterSession};
 
         // Fade out elements and slide down
         for (View v : buttons) if (v != null) v.animate().alpha(0f).translationY(20f).setDuration(500).start();
@@ -568,6 +581,12 @@ public class EmployeeHomeFragment extends Fragment {
         imageView.setImageResource(R.drawable.ic_hair);
     }
 
+    private ListenerRegistration sessionTimerListener;
+    private long sessionStartTime = 0;
+    private long totalPausedMillis = 0;
+    private boolean isPaused = false;
+    private long pausedAtMillis = 0;
+
     private void updateBookingUI(QueryDocumentSnapshot doc) {
         String oldTime = nearestCustomerTime;
         String oldHaircut = tvServiceName != null ? tvServiceName.getText().toString() : null;
@@ -592,13 +611,39 @@ public class EmployeeHomeFragment extends Fragment {
         if (tvBookingTime != null) tvBookingTime.setText(nearestCustomerTime);
         if (tvServiceName != null) tvServiceName.setText(serviceName);
 
+        // Session State Handling
+        String status = doc.getString("status");
+        if ("Starting".equals(status)) {
+            if (btnStartSession != null) btnStartSession.setVisibility(View.GONE);
+            if (btnNoShow != null) btnNoShow.setVisibility(View.GONE);
+            if (btnEnterSession != null) btnEnterSession.setVisibility(View.VISIBLE);
+            
+            if (btnEditBooking != null) btnEditBooking.setVisibility(View.GONE);
+            if (tvLabelSessionTimer != null) tvLabelSessionTimer.setVisibility(View.VISIBLE);
+            if (tvSessionTimer != null) {
+                tvSessionTimer.setVisibility(View.VISIBLE);
+                startSessionTimerListener();
+            }
+        } else {
+            if (btnStartSession != null) btnStartSession.setVisibility(View.VISIBLE);
+            if (btnNoShow != null) btnNoShow.setVisibility(View.VISIBLE);
+            if (btnEnterSession != null) btnEnterSession.setVisibility(View.GONE);
+            
+            if (btnEditBooking != null) btnEditBooking.setVisibility(View.VISIBLE);
+            if (tvLabelSessionTimer != null) tvLabelSessionTimer.setVisibility(View.GONE);
+            if (tvSessionTimer != null) {
+                tvSessionTimer.setVisibility(View.GONE);
+                stopSessionTimerListener();
+            }
+        }
+
         if (ivServicePreview != null) {
             loadHaircutImage(serviceName);
         }
 
         if (tvNoBookingPlaceholder != null) tvNoBookingPlaceholder.setVisibility(View.GONE);
         if (llBookingDetailsRow != null && llBookingDetailsRow.getVisibility() != View.VISIBLE) {
-            animateBookingArrival();
+            animateBookingArrival(status);
         } else if (llBookingDetailsRow != null) {
             llBookingDetailsRow.setVisibility(View.VISIBLE);
         }
@@ -625,7 +670,71 @@ public class EmployeeHomeFragment extends Fragment {
         }
     }
 
-    private void animateBookingArrival() {
+    private void startSessionTimerListener() {
+        if (currentBookingId == null || sessionTimerListener != null) return;
+
+        sessionTimerListener = db.collection("session_timers").document(currentBookingId)
+                .addSnapshotListener((doc, e) -> {
+                    if (e != null || doc == null || !doc.exists()) return;
+
+                    com.google.firebase.Timestamp ts = doc.getTimestamp("startTime");
+                    isPaused = doc.getBoolean("isPaused") != null && doc.getBoolean("isPaused");
+                    totalPausedMillis = doc.getLong("totalPausedMillis") != null ? doc.getLong("totalPausedMillis") : 0;
+
+                    if (ts != null) {
+                        sessionStartTime = ts.toDate().getTime();
+                        if (isPaused) {
+                            com.google.firebase.Timestamp pts = doc.getTimestamp("pausedAt");
+                            pausedAtMillis = pts != null ? pts.toDate().getTime() : System.currentTimeMillis();
+                        }
+                        updateEmployeeHomeTimer();
+                    }
+                });
+    }
+
+    private void stopSessionTimerListener() {
+        if (sessionTimerListener != null) {
+            sessionTimerListener.remove();
+            sessionTimerListener = null;
+        }
+    }
+
+    private void updateEmployeeHomeTimer() {
+        if (handler == null || sessionTimerListener == null || tvSessionTimer == null) return;
+
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (sessionTimerListener == null) return;
+
+                long now = System.currentTimeMillis();
+                long diff;
+                if (isPaused) {
+                    diff = pausedAtMillis - sessionStartTime - totalPausedMillis;
+                } else {
+                    diff = now - sessionStartTime - totalPausedMillis;
+                }
+                if (diff < 0) diff = 0;
+
+                int seconds = (int) (diff / 1000);
+                int minutes = seconds / 60;
+                int hours = minutes / 60;
+                seconds = seconds % 60;
+                minutes = minutes % 60;
+
+                String timeStr = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds);
+                if (tvSessionTimer != null) {
+                    tvSessionTimer.setText(timeStr);
+                }
+
+                if (!isPaused) {
+                    handler.postDelayed(this, 1000);
+                }
+            }
+        });
+    }
+
+    private void animateBookingArrival(String status) {
         if (llBookingDetailsRow == null || hasAnimatedBooking) {
             if (llBookingDetailsRow != null) llBookingDetailsRow.setVisibility(View.VISIBLE);
             return;
@@ -635,13 +744,22 @@ public class EmployeeHomeFragment extends Fragment {
         llBookingDetailsRow.setVisibility(View.VISIBLE);
         llBookingDetailsRow.setAlpha(0f);
 
-        final View[] labels = {tvLabelCustomer, tvLabelTime, tvLabelChosenHaircut};
-        final View[] values = {tvCustomerName, tvBookingTime, tvServiceName, ivServicePreview};
-        final View[] buttons = {btnCallCustomer, btnNoShow, btnEditBooking, btnStartSession};
+        final View[] labels = {tvLabelCustomer, tvLabelTime, tvLabelChosenHaircut, tvLabelSessionTimer};
+        final View[] values = {tvCustomerName, tvBookingTime, tvServiceName, ivServicePreview, tvSessionTimer};
+        final View[] buttons = {btnCallCustomer, btnNoShow, btnEditBooking, btnStartSession, btnEnterSession};
+
+        boolean isStarting = "Starting".equals(status);
 
         for (View v : labels) if (v != null) { v.setAlpha(0f); v.setTranslationX(-50f); }
         for (View v : values) if (v != null) { v.setAlpha(0f); v.setTranslationX(-30f); }
-        for (View v : buttons) if (v != null) { v.setAlpha(0f); v.setTranslationY(20f); }
+        for (View v : buttons) if (v != null) {
+            // Remove staggered alpha animation for Edit button if starting
+            // It will instead fade in with the parent row at its locked alpha
+            if (!(v == btnEditBooking && isStarting)) {
+                v.setAlpha(0f);
+            }
+            v.setTranslationY(20f);
+        }
 
         if (llRightCol != null) {
             llRightCol.setAlpha(0f);
@@ -675,7 +793,16 @@ public class EmployeeHomeFragment extends Fragment {
                     if (llRightCol != null) llRightCol.animate().alpha(1f).translationX(0f).setDuration(1000).start();
                 }, 800);
                 handler.postDelayed(() -> {
-                    for (View v : buttons) if (v != null) v.animate().alpha(1f).translationY(0f).setDuration(800).start();
+                    for (View v : buttons) {
+                        if (v != null) {
+                            if (v == btnEditBooking && isStarting) {
+                                // Remove alpha animation, only slide up
+                                v.animate().translationY(0f).setDuration(800).start();
+                            } else {
+                                v.animate().alpha(1f).translationY(0f).setDuration(800).start();
+                            }
+                        }
+                    }
                 }, 1400);
             }
         });
@@ -736,7 +863,23 @@ public class EmployeeHomeFragment extends Fragment {
             });
         }
 
-        view.findViewById(R.id.btn_start_session).setOnClickListener(v -> Toast.makeText(getContext(), "Session Started!", Toast.LENGTH_SHORT).show());
+        view.findViewById(R.id.btn_start_session).setOnClickListener(v -> {
+            if (currentBookingId != null) {
+                android.content.Intent intent = new android.content.Intent(getContext(), SessionActivity.class);
+                intent.putExtra("BOOKING_ID", currentBookingId);
+                startActivity(intent);
+            } else {
+                Toast.makeText(getContext(), "No active booking selected", Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        view.findViewById(R.id.btn_enter_session).setOnClickListener(v -> {
+            if (currentBookingId != null) {
+                android.content.Intent intent = new android.content.Intent(getContext(), SessionActivity.class);
+                intent.putExtra("BOOKING_ID", currentBookingId);
+                startActivity(intent);
+            }
+        });
         
         btnNoShow.setOnClickListener(v -> {
             if (getActivity() instanceof MainActivityEmployee && currentBookingId != null) {

@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     // --- Core UI Components ---
     private ViewPager2 viewPager;
     private BottomNavigationView bottomNavigationView;
+    private com.google.android.material.floatingactionbutton.FloatingActionButton fab;
 
     // --- Exit Dialog Components ---
     private View layoutExitConfirmation, mcvExitDialog;
@@ -94,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
     private void initializeViews() {
         viewPager = findViewById(R.id.viewPager);
         bottomNavigationView = findViewById(R.id.bottomNavigation);
+        fab = findViewById(R.id.fab);
 
         MainPagerAdapter adapter = new MainPagerAdapter(this);
         viewPager.setAdapter(adapter);
