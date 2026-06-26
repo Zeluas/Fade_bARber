@@ -622,6 +622,16 @@ public class MainActivityEmployee extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
+                // Check if fragment overlay is visible
+                androidx.fragment.app.Fragment currentFragment = getSupportFragmentManager().findFragmentByTag("f" + viewPager.getCurrentItem());
+                if (currentFragment instanceof EmployeeBookFragment) {
+                    EmployeeBookFragment bookFragment = (EmployeeBookFragment) currentFragment;
+                    if (bookFragment.isOverlayVisible()) {
+                        bookFragment.hideAllOverlays();
+                        return;
+                    }
+                }
+
                 if (layoutImagePreview != null && layoutImagePreview.getVisibility() == View.VISIBLE) {
                     hideImagePreview();
                 } else if (layoutNoShowConfirmation != null && layoutNoShowConfirmation.getVisibility() == View.VISIBLE) {

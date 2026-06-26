@@ -8,6 +8,7 @@
     <string name="welcome_user">Welcome back, (User)</string>
     <string name="ready_to_serve">Ready to be serve</string>
     <string name="haircut_name_placeholder">HairCut Name</string>
+    <string name="home_header_history">Recent Cut History</string>
 
     <!-- Time Themes -->
     <string name="time_midnight">Midnight</string>
@@ -130,6 +131,11 @@
     <string name="profile_item_user_agreement">User Agreement</string>
     <string name="profile_item_about">About</string>
     <string name="profile_item_colleagues">Colleagues</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_header">App Settings</string>
+    <string name="settings_languages">Languages</string>
+    <string name="lang_bm">BM</string>
+    <string name="lang_en">EN</string>
 
     <!-- Activity Module Strings -->
     <string name="activity_title">Activity</string>
@@ -255,6 +261,7 @@
     <string name="total_earnings_year">Total 2026: RM %1$.2f</string>
     <string name="earnings_label">Earnings</string>
     <string name="today_label">Today</string>
+    <string name="all_time_label">All Time</string>
     <string name="filter_sort_title">Filter &amp; Sort</string>
     <string name="reset_filters">Reset</string>
     <string name="filter_status">Status</string>
@@ -265,4 +272,6 @@
     <string name="label_filter">Filter:</string>
     <string name="label_keyword">Keyword:</string>
     <string name="label_sort">Sort:</string>
+    <string name="sort_amount">Amount</string>
+    <string name="label_date">Date:</string>
 </resources>

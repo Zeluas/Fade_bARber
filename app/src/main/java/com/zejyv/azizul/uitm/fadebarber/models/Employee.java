@@ -1,11 +1,16 @@
 package com.zejyv.azizul.uitm.fadebarber.models;
 
+import com.google.firebase.Timestamp;
+
 public class Employee {
     private String uid;
     private String fullname;
     private String phone;
     private String shortname;
     private String specialty;
+    private String profilePicUrl;
+    private Timestamp joinedDate;
+    private double overallRating;
 
     public Employee() {
         // Required for Firestore
@@ -33,4 +38,13 @@ public class Employee {
 
     public String getSpecialty() { return specialty; }
     public void setSpecialty(String specialty) { this.specialty = specialty; }
+
+    public String getProfilePicUrl() { return profilePicUrl; }
+    public void setProfilePicUrl(String profilePicUrl) { this.profilePicUrl = profilePicUrl; }
+
+    public Timestamp getJoinedDate() { return joinedDate; }
+    public void setJoinedDate(Timestamp joinedDate) { this.joinedDate = joinedDate; }
+
+    public double getOverallRating() { return overallRating; }
+    public void setOverallRating(double overallRating) { this.overallRating = overallRating; }
 }

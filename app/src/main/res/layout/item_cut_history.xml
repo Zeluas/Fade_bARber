@@ -4,17 +4,20 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="12dp"
-    android:layout_marginVertical="6dp"
+    android:layout_marginHorizontal="0dp"
+    android:layout_marginVertical="4dp"
     app:cardBackgroundColor="@color/white"
     app:cardCornerRadius="12dp"
     app:cardElevation="2dp"
+    app:cardUseCompatPadding="false"
     app:rippleColor="@android:color/transparent">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/cl_booking_item_root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:padding="12dp">
 
         <!-- Status Badge -->
@@ -25,7 +28,7 @@
             android:background="@drawable/bg_pill_primary"
             android:paddingHorizontal="12dp"
             android:paddingVertical="4dp"
-            android:text="@string/booking_status_pending"
+            android:text="Completed"
             android:textColor="@color/white"
             android:textSize="12sp"
             android:textStyle="bold"
@@ -68,13 +71,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
-                android:text="0.0"
+                android:text="5.0"
                 android:textColor="@color/black"
                 android:textSize="12sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Customer Profile Picture (Large) -->
+        <!-- Profile Picture (Large) -->
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/iv_history_hair"
             android:layout_width="80dp"
@@ -111,7 +114,7 @@
                     android:id="@+id/tv_history_barber"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Customer Name"
+                    android:text="Barber Name"
                     android:textColor="@color/black"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -122,6 +125,7 @@
                     android:layout_height="16dp"
                     android:layout_marginStart="8dp"
                     android:src="@drawable/ic_phone"
+                    android:visibility="visible"
                     app:tint="@color/primary_color" />
             </LinearLayout>
 
@@ -213,7 +217,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
-                        android:text="@string/style_fade"
+                        android:text="Fade Cut"
                         android:textColor="@color/black"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -256,7 +260,7 @@
                         android:isIndicator="true"
                         android:numStars="5"
                         android:progressTint="@color/primary_color"
-                        android:rating="0" />
+                        android:rating="5" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -267,7 +271,7 @@
                 android:layout_marginTop="12dp"
                 android:background="@drawable/bg_pill_stroke"
                 android:padding="8dp"
-                android:text="No comments provided"
+                android:text="No comments provided."
                 android:textColor="@color/grey_grey"
                 android:textSize="13sp"
                 android:textStyle="italic" />
@@ -281,6 +285,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:orientation="horizontal"
+            android:visibility="gone"
             app:layout_constraintTop_toBottomOf="@id/ll_expandable_content">
 
             <com.google.android.material.button.MaterialButton

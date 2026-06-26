@@ -18,6 +18,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RatingBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,6 +44,7 @@ import com.google.ai.client.generativeai.type.GenerateContentResponse;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.zejyv.azizul.uitm.fadebarber.adapters.CutHistoryAdapter;
 import com.zejyv.azizul.uitm.fadebarber.adapters.StylistAdapter;
 import com.zejyv.azizul.uitm.fadebarber.models.Employee;
 
@@ -78,7 +80,7 @@ public class HomeFragment extends Fragment {
     // Booking Details UI
     private TextView tvBookingDate, tvBookingTime, tvHairstylist, tvHaircut, tvStatusHome;
     private ImageView ivHairPreview, ivStatusIcon;
-    private View llBookingDetailsRow, tvNoBookingPlaceholder;
+    private View llBookingDetailsRow, tvNoBookingPlaceholder, llCutHistoryBox;
     private LinearLayout llLeftCol, llRightCol;
     private TextView tvLabelDate, tvLabelTime, tvLabelStylist, tvLabelChosenHaircut;
     private View btnCallStylist, btnCancelBooking, btnEditBooking, btnSessionInProgress;
@@ -90,7 +92,14 @@ public class HomeFragment extends Fragment {
     private TextView tvNoStylists;
     private StylistAdapter stylistAdapter;
     private List<Employee> stylistList = new ArrayList<>();
-    
+
+    // Recent Cut History UI
+    private RecyclerView rvCutHistory;
+    private ProgressBar pbHistoryHome;
+    private TextView tvEmptyHistoryHome;
+    private CutHistoryAdapter historyAdapter;
+    private final List<CutHistoryActivity.HistoryItem> historyList = new ArrayList<>();
+
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private ListenerRegistration bookingListener;
@@ -129,14 +138,14 @@ public class HomeFragment extends Fragment {
         try {
             android.content.SharedPreferences prefs = requireContext().getSharedPreferences("ai_jab_prefs", android.content.Context.MODE_PRIVATE);
             android.content.SharedPreferences.Editor editor = prefs.edit();
-            
+
             // Join pool with specialized separator to avoid conflict with /
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < jabPool.size(); i++) {
                 sb.append(jabPool.get(i));
                 if (i < jabPool.size() - 1) sb.append("|||");
             }
-            
+
             editor.putString("jab_pool", sb.toString());
             editor.putString("last_booking_id", lastUsedBookingId);
             editor.putBoolean("last_shop_open", lastUsedShopStatusOpen);
@@ -192,7 +201,7 @@ public class HomeFragment extends Fragment {
 
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
-        
+
         loadJabPool();
 
         // Initialize UI components
@@ -213,6 +222,7 @@ public class HomeFragment extends Fragment {
         ivHairPreview = view.findViewById(R.id.iv_hairPreview);
         llBookingDetailsRow = view.findViewById(R.id.ll_booking_details_row);
         tvNoBookingPlaceholder = view.findViewById(R.id.tv_no_booking_placeholder);
+        llCutHistoryBox = view.findViewById(R.id.ll_cut_history_box);
         llLeftCol = view.findViewById(R.id.ll_booking_details_left_col);
         llRightCol = view.findViewById(R.id.ll_booking_details_right_col);
         tvStatusHome = view.findViewById(R.id.tv_status_home);
@@ -234,6 +244,12 @@ public class HomeFragment extends Fragment {
         tvNoStylists = view.findViewById(R.id.tv_no_stylists_home);
         setupStylistRecyclerView();
 
+        // Recent Cut History initialization
+        rvCutHistory = view.findViewById(R.id.rv_cut_history_home);
+        pbHistoryHome = view.findViewById(R.id.pb_history_home);
+        tvEmptyHistoryHome = view.findViewById(R.id.tv_empty_history_home);
+        setupHistoryRecyclerView();
+
         // Configure smooth layout transitions for the top bar's text container
         if (llTextContainer != null) {
             LayoutTransition transition = llTextContainer.getLayoutTransition();
@@ -250,6 +266,7 @@ public class HomeFragment extends Fragment {
         populateWelcomeMessage(view);
         fetchNearestBooking();
         fetchStylists();
+        fetchCutHistory();
     }
 
     private void setupStylistRecyclerView() {
@@ -259,6 +276,13 @@ public class HomeFragment extends Fragment {
             // Unclickable on Home screen
         });
         rvStylists.setAdapter(stylistAdapter);
+    }
+
+    private void setupHistoryRecyclerView() {
+        if (rvCutHistory == null) return;
+        rvCutHistory.setLayoutManager(new LinearLayoutManager(requireContext()));
+        historyAdapter = new CutHistoryAdapter(historyList, false); // false = hide status badge
+        rvCutHistory.setAdapter(historyAdapter);
     }
 
     private void fetchStylists() {
@@ -272,7 +296,7 @@ public class HomeFragment extends Fragment {
                     stylistList.add(employee);
                 }
                 if (stylistAdapter != null) stylistAdapter.notifyDataSetChanged();
-                
+
                 if (tvNoStylists != null) {
                     tvNoStylists.setVisibility(stylistList.isEmpty() ? View.VISIBLE : View.GONE);
                 }
@@ -283,6 +307,111 @@ public class HomeFragment extends Fragment {
                 }
             }
         });
+    }
+
+    private void fetchCutHistory() {
+        if (mAuth.getCurrentUser() == null) return;
+        if (pbHistoryHome != null) pbHistoryHome.setVisibility(View.VISIBLE);
+
+        String uid = mAuth.getCurrentUser().getUid();
+
+        db.collection("bookings")
+                .whereEqualTo("customerId", uid)
+                .whereEqualTo("status", "Completed")
+                .get()
+                .addOnSuccessListener(value -> {
+                    if (value == null || value.isEmpty()) {
+                        if (pbHistoryHome != null) pbHistoryHome.setVisibility(View.GONE);
+                        if (tvEmptyHistoryHome != null) tvEmptyHistoryHome.setVisibility(View.VISIBLE);
+                        historyList.clear();
+                        if (historyAdapter != null) historyAdapter.notifyDataSetChanged();
+                        return;
+                    }
+
+                    List<com.zejyv.azizul.uitm.fadebarber.models.Booking> bookings = value.toObjects(com.zejyv.azizul.uitm.fadebarber.models.Booking.class);
+                    List<CutHistoryActivity.HistoryItem> tempItems = new ArrayList<>();
+                    java.util.concurrent.atomic.AtomicInteger pendingCount = new java.util.concurrent.atomic.AtomicInteger(bookings.size());
+
+                    for (com.zejyv.azizul.uitm.fadebarber.models.Booking b : bookings) {
+                        CutHistoryActivity.HistoryItem item = new CutHistoryActivity.HistoryItem(b);
+                        tempItems.add(item);
+                        fetchItemDetails(item, () -> {
+                            if (pendingCount.decrementAndGet() == 0) {
+                                // Sort by endTime (descending)
+                                Collections.sort(tempItems, (i1, i2) -> Long.compare(i2.booking.getUpdatedAt() != null ? i2.booking.getUpdatedAt().getSeconds() : 0,
+                                                                                  i1.booking.getUpdatedAt() != null ? i1.booking.getUpdatedAt().getSeconds() : 0));
+                                
+                                historyList.clear();
+                                for (int i = 0; i < Math.min(4, tempItems.size()); i++) {
+                                    historyList.add(tempItems.get(i));
+                                }
+                                
+                                if (isAdded()) {
+                                    if (pbHistoryHome != null) pbHistoryHome.setVisibility(View.GONE);
+                                    if (tvEmptyHistoryHome != null) tvEmptyHistoryHome.setVisibility(historyList.isEmpty() ? View.VISIBLE : View.GONE);
+                                    if (historyAdapter != null) historyAdapter.notifyDataSetChanged();
+                                }
+                            }
+                        });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (isAdded()) {
+                        if (pbHistoryHome != null) pbHistoryHome.setVisibility(View.GONE);
+                        if (tvEmptyHistoryHome != null) tvEmptyHistoryHome.setVisibility(View.VISIBLE);
+                    }
+                });
+    }
+
+    private void fetchItemDetails(CutHistoryActivity.HistoryItem item, Runnable onDone) {
+        java.util.concurrent.atomic.AtomicInteger pending = new java.util.concurrent.atomic.AtomicInteger(5);
+        
+        // 1. Barber Name
+        db.collection("employees").document(item.booking.getEmployeeId()).get().addOnSuccessListener(doc -> {
+            if (doc.exists()) {
+                item.barberName = doc.getString("fullname");
+                item.barberPhone = doc.getString("phone");
+            }
+            if (pending.decrementAndGet() == 0) onDone.run();
+        }).addOnFailureListener(e -> { if (pending.decrementAndGet() == 0) onDone.run(); });
+
+        // 2. Profile Pic
+        db.collection("profile_pics").document(item.booking.getEmployeeId()).get().addOnSuccessListener(doc -> {
+            if (doc.exists()) item.barberProfileUrl = doc.getString("url");
+            if (pending.decrementAndGet() == 0) onDone.run();
+        }).addOnFailureListener(e -> { if (pending.decrementAndGet() == 0) onDone.run(); });
+
+        // 3. Payment
+        db.collection("session_payments").document(item.booking.getBookingId()).get().addOnSuccessListener(doc -> {
+            if (doc.exists()) {
+                Double amt = doc.getDouble("paymentAmount");
+                if (amt != null) item.amount = amt;
+            }
+            if (pending.decrementAndGet() == 0) onDone.run();
+        }).addOnFailureListener(e -> { if (pending.decrementAndGet() == 0) onDone.run(); });
+
+        // 4. Timer
+        db.collection("session_timers").document(item.booking.getBookingId()).get().addOnSuccessListener(doc -> {
+            if (doc.exists()) {
+                com.google.firebase.Timestamp start = doc.getTimestamp("startTime");
+                com.google.firebase.Timestamp end = doc.getTimestamp("endTime");
+                Long paused = doc.getLong("totalPausedMillis");
+                if (start != null && end != null) {
+                    item.durationMillis = end.toDate().getTime() - start.toDate().getTime() - (paused != null ? paused : 0);
+                }
+            }
+            if (pending.decrementAndGet() == 0) onDone.run();
+        }).addOnFailureListener(e -> { if (pending.decrementAndGet() == 0) onDone.run(); });
+
+        // 5. Rating
+        db.collection("hairstylist_ratings").document(item.booking.getBookingId()).get().addOnSuccessListener(doc -> {
+            if (doc.exists()) {
+                Double r = doc.getDouble("rating");
+                if (r != null) item.rating = r.floatValue();
+                item.comment = doc.getString("comment");
+            }
+            if (pending.decrementAndGet() == 0) onDone.run();
+        }).addOnFailureListener(e -> { if (pending.decrementAndGet() == 0) onDone.run(); });
     }
 
     /**
@@ -366,7 +495,7 @@ public class HomeFragment extends Fragment {
 
         // Fade out elements and slide down
         for (View v : buttons) if (v != null) v.animate().alpha(0f).translationY(20f).setDuration(500).start();
-        
+
         handler.postDelayed(() -> {
             for (View v : values) if (v != null) v.animate().alpha(0f).translationX(-30f).setDuration(500).start();
             if (llRightCol != null) llRightCol.animate().alpha(0f).translationX(100f).setDuration(500).start();
@@ -419,7 +548,7 @@ public class HomeFragment extends Fragment {
                 if (employeeDoc.exists()) {
                     String fullName = employeeDoc.getString("fullname");
                     nearestStylistPhone = employeeDoc.getString("phone");
-                    
+
                     if (tvHairstylist != null) tvHairstylist.setText(fullName);
                 }
             });
@@ -451,13 +580,13 @@ public class HomeFragment extends Fragment {
                 btnSessionInProgress.setVisibility(View.VISIBLE);
                 btnSessionInProgress.setClickable("Paying".equals(status) || "Rating".equals(status));
                 btnSessionInProgress.setFocusable("Paying".equals(status) || "Rating".equals(status));
-                
+
                 if ("Paying".equals(status)) {
                     ((com.google.android.material.button.MaterialButton) btnSessionInProgress).setText("Payment in Progress - Click to Pay");
                 } else if ("Rating".equals(status)) {
                     ((com.google.android.material.button.MaterialButton) btnSessionInProgress).setText("Review Session - Please Rate");
                 }
-                
+
                 btnSessionInProgress.setOnClickListener(v -> {
                     if ("Paying".equals(status) || "Rating".equals(status)) {
                         Intent intent = new Intent(getActivity(), SessionActivity.class);
@@ -482,7 +611,7 @@ public class HomeFragment extends Fragment {
         } else {
             if (llBookingDetailsRow != null) llBookingDetailsRow.setVisibility(View.VISIBLE);
         }
-        
+
         // Context Check for AI Jabs
         TimeZone klTimeZone = TimeZone.getTimeZone("Asia/Kuala_Lumpur");
         Calendar calendar = Calendar.getInstance(klTimeZone);
@@ -514,7 +643,7 @@ public class HomeFragment extends Fragment {
         // 1. Prepare elements for animation
         llBookingDetailsRow.setVisibility(View.VISIBLE);
         llBookingDetailsRow.setAlpha(0f);
-        
+
         // Hide values and buttons initially
         final View[] labels = {tvLabelDate, tvLabelTime, tvLabelStylist, tvLabelChosenHaircut};
         final View[] values = {tvBookingDate, tvBookingTime, tvHairstylist, tvHaircut, ivHairPreview};
@@ -582,7 +711,7 @@ public class HomeFragment extends Fragment {
 
     private void loadHaircutImage(String name) {
         if (name == null || ivHairPreview == null) return;
-        
+
         try {
             String[] images = requireContext().getAssets().list("images");
             if (images != null) {
@@ -623,12 +752,12 @@ public class HomeFragment extends Fragment {
             ivStatusIcon.setImageResource(R.drawable.ic_calendar);
             ivStatusIcon.setColorFilter(Color.parseColor("#9E9E9E"));
         }
-        
+
         // Handle visibility
         if (llBookingDetailsRow != null) llBookingDetailsRow.setVisibility(View.GONE);
         if (tvNoBookingPlaceholder != null) tvNoBookingPlaceholder.setVisibility(View.VISIBLE);
         hasAnimatedBooking = false; // Allow re-animation if they book again later
-        
+
         // Context tracking for "no booking"
         String newBookingId = "no_booking";
         Calendar calendar = Calendar.getInstance();
@@ -692,7 +821,7 @@ public class HomeFragment extends Fragment {
             int scrollY = svHomeContent.getScrollY();
             View child = svHomeContent.getChildAt(0);
             if (child == null) return;
-            
+
             int maxScroll = child.getHeight() - svHomeContent.getHeight();
             int threshold = maxScroll / 2; // Threshold for full collapse
 
@@ -703,7 +832,7 @@ public class HomeFragment extends Fragment {
 
             int startHeight = dpToPx(100);
             int endHeight = dpToPx(70);
-            
+
             if (!isLockedAtMin) {
                 // Interpolate height between 100dp and 70dp
                 int currentHeight = (int) (startHeight - (startHeight - endHeight) * ratio);
@@ -782,6 +911,14 @@ public class HomeFragment extends Fragment {
                     intent.putExtra("EDIT_BOOKING_ID", currentBookingId);
                     startActivity(intent);
                 }
+            });
+        }
+
+        // Cut History Section listener
+        if (llCutHistoryBox != null) {
+            llCutHistoryBox.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), CutHistoryActivity.class);
+                startActivity(intent);
             });
         }
 
@@ -1017,7 +1154,7 @@ public class HomeFragment extends Fragment {
         promptBuilder.append("Generate EXACTLY 100 funny, unique, very short (max 20 words each) jabs/roasts for a user at a barber shop app. ");
         promptBuilder.append("Separate each jab with a '/' character. DO NOT NUMBER THEM. No list formatting. ");
         promptBuilder.append("Context: The shop is currently ").append(shopStatus).append(". ");
-        
+
         if (nearestBookingTime != null && nearestBookingHaircut != null) {
             promptBuilder.append("The user has an upcoming appointment for a '")
                     .append(nearestBookingHaircut).append("' at ").append(nearestBookingTime).append(". ");
@@ -1025,7 +1162,7 @@ public class HomeFragment extends Fragment {
         } else {
             promptBuilder.append("The user hasn't booked anything yet. Roast them for their potentially messy hair and encourage them to book NOW. ");
         }
-        
+
         promptBuilder.append("Make them cheeky, playful, and slightly mean but professional for a barber shop. No emojis. ");
         promptBuilder.append("Only output the raw text of the jabs separated by '/' and nothing else.");
 
@@ -1073,7 +1210,7 @@ public class HomeFragment extends Fragment {
         String jab = jabPool.get(index);
         jabPool.remove(index);
         saveJabPool();
-        
+
         startTypingAnimation(jab);
     }
     
@@ -1171,13 +1308,14 @@ public class HomeFragment extends Fragment {
         populateWelcomeMessage(getView());
         loadProfileImage();
         fetchNearestBooking();
+        fetchCutHistory();
     }
 
     private void loadProfileImage() {
         if (ivProfile == null || mAuth.getCurrentUser() == null) return;
-        
+
         String uid = mAuth.getCurrentUser().getUid();
-        
+
         db.collection("profile_pics").document(uid).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (isAdded() && documentSnapshot.exists()) {
@@ -1250,7 +1388,7 @@ public class HomeFragment extends Fragment {
 
         // Update AM/PM display
         if (tvAmPm != null) {
-            String amPm = calendar.get(Calendar.AM_PM) == Calendar.AM ? 
+            String amPm = calendar.get(Calendar.AM_PM) == Calendar.AM ?
                     getString(R.string.am_label) : getString(R.string.pm_label);
             tvAmPm.setText(amPm);
         }

@@ -43,9 +43,9 @@ public class SessionActivity extends AppCompatActivity {
     private TextView tvRatingBarberName;
     private com.google.android.material.checkbox.MaterialCheckBox cbCompletionConfirm;
     private android.widget.EditText etPaymentAmount;
-    private MaterialButton btnSubmitAmount, btnPaymentDone;
-    private TextView tvPaymentAmountDisplay, tvCustomerPaymentMsg, tvPaymentMethodDisplay;
-    private View ivPaymentQr;
+    private MaterialButton btnSubmitAmount, btnPaymentDone, btnSaveQr, btnCompletionConfirm, btnPaymentBack, btnWaitingBack;
+    private TextView tvPaymentAmountDisplay, tvCustomerPaymentMsg, tvPaymentMethodDisplay, tvWaitingMsg;
+    private View ivPaymentQr, ivPaymentCash;
     
     private AnimatorSet pulseAnimatorSet;
     
@@ -108,13 +108,19 @@ public class SessionActivity extends AppCompatActivity {
         layoutCompletionConfirmation = findViewById(R.id.layout_completion_confirmation);
         mcvCompletionDialog = findViewById(R.id.mcv_completion_dialog);
         cbCompletionConfirm = findViewById(R.id.cb_completion_confirm);
+        btnCompletionConfirm = findViewById(R.id.btn_completion_confirm);
         etPaymentAmount = findViewById(R.id.et_payment_amount);
         btnSubmitAmount = findViewById(R.id.btn_submit_amount);
         btnPaymentDone = findViewById(R.id.btn_payment_done);
+        btnSaveQr = findViewById(R.id.btn_save_qr);
+        btnPaymentBack = findViewById(R.id.btn_payment_back);
+        btnWaitingBack = findViewById(R.id.btn_waiting_back);
+        tvWaitingMsg = findViewById(R.id.tv_waiting_msg);
         tvPaymentAmountDisplay = findViewById(R.id.tv_payment_amount_display);
         tvPaymentMethodDisplay = findViewById(R.id.tv_payment_method_display);
         tvCustomerPaymentMsg = findViewById(R.id.tv_customer_payment_msg);
         ivPaymentQr = findViewById(R.id.iv_payment_qr);
+        ivPaymentCash = findViewById(R.id.iv_payment_cash);
 
         layoutRatingOverlay = findViewById(R.id.layout_rating_overlay);
         rbSessionRating = findViewById(R.id.rb_session_rating);
@@ -126,12 +132,18 @@ public class SessionActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                View btnBack = findViewById(R.id.btn_back_session);
-                if (btnBack != null && btnBack.getVisibility() == View.GONE) {
-                    Toast.makeText(SessionActivity.this, "Session in progress. Cannot go back.", Toast.LENGTH_SHORT).show();
+                if (btnPaymentBack != null && btnPaymentBack.getVisibility() == View.VISIBLE) {
+                    resetPaymentMethod();
+                } else if (btnWaitingBack != null && btnWaitingBack.getVisibility() == View.VISIBLE) {
+                    resetPaymentMethod();
                 } else {
-                    setEnabled(false);
-                    getOnBackPressedDispatcher().onBackPressed();
+                    View btnBack = findViewById(R.id.btn_back_session);
+                    if (btnBack != null && btnBack.getVisibility() == View.GONE) {
+                        Toast.makeText(SessionActivity.this, "Session in progress. Cannot go back.", Toast.LENGTH_SHORT).show();
+                    } else {
+                        setEnabled(false);
+                        getOnBackPressedDispatcher().onBackPressed();
+                    }
                 }
             }
         });
@@ -197,9 +209,19 @@ public class SessionActivity extends AppCompatActivity {
         findViewById(R.id.mcv_pay_qr).setOnClickListener(v -> selectPaymentMethod("QR Code"));
         
         findViewById(R.id.btn_completion_cancel).setOnClickListener(v -> hideFinalCompletionConfirmation());
-        findViewById(R.id.btn_completion_confirm).setOnClickListener(v -> completeBooking());
+        btnCompletionConfirm.setOnClickListener(v -> completeBooking());
 
         findViewById(R.id.btn_submit_rating).setOnClickListener(v -> submitRating());
+        btnSaveQr.setOnClickListener(v -> captureAndSaveScreenshot());
+        btnPaymentBack.setOnClickListener(v -> resetPaymentMethod());
+        btnWaitingBack.setOnClickListener(v -> resetPaymentMethod());
+
+        cbCompletionConfirm.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            btnCompletionConfirm.setAlpha(isChecked ? 1.0f : 0.5f);
+        });
+        
+        // Initial state
+        btnCompletionConfirm.setAlpha(0.5f);
     }
 
     private void determineRoleAndCheckSession() {
@@ -304,12 +326,18 @@ public class SessionActivity extends AppCompatActivity {
                     if (amount == null) {
                         fadeInLayout(llAmountInputContainer);
                     } else if (method == null) {
+                        tvWaitingMsg.setText("Waiting for customer response...");
+                        btnWaitingBack.setVisibility(View.GONE);
                         fadeInLayout(llWaitingContainer);
                     } else {
                         showPaymentDetails(amount, method);
                     }
                 } else {
-                    if (method == null) {
+                    if (amount == null) {
+                        tvWaitingMsg.setText("Waiting for hairstylist to enter total...");
+                        btnWaitingBack.setVisibility(View.GONE);
+                        fadeInLayout(llWaitingContainer);
+                    } else if (method == null) {
                         fadeInLayout(llPaymentSelectionContainer);
                     } else {
                         showPaymentDetails(amount, method);
@@ -352,6 +380,9 @@ public class SessionActivity extends AppCompatActivity {
         fadeInLayout(llPaymentDetailsContainer);
         tvPaymentAmountDisplay.setText(String.format(Locale.getDefault(), "RM %.2f", amount));
         
+        ivPaymentQr.setVisibility(View.GONE);
+        ivPaymentCash.setVisibility(View.GONE);
+
         if (isEmployee) {
             btnPaymentDone.setVisibility(View.VISIBLE);
             tvCustomerPaymentMsg.setVisibility(View.GONE);
@@ -359,9 +390,11 @@ public class SessionActivity extends AppCompatActivity {
             tvPaymentMethodDisplay.setText("Method: " + method);
             if ("QR Code".equals(method)) {
                 ivPaymentQr.setVisibility(View.VISIBLE);
-            } else {
-                ivPaymentQr.setVisibility(View.GONE);
+            } else if ("Cash".equals(method)) {
+                ivPaymentCash.setVisibility(View.VISIBLE);
             }
+            btnSaveQr.setVisibility(View.GONE);
+            btnPaymentBack.setVisibility(View.VISIBLE);
         } else {
             btnPaymentDone.setVisibility(View.GONE);
             tvCustomerPaymentMsg.setVisibility(View.VISIBLE);
@@ -369,8 +402,92 @@ public class SessionActivity extends AppCompatActivity {
             tvCustomerPaymentMsg.setText("Proceed to pay to the hairstylist via " + method);
             if ("QR Code".equals(method)) {
                 ivPaymentQr.setVisibility(View.VISIBLE);
-            } else {
-                ivPaymentQr.setVisibility(View.GONE);
+                btnSaveQr.setVisibility(View.VISIBLE);
+            } else if ("Cash".equals(method)) {
+                ivPaymentCash.setVisibility(View.VISIBLE);
+                btnSaveQr.setVisibility(View.GONE);
+            }
+            btnPaymentBack.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void resetPaymentMethod() {
+        Map<String, Object> updates = new HashMap<>();
+        
+        if (isEmployee) {
+            // Employee only deletes amount to rewrite it, keeps the method if already chosen
+            updates.put("paymentAmount", FieldValue.delete());
+        } else {
+            // Customer deletes method to choose another
+            updates.put("paymentMethod", FieldValue.delete());
+        }
+
+        db.collection("session_payments").document(bookingId)
+                .update(updates)
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to go back", Toast.LENGTH_SHORT).show());
+    }
+
+    private void captureAndSaveScreenshot() {
+        // Store original state to restore later
+        int originalBtnVisibility = btnSaveQr.getVisibility();
+        int originalDoneBtnVisibility = btnPaymentDone.getVisibility();
+        int originalBackBtnVisibility = btnPaymentBack.getVisibility();
+        android.widget.LinearLayout.LayoutParams params = (android.widget.LinearLayout.LayoutParams) tvCustomerPaymentMsg.getLayoutParams();
+        int originalTopMargin = params.topMargin;
+
+        // Hide buttons so they don't appear in the screenshot
+        btnSaveQr.setVisibility(View.GONE);
+        btnPaymentDone.setVisibility(View.GONE);
+        btnPaymentBack.setVisibility(View.GONE);
+        
+        // Move the text up to "replace" the button's position
+        params.topMargin = dpToPx(20); // Same as button's top margin
+        tvCustomerPaymentMsg.setLayoutParams(params);
+
+        View rootView = getWindow().getDecorView().findViewById(android.R.id.content);
+        
+        // Force a layout pass so the "GONE" visibility and margin changes are reflected in the draw
+        rootView.measure(
+                View.MeasureSpec.makeMeasureSpec(rootView.getWidth(), View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(rootView.getHeight(), View.MeasureSpec.EXACTLY)
+        );
+        rootView.layout(rootView.getLeft(), rootView.getTop(), rootView.getRight(), rootView.getBottom());
+
+        android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(rootView.getWidth(), rootView.getHeight(), android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+        rootView.draw(canvas);
+
+        // Restore original state
+        btnSaveQr.setVisibility(originalBtnVisibility);
+        btnPaymentDone.setVisibility(originalDoneBtnVisibility);
+        btnPaymentBack.setVisibility(originalBackBtnVisibility);
+        params.topMargin = originalTopMargin;
+        tvCustomerPaymentMsg.setLayoutParams(params);
+        
+        // Trigger a normal layout pass to restore the screen view
+        rootView.requestLayout();
+
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yy_hh-mm a", java.util.Locale.getDefault());
+        String timestamp = sdf.format(new java.util.Date());
+        String fileName = "FadebARber_" + timestamp + ".png";
+        
+        android.content.ContentValues values = new android.content.ContentValues();
+        values.put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, fileName);
+        values.put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png");
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            values.put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/Fade bARber");
+        }
+
+        android.net.Uri uri = getContentResolver().insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+
+        if (uri != null) {
+            try (android.os.ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "w");
+                 java.io.FileOutputStream fos = new java.io.FileOutputStream(pfd.getFileDescriptor())) {
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, fos);
+                Toast.makeText(this, "QR Code saved to Gallery", Toast.LENGTH_SHORT).show();
+            } catch (java.io.IOException e) {
+                Toast.makeText(this, "Failed to save screenshot", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
             }
         }
     }

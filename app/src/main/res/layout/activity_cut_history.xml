@@ -6,9 +6,9 @@
     android:layout_height="match_parent"
     android:background="@color/back_primary_color">
 
-    <!-- Section 1: Top Bar Header -->
+    <!-- Top Bar Header -->
     <com.google.android.material.card.MaterialCardView
-        android:id="@+id/mcv_top_bar_book"
+        android:id="@+id/mcv_top_bar_history"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:cardBackgroundColor="@android:color/transparent"
@@ -18,18 +18,32 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <FrameLayout
-            android:id="@+id/fl_top_bar_background_book"
+            android:id="@+id/fl_top_bar_history"
             android:layout_width="match_parent"
             android:layout_height="70dp"
             android:background="@drawable/bg_top_bar">
 
+            <ImageView
+                android:id="@+id/iv_back_history"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center_vertical|start"
+                android:layout_marginStart="5dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="Back"
+                android:focusable="true"
+                android:padding="12dp"
+                android:src="@drawable/ic_back"
+                app:tint="@color/white" />
+
             <TextView
-                android:id="@+id/tv_title_book"
+                android:id="@+id/tv_title_history"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical|start"
-                android:layout_marginStart="12dp"
-                android:text="@string/employee_book_title"
+                android:layout_marginStart="63dp"
+                android:text="Cut History"
                 android:textColor="@color/white"
                 android:textSize="20sp"
                 android:textStyle="bold" />
@@ -37,134 +51,24 @@
     </com.google.android.material.card.MaterialCardView>
 
     <androidx.core.widget.NestedScrollView
-        android:id="@+id/sv_book_content"
+        android:id="@+id/sv_history_content"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:fillViewport="true"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/mcv_top_bar_book">
+        app:layout_constraintTop_toBottomOf="@id/mcv_top_bar_history">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:orientation="vertical"
             android:paddingBottom="16dp">
 
-            <!-- Section 2: Monthly Calendar -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="12dp"
-                android:layout_marginTop="12dp"
-                app:cardBackgroundColor="@color/white"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
-
-                <CalendarView
-                    android:id="@+id/calendar_view_employee"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:theme="@style/CalendarTheme" />
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Earnings Section -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="12dp"
-                android:layout_marginTop="12dp"
-                app:cardBackgroundColor="@color/white"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_booking_header"
-                        android:paddingVertical="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:text="@string/earnings_label"
-                            android:textColor="@color/white"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:padding="16dp">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/tv_label_today"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/today_label"
-                                android:textColor="@color/black"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/tv_earn_today_book"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="RM 240.00"
-                                android:textColor="@color/primary_color"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="1dp"
-                            android:layout_height="match_parent"
-                            android:background="#EEEEEE" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/tv_label_month"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="This Month"
-                                android:textColor="@color/black"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/tv_earn_month_book"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="RM 0.00"
-                                android:textColor="@color/primary_color"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Section 3: Search & Filter Bar -->
+            <!-- Search & Filter Bar (Matching EmployeeBook) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/mcv_search_container"
                 android:layout_width="match_parent"
@@ -192,13 +96,13 @@
                         app:tint="@color/primary_color" />
 
                     <EditText
-                        android:id="@+id/et_search_bookings"
+                        android:id="@+id/et_search_history"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_marginStart="12dp"
                         android:layout_weight="1"
                         android:background="@android:color/transparent"
-                        android:hint="@string/search_bookings_hint"
+                        android:hint="Search history (Barber, Style...)"
                         android:importantForAutofill="no"
                         android:inputType="text"
                         android:textSize="16sp" />
@@ -206,8 +110,17 @@
                     <View
                         android:layout_width="1.5dp"
                         android:layout_height="28dp"
-                        android:layout_marginHorizontal="12dp"
+                        android:layout_marginHorizontal="8dp"
                         android:background="#DDDDDD" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_filter_date"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        app:icon="@drawable/ic_calendar"
+                        app:iconSize="24dp"
+                        app:iconTint="@color/primary_color" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_filter_sort"
@@ -220,7 +133,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Active Filters Bar: Sections only -->
+            <!-- Active Filters Bar -->
             <LinearLayout
                 android:id="@+id/ll_filter_bar_container"
                 android:layout_width="match_parent"
@@ -240,9 +153,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:paddingHorizontal="4dp">
-
-                    <!-- Categories will be added as vertical sections here -->
-
+                    <!-- Categories added here -->
                 </LinearLayout>
             </LinearLayout>
 
@@ -266,26 +177,38 @@
                 app:cornerRadius="12dp"
                 tools:visibility="visible" />
 
-            <!-- Section 4: Collected Bookings -->
+            <!-- Recycler View -->
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp">
+                android:layout_marginTop="8dp"
+                android:clipChildren="false"
+                android:clipToPadding="false">
 
                 <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rv_all_bookings"
+                    android:id="@+id/rv_cut_history"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    android:paddingHorizontal="14dp"
                     android:nestedScrollingEnabled="false"
-                    tools:itemCount="5"
-                    tools:listitem="@layout/item_employee_booking" />
+                    tools:listitem="@layout/item_cut_history" />
+
+                <ProgressBar
+                    android:id="@+id/pb_history"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="50dp"
+                    android:visibility="gone" />
 
                 <TextView
-                    android:id="@+id/tv_no_bookings_info"
+                    android:id="@+id/tv_empty_history"
                     android:layout_width="match_parent"
                     android:layout_height="200dp"
                     android:gravity="center"
-                    android:text="No information available for the selected date/filters"
+                    android:text="No past bookings found."
                     android:textColor="@color/grey_grey"
                     android:textSize="16sp"
                     android:textStyle="italic"
@@ -295,9 +218,22 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Call Customer Overlay -->
+    <!-- Filter Overlay (Included here directly) -->
+    <FrameLayout
+        android:id="@+id/layout_filter_overlay_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#B3000000"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true"
+        android:elevation="25dp">
+        <include layout="@layout/layout_filter_overlay" />
+    </FrameLayout>
+
+    <!-- Call Hairstylist Overlay -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/layout_call_customer"
+        android:id="@+id/layout_call_hairstylist"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#B3000000"
@@ -307,7 +243,7 @@
         android:visibility="gone">
 
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/mcv_call_dialog_emp"
+            android:id="@+id/mcv_call_dialog"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:clickable="false"
@@ -326,33 +262,33 @@
                 android:layout_height="wrap_content">
 
                 <TextView
-                    android:id="@+id/tv_call_dialog_header_emp"
+                    android:id="@+id/tv_call_dialog_header"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@color/primary_color"
                     android:gravity="center"
                     android:padding="20dp"
-                    android:text="Call Customer"
+                    android:text="Call Hairstylist"
                     android:textColor="@color/white"
                     android:textSize="20sp"
                     android:textStyle="bold"
                     app:layout_constraintTop_toTopOf="parent" />
 
                 <TextView
-                    android:id="@+id/tv_customer_phone_display"
+                    android:id="@+id/tv_hairstylist_phone_display"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="32dp"
-                    android:text="+60 12-345 6789"
+                    android:text="+60 1234 5678 911"
                     android:textColor="@color/black"
                     android:textSize="24sp"
                     android:textStyle="bold"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/tv_call_dialog_header_emp" />
+                    app:layout_constraintTop_toBottomOf="@id/tv_call_dialog_header" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_call_now_emp"
+                    android:id="@+id/btn_call_now"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="24dp"
@@ -369,7 +305,7 @@
                     app:iconGravity="textStart"
                     app:iconTint="@color/primary_color"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/tv_customer_phone_display"
+                    app:layout_constraintTop_toBottomOf="@id/tv_hairstylist_phone_display"
                     app:rippleColor="@color/trans_primary_color"
                     app:strokeColor="@color/primary_color"
                     app:strokeWidth="2dp" />

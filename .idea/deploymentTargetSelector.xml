@@ -37,7 +37,7 @@
       </SelectionState>
       <SelectionState runConfigName="main">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-06-20T12:52:12.131286Z">
+        <DropdownSelection timestamp="2026-06-26T19:17:15.532007900Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\Zejnos\.android\avd\Fossibot_F102.avd" />

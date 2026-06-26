@@ -616,487 +616,80 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 app:cardBackgroundColor="@color/white"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="2dp"
-                app:cardUseCompatPadding="true">
+                app:cardUseCompatPadding="false">
 
                 <LinearLayout
                     android:id="@+id/ll_cut_history_box"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_ripple_primary"
+                    android:clickable="true"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    android:focusable="true"
                     android:orientation="vertical">
 
+                    <!-- Cut History Header -->
                     <LinearLayout
                         android:id="@+id/ll_cut_history_header"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_booking_header"
+                        android:gravity="center_vertical"
                         android:paddingVertical="8dp">
 
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
+                            android:layout_weight="1"
                             android:text="@string/cut_history_label"
                             android:textColor="@color/white"
                             android:textSize="16sp"
                             android:textStyle="bold" />
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_marginEnd="12dp"
+                            android:rotation="90"
+                            android:src="@drawable/ic_arrow_up"
+                            app:tint="@color/white" />
                     </LinearLayout>
 
-                    <!-- History Item 1 -->
-                    <LinearLayout
-                        android:id="@+id/ll_history_item_1"
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_cut_history_home"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
+                        android:clipChildren="false"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="8dp"
+                        tools:listitem="@layout/item_cut_history" />
 
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:layout_width="60dp"
-                            android:layout_height="60dp"
-                            android:padding="2dp"
-                            android:src="@drawable/ic_launcher_background"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                            app:strokeColor="@color/black"
-                            app:strokeWidth="1dp" />
+                    <ProgressBar
+                        android:id="@+id/pb_history_home"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_margin="16dp"
+                        android:visibility="gone" />
 
-                        <LinearLayout
-                            android:id="@+id/ll_history_info_row_1"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:baselineAligned="false"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <!-- Col 1: Name & Haircut -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col1_1"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1.2"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Ahmad"
-                                    android:textColor="@color/black"
-                                    android:textStyle="bold" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/style_fade"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-
-                            <!-- Col 2: Price & Duration -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col2_1"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="RM 25.00"
-                                    android:textColor="@color/black"
-                                    android:textSize="11sp" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="30 mins"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-
-                            <!-- Col 3: Date & Time -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col3_1"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="12/05/23"
-                                    android:textColor="@color/black"
-                                    android:textSize="11sp" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="2:00 PM"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-
-                            <!-- Col 4: Rating -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col4_1"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="0.6"
-                                android:gravity="center"
-                                android:orientation="vertical">
-                                <ImageView
-                                    android:layout_width="14dp"
-                                    android:layout_height="14dp"
-                                    android:src="@android:drawable/btn_star_big_on"
-                                    app:tint="#016808" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="5/5"
-                                    android:textSize="11sp"
-                                    android:textColor="#016808"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEEEEE" android:layout_marginHorizontal="12dp"/>
-
-                    <!-- History Item 2 -->
-                    <LinearLayout
-                        android:id="@+id/ll_history_item_2"
+                    <TextView
+                        android:id="@+id/tv_empty_history_home"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
+                        android:gravity="center"
+                        android:padding="16dp"
+                        android:text="No past bookings found."
+                        android:visibility="gone" />
 
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:layout_width="60dp"
-                            android:layout_height="60dp"
-                            android:padding="2dp"
-                            android:src="@drawable/ic_launcher_background"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                            app:strokeColor="@color/black"
-                            app:strokeWidth="1dp" />
-
-                        <LinearLayout
-                            android:id="@+id/ll_history_info_row_2"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:baselineAligned="false"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <!-- Col 1: Name & Haircut -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col1_2"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1.2"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Ali"
-                                    android:textColor="@color/black"
-                                    android:textStyle="bold" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/style_pompadour"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-
-                            <!-- Col 2: Price & Duration -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col2_2"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="RM 30.00"
-                                    android:textColor="@color/black"
-                                    android:textSize="11sp" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="45 mins"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-
-                            <!-- Col 3: Date & Time -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col3_2"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="10/05/23"
-                                    android:textColor="@color/black"
-                                    android:textSize="11sp" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="4:30 PM"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-
-                            <!-- Col 4: Rating -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col4_2"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="0.6"
-                                android:gravity="center"
-                                android:orientation="vertical">
-                                <ImageView
-                                    android:layout_width="14dp"
-                                    android:layout_height="14dp"
-                                    android:src="@android:drawable/btn_star_big_on"
-                                    app:tint="#016808" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="4/5"
-                                    android:textSize="11sp"
-                                    android:textColor="#016808"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEEEEE" android:layout_marginHorizontal="12dp"/>
-
-                    <!-- History Item 3 -->
-                    <LinearLayout
-                        android:id="@+id/ll_history_item_3"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
-
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:layout_width="60dp"
-                            android:layout_height="60dp"
-                            android:padding="2dp"
-                            android:src="@drawable/ic_launcher_background"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                            app:strokeColor="@color/black"
-                            app:strokeWidth="1dp" />
-
-                        <LinearLayout
-                            android:id="@+id/ll_history_info_row_3"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:baselineAligned="false"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <!-- Col 1: Name & Haircut -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col1_3"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1.2"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Abu"
-                                    android:textColor="@color/black"
-                                    android:textStyle="bold" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/style_buzz_cut"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-
-                            <!-- Col 2: Price & Duration -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col2_3"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="RM 15.00"
-                                    android:textColor="@color/black"
-                                    android:textSize="11sp" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="20 mins"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-
-                            <!-- Col 3: Date & Time -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col3_3"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="05/05/23"
-                                    android:textColor="@color/black"
-                                    android:textSize="11sp" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="11:00 AM"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-
-                            <!-- Col 4: Rating -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col4_3"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="0.6"
-                                android:gravity="center"
-                                android:orientation="vertical">
-                                <ImageView
-                                    android:layout_width="14dp"
-                                    android:layout_height="14dp"
-                                    android:src="@android:drawable/btn_star_big_on"
-                                    app:tint="#016808" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="5/5"
-                                    android:textSize="11sp"
-                                    android:textColor="#016808"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEEEEE" android:layout_marginHorizontal="12dp"/>
-
-                    <!-- History Item 4 -->
-                    <LinearLayout
-                        android:id="@+id/ll_history_item_4"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
-
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:layout_width="60dp"
-                            android:layout_height="60dp"
-                            android:padding="2dp"
-                            android:src="@drawable/ic_launcher_background"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-                            app:strokeColor="@color/black"
-                            app:strokeWidth="1dp" />
-
-                        <LinearLayout
-                            android:id="@+id/ll_history_info_row_4"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:baselineAligned="false"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <!-- Col 1: Name & Haircut -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col1_4"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1.2"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Ahmad"
-                                    android:textColor="@color/black"
-                                    android:textStyle="bold" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/style_fade"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-
-                            <!-- Col 2: Price & Duration -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col2_4"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="RM 25.00"
-                                    android:textColor="@color/black"
-                                    android:textSize="11sp" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="30 mins"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-
-                            <!-- Col 3: Date & Time -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col3_4"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="01/05/23"
-                                    android:textColor="@color/black"
-                                    android:textSize="11sp" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="3:00 PM"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-
-                            <!-- Col 4: Rating -->
-                            <LinearLayout
-                                android:id="@+id/ll_history_col4_4"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="0.6"
-                                android:gravity="center"
-                                android:orientation="vertical">
-                                <ImageView
-                                    android:layout_width="14dp"
-                                    android:layout_height="14dp"
-                                    android:src="@android:drawable/btn_star_big_on"
-                                    app:tint="#016808" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="5/5"
-                                    android:textSize="11sp"
-                                    android:textColor="#016808"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-                        </LinearLayout>
-                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

@@ -110,6 +110,27 @@ public class ProfileFragment extends Fragment {
         tvUserName = view.findViewById(R.id.tv_user_name);
         tvUserId = view.findViewById(R.id.tv_user_id);
         ivProfileLarge = view.findViewById(R.id.iv_profile_large);
+
+        // Click listeners for menu items
+        view.findViewById(R.id.layout_cut_history).setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), CutHistoryActivity.class);
+            startActivity(intent);
+        });
+
+        view.findViewById(R.id.layout_settings).setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), SettingsActivity.class);
+            startActivity(intent);
+        });
+
+        view.findViewById(R.id.layout_about).setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), AboutActivity.class);
+            startActivity(intent);
+        });
+
+        view.findViewById(R.id.layout_colleagues).setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), ColleaguesActivity.class);
+            startActivity(intent);
+        });
     }
 
     /**
@@ -314,7 +335,7 @@ public class ProfileFragment extends Fragment {
         if (scrollContent != null) scrollContent.setOnTouchListener(swipeListener);
         
         // Apply to all card items in the scroll view
-        int[] cardIds = {R.id.mcv_cut_history, R.id.mcv_settings, R.id.mcv_privacy_policy, R.id.mcv_user_agreement, R.id.mcv_about};
+        int[] cardIds = {R.id.mcv_cut_history, R.id.mcv_settings, R.id.mcv_privacy_policy, R.id.mcv_user_agreement, R.id.mcv_colleagues, R.id.mcv_about};
         for (int id : cardIds) {
             View card = rootView.findViewById(id);
             if (card != null) card.setOnTouchListener(swipeListener);
@@ -411,5 +432,41 @@ public class ProfileFragment extends Fragment {
         };
         if (btnEdit != null) btnEdit.setOnClickListener(editListener);
         if (ivPencil != null) ivPencil.setOnClickListener(editListener);
+
+        // --- Privacy Policy Action ---
+        View layoutPrivacy = view.findViewById(R.id.layout_privacy_policy);
+        if (layoutPrivacy != null) {
+            layoutPrivacy.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), PrivacyPolicyActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        // --- User Agreement Action ---
+        View layoutAgreement = view.findViewById(R.id.layout_user_agreement);
+        if (layoutAgreement != null) {
+            layoutAgreement.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), UserAgreementActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        // --- About Action ---
+        View layoutAbout = view.findViewById(R.id.layout_about);
+        if (layoutAbout != null) {
+            layoutAbout.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), AboutActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        // --- Colleagues Action ---
+        View layoutColleagues = view.findViewById(R.id.layout_colleagues);
+        if (layoutColleagues != null) {
+            layoutColleagues.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), ColleaguesActivity.class);
+                startActivity(intent);
+            });
+        }
     }
 }

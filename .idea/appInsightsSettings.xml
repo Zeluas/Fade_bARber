@@ -6,14 +6,6 @@
         <entry key="Firebase Crashlytics">
           <value>
             <InsightsFilterSettings>
-              <option name="connection">
-                <ConnectionSetting>
-                  <option name="appId" value="com.zejyv.azizul.uitm.fadebarber" />
-                  <option name="mobileSdkAppId" value="1:563818045519:android:967c39785b8606aa4fca3a" />
-                  <option name="projectId" value="fade-barber" />
-                  <option name="projectNumber" value="563818045519" />
-                </ConnectionSetting>
-              </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
               <option name="timeIntervalDays" value="THIRTY_DAYS" />
               <option name="visibilityType" value="ALL" />

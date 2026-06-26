@@ -71,7 +71,27 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
                     }
                 })
                 .addOnFailureListener(e -> holder.ivStylist.setImageResource(R.drawable.ic_profile));
-        
+
+        // Fetch and calculate average rating for the stylist
+        FirebaseFirestore.getInstance().collection("hairstylist_ratings")
+                .whereEqualTo("employeeId", employee.getUid())
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        double totalRating = 0;
+                        int count = queryDocumentSnapshots.size();
+                        for (com.google.firebase.firestore.DocumentSnapshot doc : queryDocumentSnapshots) {
+                            Double rating = doc.getDouble("rating");
+                            if (rating != null) totalRating += rating;
+                        }
+                        float average = (float) (totalRating / count);
+                        holder.rbRating.setRating(average);
+                    } else {
+                        holder.rbRating.setRating(0);
+                    }
+                })
+                .addOnFailureListener(e -> holder.rbRating.setRating(0));
+
         if (isSelectionEnabled) {
             holder.cbSelected.setVisibility(View.VISIBLE);
             holder.cbSelected.setChecked(position == selectedPosition);

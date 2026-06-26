@@ -1144,7 +1144,7 @@ public class BookingActivity extends AppCompatActivity {
                 for (QueryDocumentSnapshot document : task.getResult()) {
                     Employee employee = document.toObject(Employee.class);
                     stylistList.add(employee);
-                    
+
                     // If in edit mode and this is the original employee, select them
                     if (isEditMode && employee.getUid() != null && employee.getUid().equals(originalEmployeeId)) {
                         selectedEmployee = employee;
@@ -1157,12 +1157,12 @@ public class BookingActivity extends AppCompatActivity {
                 if (targetPosition != -1) {
                     stylistAdapter.setSelectedIndex(targetPosition);
                 }
-                
+
                 // If we selected an employee (pre-selection in edit mode), fetch their booked times
                 if (selectedEmployee != null) {
                     fetchBookedTimes();
                 }
-                
+
                 if (stylistList.isEmpty()) {
                     tvNoStylists.setVisibility(View.VISIBLE);
                 } else {

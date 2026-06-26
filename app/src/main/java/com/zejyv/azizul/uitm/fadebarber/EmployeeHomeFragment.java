@@ -70,6 +70,8 @@ public class EmployeeHomeFragment extends Fragment {
     private MaterialCardView mcvTopBar;
     private ScrollView svHomeContent;
     private TextView tvAiJab, tvWelcome, tvBookingCounter, tvTotalUpcoming, tvShopStatus, tvTimeEmployee, tvDateEmployee;
+    private TextView tvOverallRating, tvTotalReviewsCount, tvNoReviewsPlaceholder, tvAiInspiration;
+    private LinearLayout llRecentReviewsList;
     private ImageView ivProfile;
 
     // Current Customer UI
@@ -213,6 +215,13 @@ public class EmployeeHomeFragment extends Fragment {
         tvDateEmployee = view.findViewById(R.id.tv_date_employee);
         ivProfile = view.findViewById(R.id.iv_employee_profile);
 
+        // Ratings & Reviews UI
+        tvOverallRating = view.findViewById(R.id.tv_overall_rating);
+        tvTotalReviewsCount = view.findViewById(R.id.tv_total_reviews_count);
+        tvNoReviewsPlaceholder = view.findViewById(R.id.tv_no_reviews_placeholder);
+        tvAiInspiration = view.findViewById(R.id.tv_ai_inspiration);
+        llRecentReviewsList = view.findViewById(R.id.ll_recent_reviews_list);
+
         // Booking details initialization
         tvCustomerName = view.findViewById(R.id.tv_customer_name);
         tvBookingTime = view.findViewById(R.id.tv_booking_time);
@@ -252,18 +261,7 @@ public class EmployeeHomeFragment extends Fragment {
             transition.enableTransitionType(LayoutTransition.CHANGING);
         }
 
-        updateBookingCounter();
         // Counter UI will be updated by fetchNearestBooking
-    }
-
-    private void updateBookingCounter() {
-        // This will be called from fetchNearestBooking once we have data
-    }
-
-    private void updateBookingCounterUI(int count) {
-        if (tvBookingCounter != null) {
-            tvBookingCounter.setText(String.valueOf(count));
-        }
     }
 
     private void populateWelcomeMessage() {
@@ -308,18 +306,24 @@ public class EmployeeHomeFragment extends Fragment {
                                 klCal.get(Calendar.DAY_OF_MONTH), klCal.get(Calendar.MONTH) + 1, klCal.get(Calendar.YEAR) % 100);
 
                         int todayCount = 0;
+                        int completedCount = 0;
                         for (QueryDocumentSnapshot doc : value) {
                             String date = doc.getString("date");
                             String status = doc.getString("status");
                             if (todayDateStr.equals(date) && !"Cancelled".equalsIgnoreCase(status)) {
                                 todayCount++;
+                                if ("Completed".equalsIgnoreCase(status) || "Paying".equalsIgnoreCase(status) || "Rating".equalsIgnoreCase(status)) {
+                                    completedCount++;
+                                }
                                 if ("Pending".equalsIgnoreCase(status) || "Starting".equalsIgnoreCase(status) || "Paying".equalsIgnoreCase(status)) {
                                     todayPendingBookings.add(doc);
                                 }
                             }
                         }
 
-                        updateBookingCounterUI(todayCount);
+                        if (tvBookingCounter != null) {
+                            tvBookingCounter.setText(completedCount + "/" + todayCount);
+                        }
 
                         if (!todayPendingBookings.isEmpty()) {
                             Collections.sort(todayPendingBookings, new Comparator<QueryDocumentSnapshot>() {
@@ -614,14 +618,6 @@ public class EmployeeHomeFragment extends Fragment {
         // Session State Handling
         String status = doc.getString("status");
         if ("Starting".equals(status) || "Paying".equals(status) || "Rating".equals(status)) {
-            // Force redirect for Employees ONLY if in "Paying" status
-            if ("Paying".equals(status) && isAdded() && getContext() != null && !SessionActivity.isRunning) {
-                android.content.Intent intent = new android.content.Intent(getActivity(), SessionActivity.class);
-                intent.putExtra("BOOKING_ID", currentBookingId);
-                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(intent);
-            }
-
             if (btnStartSession != null) btnStartSession.setVisibility(View.GONE);
             if (btnNoShow != null) btnNoShow.setVisibility(View.GONE);
             
@@ -1094,6 +1090,190 @@ public class EmployeeHomeFragment extends Fragment {
         populateWelcomeMessage();
         loadProfileImage();
         fetchNearestBooking();
+        fetchRatingsAndReviews();
+    }
+
+    private void fetchRatingsAndReviews() {
+        if (mAuth.getCurrentUser() == null) return;
+        String uid = mAuth.getCurrentUser().getUid();
+
+        db.collection("hairstylist_ratings")
+                .whereEqualTo("employeeId", uid)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null || value == null) return;
+
+                    int count = value.size();
+                    double sum = 0;
+                    List<QueryDocumentSnapshot> reviews = new ArrayList<>();
+
+                    for (QueryDocumentSnapshot doc : value) {
+                        Double rating = doc.getDouble("rating");
+                        if (rating != null) sum += rating;
+                        reviews.add(doc);
+                    }
+
+                    if (count > 0) {
+                        double avg = sum / count;
+                        tvOverallRating.setText(String.format(Locale.getDefault(), "%.1f", avg));
+                        tvTotalReviewsCount.setText("Based on " + count + " reviews");
+                        tvNoReviewsPlaceholder.setVisibility(View.GONE);
+                        
+                        // Sort by timestamp and take top 5
+                        Collections.sort(reviews, (r1, r2) -> {
+                            Timestamp t1 = r1.getTimestamp("timestamp");
+                            Timestamp t2 = r2.getTimestamp("timestamp");
+                            if (t1 == null || t2 == null) return 0;
+                            return t2.compareTo(t1);
+                        });
+
+                        int limit = Math.min(reviews.size(), 5);
+                        updateReviewsUI(reviews.subList(0, limit));
+                        generateAiInspiration(avg, count, reviews.subList(0, limit));
+                    } else {
+                        tvOverallRating.setText("0.0");
+                        tvTotalReviewsCount.setText("Based on 0 reviews");
+                        tvNoReviewsPlaceholder.setVisibility(View.VISIBLE);
+                        tvAiInspiration.setText("No ratings yet to analyze.");
+                        llRecentReviewsList.removeAllViews();
+                    }
+                });
+    }
+
+    private void generateAiInspiration(double avgRating, int totalCount, List<QueryDocumentSnapshot> recentReviews) {
+        if (getContext() == null || tvAiInspiration == null) return;
+
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("ai_inspiration_prefs", android.content.Context.MODE_PRIVATE);
+        String cachedDate = prefs.getString("last_refresh_date", "");
+        String cachedInspiration = prefs.getString("cached_inspiration", "");
+
+        Calendar klCal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+        klCal.setTimeInMillis(System.currentTimeMillis() + serverTimeOffset);
+        SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        sdfDate.setTimeZone(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+        String todayDate = sdfDate.format(klCal.getTime());
+
+        if (todayDate.equals(cachedDate) && !cachedInspiration.isEmpty()) {
+            tvAiInspiration.setText(cachedInspiration);
+            return;
+        }
+
+        String apiKey = BuildConfig.GEMINI_API_KEY;
+        if (apiKey == null || apiKey.isEmpty() || apiKey.equals("PASTE_YOUR_API_KEY_HERE")) {
+            tvAiInspiration.setText("Keep up the great work!");
+            return;
+        }
+
+        GenerativeModel gm = new GenerativeModel("gemini-3.1-flash-lite", apiKey);
+        GenerativeModelFutures model = GenerativeModelFutures.from(gm);
+
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append("Generate a short, encouraging, and inspirational message (max 30 words) for a barber. ");
+        promptBuilder.append("Context: Their overall rating is ").append(String.format(Locale.getDefault(), "%.1f", avgRating)).append("/5.0 based on ").append(totalCount).append(" reviews. ");
+        promptBuilder.append("Here are some recent customer comments: ");
+        for (QueryDocumentSnapshot review : recentReviews) {
+            String comment = review.getString("comment");
+            if (comment != null && !comment.isEmpty()) {
+                promptBuilder.append("'").append(comment).append("', ");
+            }
+        }
+        promptBuilder.append("Based on this, give them motivation to be better or praise for their current quality. Be professional yet supportive. No emojis.");
+
+        Content content = new Content.Builder().addText(promptBuilder.toString()).build();
+        Executor executor = Executors.newSingleThreadExecutor();
+        ListenableFuture<GenerateContentResponse> response = model.generateContent(content);
+
+        Futures.addCallback(response, new FutureCallback<GenerateContentResponse>() {
+            @Override
+            public void onSuccess(@NonNull GenerateContentResponse result) {
+                String text = result.getText();
+                if (text != null && isAdded()) {
+                    handler.post(() -> {
+                        tvAiInspiration.setText(text);
+                        prefs.edit()
+                                .putString("last_refresh_date", todayDate)
+                                .putString("cached_inspiration", text)
+                                .apply();
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Throwable t) {
+                handler.post(() -> tvAiInspiration.setText("Keep pushing your craft to perfection!"));
+            }
+        }, executor);
+    }
+
+    private void updateReviewsUI(List<QueryDocumentSnapshot> reviews) {
+        if (llRecentReviewsList == null) return;
+        llRecentReviewsList.removeAllViews();
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        for (int i = 0; i < reviews.size(); i++) {
+            QueryDocumentSnapshot doc = reviews.get(i);
+            View itemView = inflater.inflate(R.layout.item_review_employee, llRecentReviewsList, false);
+
+            TextView tvName = itemView.findViewById(R.id.tv_reviewer_name);
+            TextView tvComment = itemView.findViewById(R.id.tv_review_comment);
+            TextView tvDate = itemView.findViewById(R.id.tv_review_date);
+            TextView tvTime = itemView.findViewById(R.id.tv_review_time);
+            TextView tvBookingId = itemView.findViewById(R.id.tv_review_booking_id);
+            android.widget.RatingBar rbStars = itemView.findViewById(R.id.rb_review_stars);
+            ImageView ivReviewer = itemView.findViewById(R.id.iv_reviewer_profile);
+
+            Double rating = doc.getDouble("rating");
+            if (rating != null) rbStars.setRating(rating.floatValue());
+            
+            tvComment.setText(doc.getString("comment"));
+            
+            String bId = doc.getString("bookingId");
+            if (bId != null) {
+                tvBookingId.setText("#" + bId);
+                
+                // Fetch booking time
+                db.collection("bookings").document(bId).get().addOnSuccessListener(bookingDoc -> {
+                    if (bookingDoc.exists() && isAdded()) {
+                        tvTime.setText(bookingDoc.getString("time"));
+                    }
+                });
+            }
+
+            Timestamp ts = doc.getTimestamp("timestamp");
+            if (ts != null) {
+                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yy", Locale.getDefault());
+                tvDate.setText(sdf.format(ts.toDate()));
+            }
+
+            String customerId = doc.getString("customerId");
+            if (customerId != null) {
+                // Fetch customer details
+                db.collection("customers").document(customerId).get().addOnSuccessListener(customerDoc -> {
+                    if (customerDoc.exists() && isAdded()) {
+                        tvName.setText(customerDoc.getString("name"));
+                    }
+                });
+
+                // Fetch customer profile pic
+                db.collection("profile_pics").document(customerId).get().addOnSuccessListener(picDoc -> {
+                    if (picDoc.exists() && isAdded()) {
+                        String url = picDoc.getString("url");
+                        if (url != null && !url.isEmpty()) {
+                            Glide.with(this).load(url).placeholder(R.drawable.ic_profile).into(ivReviewer);
+                        }
+                    }
+                });
+            }
+
+            llRecentReviewsList.addView(itemView);
+
+            if (i < reviews.size() - 1) {
+                View divider = new View(getContext());
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (int) (1 * getResources().getDisplayMetrics().density));
+                divider.setLayoutParams(lp);
+                divider.setBackgroundColor(Color.parseColor("#EEEEEE"));
+                llRecentReviewsList.addView(divider);
+            }
+        }
     }
 
     private void loadProfileImage() {
