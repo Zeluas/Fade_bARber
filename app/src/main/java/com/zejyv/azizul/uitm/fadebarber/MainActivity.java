@@ -1,11 +1,14 @@
 package com.zejyv.azizul.uitm.fadebarber;
 
 import android.animation.ValueAnimator;
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.StateListDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.GestureDetector;
@@ -19,6 +22,8 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 import androidx.viewpager2.widget.ViewPager2;
@@ -29,7 +34,10 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Calendar;
 import java.util.Locale;
+import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 
 /**
  * MainActivity: The primary host for the customer application interface.
@@ -61,6 +69,14 @@ public class MainActivity extends AppCompatActivity {
     private View layoutCancelConfirmation, mcvCancelDialog;
     private Runnable onCancelConfirmAction;
 
+    // --- Error Banner Components ---
+    private View layoutErrorBannerRoot;
+    private android.widget.TextView tvErrorBannerMsg;
+    private View viewRadarPulse;
+    private android.animation.AnimatorSet radarAnimatorSet;
+    private boolean isErrorPersistent = false;
+    private android.net.ConnectivityManager.NetworkCallback networkCallback;
+
     // --- Profile Image Preview Components ---
     private View layoutImagePreview, vPreviewTopBar;
     private ImageView ivFullPreview;
@@ -72,11 +88,38 @@ public class MainActivity extends AppCompatActivity {
     private final float[] lastTouch = new float[2];
     private boolean isPanning = false;
 
+    // --- Cleanup Task ---
+    private final android.os.Handler cleanupHandler = new android.os.Handler();
+    private final Runnable cleanupRunnable = new Runnable() {
+        @Override
+        public void run() {
+            BookingUtils.performBookingCleanup();
+
+            // Calculate timing for next check: 
+            // If minute < 50, wait until minute 50.
+            // If minute >= 50, check every minute until next hour starts.
+            Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+            int minute = cal.get(Calendar.MINUTE);
+            long delay;
+
+            if (minute < 50) {
+                delay = TimeUnit.MINUTES.toMillis(50 - minute);
+            } else {
+                delay = TimeUnit.MINUTES.toMillis(1);
+            }
+
+            cleanupHandler.postDelayed(this, delay);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_customer);
 
+        checkNotificationPermission();
+        FCMUtils.updateTokenInFirestore();
+        startNotificationService();
         initializeViews();
         setupBadge();
         setupNavigationSync();
@@ -86,7 +129,23 @@ public class MainActivity extends AppCompatActivity {
         setupCallStylistDialog();
         setupCancelDialog();
         setupImagePreview();
+        setupErrorBanner();
+        setupConnectivityListener();
         setupBackPressed();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Start periodic cleanup
+        cleanupHandler.post(cleanupRunnable);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Stop periodic cleanup to save battery/data when app is in background
+        cleanupHandler.removeCallbacks(cleanupRunnable);
     }
 
     /**
@@ -101,13 +160,14 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setAdapter(adapter);
     }
 
+    private com.google.firebase.firestore.ListenerRegistration badgeListener;
+
     /**
      * Configures notification badges on the Activity/Notification tab.
+     * Dynamically updates based on unread notifications in Firestore.
      */
     private void setupBadge() {
-        BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.navigation_notifications);
-        badge.setVisible(true);
-        badge.setNumber(3); // Mock count
+        final BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.navigation_notifications);
         badge.setBackgroundColor(Color.parseColor("#D81B60"));
         badge.setBadgeTextColor(Color.WHITE);
 
@@ -115,6 +175,31 @@ public class MainActivity extends AppCompatActivity {
         int offset = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4, getResources().getDisplayMetrics());
         badge.setVerticalOffset(offset);
         badge.setHorizontalOffset(offset);
+
+        // Fetch unread count from Firestore
+        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        if (uid == null) {
+            badge.setVisible(false);
+            return;
+        }
+
+        if (badgeListener != null) badgeListener.remove();
+        badgeListener = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("notifications")
+                .whereEqualTo("receiverId", uid)
+                .whereEqualTo("isRead", false)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) return;
+                    if (value != null) {
+                        int count = value.size();
+                        if (count > 0) {
+                            badge.setVisible(true);
+                            badge.setNumber(count);
+                        } else {
+                            badge.setVisible(false);
+                        }
+                    }
+                });
     }
 
     /**
@@ -213,6 +298,7 @@ public class MainActivity extends AppCompatActivity {
         Button btnLogoutConfirm = findViewById(R.id.btn_logout_confirm);
 
         if (btnLogoutConfirm != null) btnLogoutConfirm.setOnClickListener(v -> {
+            stopService(new Intent(MainActivity.this, BookingNotificationService.class));
             clearStoredCredentials();
             com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
             Intent intent = new Intent(MainActivity.this, AuthActivity.class);
@@ -684,6 +770,132 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void setupErrorBanner() {
+        layoutErrorBannerRoot = findViewById(R.id.layout_error_banner_root);
+        tvErrorBannerMsg = findViewById(R.id.tv_error_banner_msg);
+        viewRadarPulse = findViewById(R.id.view_radar_pulse);
+
+        if (layoutErrorBannerRoot != null) {
+            layoutErrorBannerRoot.setOnClickListener(v -> {
+                if (!isErrorPersistent) hideErrorBanner();
+            });
+        }
+    }
+
+    private void setupConnectivityListener() {
+        android.net.ConnectivityManager connectivityManager = (android.net.ConnectivityManager) getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
+        if (connectivityManager == null) return;
+
+        // Initial check
+        if (!isNetworkAvailable()) {
+            showErrorBanner("No internet connection. Please check your network.", true);
+        }
+
+        networkCallback = new android.net.ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(@NonNull android.net.Network network) {
+                runOnUiThread(() -> {
+                    if (isErrorPersistent && tvErrorBannerMsg != null && 
+                        "No internet connection. Please check your network.".equals(tvErrorBannerMsg.getText().toString())) {
+                        hideErrorBanner();
+                    }
+                });
+            }
+
+            @Override
+            public void onLost(@NonNull android.net.Network network) {
+                runOnUiThread(() -> {
+                    if (!isNetworkAvailable()) {
+                        showErrorBanner("No internet connection. Please check your network.", true);
+                    }
+                });
+            }
+        };
+
+        connectivityManager.registerDefaultNetworkCallback(networkCallback);
+    }
+
+    private void checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
+            }
+        }
+    }
+
+    private void startNotificationService() {
+        android.content.Intent intent = new android.content.Intent(this, BookingNotificationService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent);
+        } else {
+            startService(intent);
+        }
+    }
+
+    private boolean isNetworkAvailable() {
+        android.net.ConnectivityManager connectivityManager = (android.net.ConnectivityManager) getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
+        if (connectivityManager != null) {
+            android.net.NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.getActiveNetwork());
+            return capabilities != null && (capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) ||
+                    capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                    capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET));
+        }
+        return false;
+    }
+
+    public void showErrorBanner(String message) {
+        showErrorBanner(message, false);
+    }
+
+    public void showErrorBanner(String message, boolean persistent) {
+        if (layoutErrorBannerRoot == null || tvErrorBannerMsg == null || viewRadarPulse == null) return;
+
+        this.isErrorPersistent = persistent;
+        tvErrorBannerMsg.setText(message);
+        layoutErrorBannerRoot.setVisibility(View.VISIBLE);
+        layoutErrorBannerRoot.setAlpha(1f);
+
+        if (radarAnimatorSet == null) {
+            android.animation.ObjectAnimator scaleX = android.animation.ObjectAnimator.ofFloat(viewRadarPulse, "scaleX", 1f, 6f);
+            android.animation.ObjectAnimator scaleY = android.animation.ObjectAnimator.ofFloat(viewRadarPulse, "scaleY", 1f, 3f);
+            android.animation.ObjectAnimator alpha = android.animation.ObjectAnimator.ofFloat(viewRadarPulse, "alpha", 0.7f, 0f);
+
+            scaleX.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            scaleY.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            alpha.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+
+            radarAnimatorSet = new android.animation.AnimatorSet();
+            radarAnimatorSet.playTogether(scaleX, scaleY, alpha);
+            radarAnimatorSet.setDuration(2000);
+        }
+        if (!radarAnimatorSet.isRunning()) radarAnimatorSet.start();
+    }
+
+    public void hideErrorBanner() {
+        if (layoutErrorBannerRoot == null) return;
+        isErrorPersistent = false;
+        if (radarAnimatorSet != null) radarAnimatorSet.cancel();
+        layoutErrorBannerRoot.animate().alpha(0f).setDuration(300).withEndAction(() -> {
+            layoutErrorBannerRoot.setVisibility(View.GONE);
+            viewRadarPulse.setScaleX(1f);
+            viewRadarPulse.setScaleY(1f);
+            viewRadarPulse.setAlpha(0f);
+        }).start();
+    }
+
+    public String formatError(Exception e) {
+        if (e == null) return "An unexpected error occurred. Please try again.";
+        String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+        if (msg.contains("network") || msg.contains("unavailable") || msg.contains("offline") || msg.contains("failed to get document") || msg.contains("grpc")) {
+            return "No internet connection. Please check your network.";
+        } else if (msg.contains("timeout") || msg.contains("deadline")) {
+            return "Connection timed out. Please try again.";
+        } else if (msg.contains("quota exceeded") || msg.contains("too many requests")) {
+            return "Too many requests. Please try again later.";
+        }
+        return "Something went wrong. Please try again.";
+    }
+
     /**
      * Configures the system back button behavior to show the exit dialog.
      */
@@ -691,7 +903,9 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (layoutImagePreview != null && layoutImagePreview.getVisibility() == View.VISIBLE) {
+                if (layoutErrorBannerRoot != null && layoutErrorBannerRoot.getVisibility() == View.VISIBLE) {
+                    if (!isErrorPersistent) hideErrorBanner();
+                } else if (layoutImagePreview != null && layoutImagePreview.getVisibility() == View.VISIBLE) {
                     hideImagePreview();
                 } else if (layoutCancelConfirmation != null && layoutCancelConfirmation.getVisibility() == View.VISIBLE) {
                     hideCancelDialog();
@@ -706,6 +920,16 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (badgeListener != null) badgeListener.remove();
+        super.onDestroy();
+        if (networkCallback != null) {
+            android.net.ConnectivityManager connectivityManager = (android.net.ConnectivityManager) getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
+            if (connectivityManager != null) connectivityManager.unregisterNetworkCallback(networkCallback);
+        }
     }
 
     /**

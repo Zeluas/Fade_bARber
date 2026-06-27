@@ -1,22 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Activity Read Fragment Layout: Displays an empty state message for read notifications.
-    Optimized: Localized strings and clean FrameLayout.
--->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/layout_activity_read_root"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fillViewport="true"
     android:background="@color/back_primary_color">
 
-    <TextView
-        android:id="@+id/tv_empty_read_msg"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="@string/activity_empty_read"
-        android:textColor="@color/black"
-        android:alpha="0.4"
-        android:textSize="16sp" />
+        android:orientation="vertical"
+        android:paddingVertical="12dp">
 
-</FrameLayout>
+        <TextView
+            android:id="@+id/tv_empty_read_msg"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="100dp"
+            android:gravity="center"
+            android:text="@string/activity_empty_read"
+            android:textColor="@color/black"
+            android:alpha="0.4"
+            android:textSize="16sp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/ll_read_notifications_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+    </LinearLayout>
+</ScrollView>

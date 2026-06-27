@@ -529,4 +529,55 @@
             android:layout_gravity="center" />
     </FrameLayout>
 
+    <!-- Section 8: Error Banner Overlay -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_error_banner_root"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/warning_red"
+        android:clickable="true"
+        android:elevation="70dp"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <!-- Radar Pulse View -->
+        <View
+            android:id="@+id/view_radar_pulse"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:alpha="0"
+            android:background="@drawable/bg_radar_pulse"
+            app:layout_constraintBottom_toBottomOf="@+id/ll_error_banner"
+            app:layout_constraintEnd_toEndOf="@+id/ll_error_banner"
+            app:layout_constraintStart_toStartOf="@+id/ll_error_banner"
+            app:layout_constraintTop_toTopOf="@+id/ll_error_banner" />
+
+        <LinearLayout
+            android:id="@+id/ll_error_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/warning_red_icon"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_warning_circle"
+                app:tint="@color/white" />
+
+            <TextView
+                android:id="@+id/tv_error_banner_msg"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="@string/signup_error_default_msg"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

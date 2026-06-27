@@ -70,6 +70,16 @@ public class ProfileEditActivity extends AppCompatActivity {
     private EditText etReauthPassword;
     private com.google.android.material.button.MaterialButton btnReauthCancel, btnReauthConfirm;
 
+    // Delete Account components
+    private com.google.android.material.button.MaterialButton btnDeleteAccount;
+    private View layoutDeleteConfirmation, mcvDeleteDialog;
+    private com.google.android.material.checkbox.MaterialCheckBox cbDeleteConfirm;
+    private com.google.android.material.button.MaterialButton btnDeleteCancel, btnDeleteConfirmAction;
+
+    private View layoutReauthDelete, mcvReauthDeleteDialog;
+    private EditText etReauthDeletePassword;
+    private com.google.android.material.button.MaterialButton btnReauthDeleteCancel, btnReauthDeleteConfirm;
+
     private boolean isEmployee = false;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
@@ -149,11 +159,28 @@ public class ProfileEditActivity extends AppCompatActivity {
         btnReauthCancel = findViewById(R.id.btn_reauth_cancel);
         btnReauthConfirm = findViewById(R.id.btn_reauth_confirm);
 
+        btnDeleteAccount = findViewById(R.id.btn_delete_account);
+
+        // Delete Confirmation
+        layoutDeleteConfirmation = findViewById(R.id.layout_delete_confirmation);
+        mcvDeleteDialog = findViewById(R.id.mcv_delete_dialog);
+        cbDeleteConfirm = findViewById(R.id.cb_delete_confirm);
+        btnDeleteCancel = findViewById(R.id.btn_delete_cancel);
+        btnDeleteConfirmAction = findViewById(R.id.btn_delete_confirm_action);
+
+        // Re-auth Delete
+        layoutReauthDelete = findViewById(R.id.layout_reauth_delete);
+        mcvReauthDeleteDialog = findViewById(R.id.mcv_reauth_delete_dialog);
+        etReauthDeletePassword = findViewById(R.id.et_reauth_delete_password);
+        btnReauthDeleteCancel = findViewById(R.id.btn_reauth_delete_cancel);
+        btnReauthDeleteConfirm = findViewById(R.id.btn_reauth_delete_confirm);
+
         findViewById(R.id.iv_back_profile_edit).setOnClickListener(v -> finish());
         
         setupPasswordVisibilityToggle(etPassword);
         setupPasswordVisibilityToggle(etConfirmPassword);
         setupPasswordVisibilityToggle(etReauthPassword);
+        setupPasswordVisibilityToggle(etReauthDeletePassword);
 
         setupFocusValidation();
 
@@ -168,6 +195,58 @@ public class ProfileEditActivity extends AppCompatActivity {
 
         if (btnReauthCancel != null) btnReauthCancel.setOnClickListener(v -> hideReauthOverlay());
         if (btnReauthConfirm != null) btnReauthConfirm.setOnClickListener(v -> proceedWithValidatedUpdate());
+
+        if (btnDeleteAccount != null) btnDeleteAccount.setOnClickListener(v -> showDeleteConfirmation());
+        if (btnDeleteCancel != null) btnDeleteCancel.setOnClickListener(v -> hideDeleteConfirmation());
+        
+        if (cbDeleteConfirm != null) {
+            cbDeleteConfirm.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (btnDeleteConfirmAction != null) {
+                    btnDeleteConfirmAction.setAlpha(isChecked ? 1.0f : 0.5f);
+                }
+            });
+        }
+
+        if (btnDeleteConfirmAction != null) {
+            btnDeleteConfirmAction.setOnClickListener(v -> {
+                if (cbDeleteConfirm.isChecked()) {
+                    hideDeleteConfirmation();
+                    showReauthDelete();
+                } else {
+                    Toast.makeText(this, "Please confirm by checking the box first.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        if (btnReauthDeleteCancel != null) btnReauthDeleteCancel.setOnClickListener(v -> hideReauthDelete());
+        if (btnReauthDeleteConfirm != null) btnReauthDeleteConfirm.setOnClickListener(v -> proceedWithAccountDeletion());
+
+        // Dismiss overlays on outside click
+        if (layoutReauthConfirmation != null) layoutReauthConfirmation.setOnClickListener(v -> hideReauthOverlay());
+        if (layoutDeleteConfirmation != null) layoutDeleteConfirmation.setOnClickListener(v -> hideDeleteConfirmation());
+        if (layoutReauthDelete != null) layoutReauthDelete.setOnClickListener(v -> hideReauthDelete());
+        if (layoutStatusOverlay != null) layoutStatusOverlay.setOnClickListener(v -> hideStatusOverlay());
+
+        // Prevent dismissal when clicking inside the dialog cards
+        if (mcvReauthDialog != null) mcvReauthDialog.setOnClickListener(v -> {});
+        if (mcvDeleteDialog != null) mcvDeleteDialog.setOnClickListener(v -> {});
+        if (mcvReauthDeleteDialog != null) mcvReauthDeleteDialog.setOnClickListener(v -> {});
+        if (mcvStatusDialog != null) mcvStatusDialog.setOnClickListener(v -> {});
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (layoutStatusOverlay != null && layoutStatusOverlay.getVisibility() == View.VISIBLE) {
+            hideStatusOverlay();
+        } else if (layoutReauthDelete != null && layoutReauthDelete.getVisibility() == View.VISIBLE) {
+            hideReauthDelete();
+        } else if (layoutDeleteConfirmation != null && layoutDeleteConfirmation.getVisibility() == View.VISIBLE) {
+            hideDeleteConfirmation();
+        } else if (layoutReauthConfirmation != null && layoutReauthConfirmation.getVisibility() == View.VISIBLE) {
+            hideReauthOverlay();
+        } else {
+            super.onBackPressed();
+        }
     }
 
     private void setupPasswordVisibilityToggle(EditText editText) {
@@ -214,6 +293,10 @@ public class ProfileEditActivity extends AppCompatActivity {
 
             String fullnameInPrefs = prefs.getString("fullname", "");
             isEmployee = !fullnameInPrefs.isEmpty();
+
+            if (btnDeleteAccount != null) {
+                btnDeleteAccount.setVisibility(isEmployee ? View.GONE : View.VISIBLE);
+            }
 
             if (isEmployee) {
                 mcvSpecialty.setVisibility(View.VISIBLE);
@@ -479,6 +562,7 @@ public class ProfileEditActivity extends AppCompatActivity {
 
     private void hideReauthOverlay() {
         if (layoutReauthConfirmation == null || mcvReauthDialog == null) return;
+        hideKeyboard();
         mcvReauthDialog.animate().scaleX(0f).scaleY(0f).setDuration(200).start();
         layoutReauthConfirmation.animate().alpha(0f).setDuration(200).withEndAction(() -> layoutReauthConfirmation.setVisibility(View.GONE)).start();
     }
@@ -772,6 +856,153 @@ public class ProfileEditActivity extends AppCompatActivity {
         mcvStatusDialog.animate().scaleX(0f).scaleY(0f).setDuration(200).start();
         layoutStatusOverlay.animate().alpha(0f).setDuration(200)
                 .withEndAction(() -> layoutStatusOverlay.setVisibility(View.GONE)).start();
+    }
+
+    private void showDeleteConfirmation() {
+        if (layoutDeleteConfirmation == null || mcvDeleteDialog == null) return;
+        cbDeleteConfirm.setChecked(false);
+        if (btnDeleteConfirmAction != null) btnDeleteConfirmAction.setAlpha(0.5f);
+        layoutDeleteConfirmation.setVisibility(View.VISIBLE);
+        layoutDeleteConfirmation.setAlpha(0f);
+        layoutDeleteConfirmation.animate().alpha(1f).setDuration(200).start();
+        mcvDeleteDialog.setScaleX(0f);
+        mcvDeleteDialog.setScaleY(0f);
+        mcvDeleteDialog.animate().scaleX(1f).scaleY(1f).setDuration(300).start();
+    }
+
+    private void hideDeleteConfirmation() {
+        if (layoutDeleteConfirmation == null || mcvDeleteDialog == null) return;
+        mcvDeleteDialog.animate().scaleX(0f).scaleY(0f).setDuration(200).start();
+        layoutDeleteConfirmation.animate().alpha(0f).setDuration(200).withEndAction(() -> layoutDeleteConfirmation.setVisibility(View.GONE)).start();
+    }
+
+    private void showReauthDelete() {
+        if (layoutReauthDelete == null || mcvReauthDeleteDialog == null) return;
+        etReauthDeletePassword.setText("");
+        layoutReauthDelete.setVisibility(View.VISIBLE);
+        layoutReauthDelete.setAlpha(0f);
+        layoutReauthDelete.animate().alpha(1f).setDuration(200).start();
+        mcvReauthDeleteDialog.setScaleX(0f);
+        mcvReauthDeleteDialog.setScaleY(0f);
+        mcvReauthDeleteDialog.animate().scaleX(1f).scaleY(1f).setDuration(300).withEndAction(() -> {
+            etReauthDeletePassword.requestFocus();
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.showSoftInput(etReauthDeletePassword, InputMethodManager.SHOW_IMPLICIT);
+        }).start();
+    }
+
+    private void hideReauthDelete() {
+        if (layoutReauthDelete == null || mcvReauthDeleteDialog == null) return;
+        hideKeyboard();
+        mcvReauthDeleteDialog.animate().scaleX(0f).scaleY(0f).setDuration(200).start();
+        layoutReauthDelete.animate().alpha(0f).setDuration(200).withEndAction(() -> layoutReauthDelete.setVisibility(View.GONE)).start();
+    }
+
+    private void proceedWithAccountDeletion() {
+        String currentPassword = etReauthDeletePassword.getText().toString();
+        if (currentPassword.isEmpty()) {
+            etReauthDeletePassword.setError("Password required to confirm deletion");
+            return;
+        }
+
+        FirebaseUser user = mAuth.getCurrentUser();
+        if (user == null || user.getEmail() == null) return;
+
+        hideReauthDelete();
+        hideKeyboard();
+        loadingOverlay.setVisibility(View.VISIBLE);
+
+        AuthCredential credential = EmailAuthProvider.getCredential(user.getEmail(), currentPassword);
+        user.reauthenticate(credential).addOnSuccessListener(aVoid -> {
+            performAccountDeletion();
+        }).addOnFailureListener(e -> {
+            loadingOverlay.setVisibility(View.GONE);
+            showStatusOverlay(false, "Verification Failed", "Incorrect current password. Deletion aborted.");
+        });
+    }
+
+    private void performAccountDeletion() {
+        loadingOverlay.setVisibility(View.VISIBLE);
+
+        // 1. Update Firestore 'users' collection
+        Map<String, Object> userUpdate = new HashMap<>();
+        userUpdate.put("email", "deleted");
+        userUpdate.put("role", "deleted");
+
+        db.collection("users").document(userId).update(userUpdate)
+                .addOnSuccessListener(aVoid1 -> {
+                    // 1b. Cancel all pending bookings for this user
+                    cancelUserBookings();
+                })
+                .addOnFailureListener(e -> {
+                    loadingOverlay.setVisibility(View.GONE);
+                    showStatusOverlay(false, "Deletion Error", "Failed to update user record: " + e.getMessage());
+                });
+    }
+
+    private void cancelUserBookings() {
+        db.collection("bookings")
+                .whereEqualTo("customerId", userId)
+                .whereEqualTo("status", "Pending")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (queryDocumentSnapshots.isEmpty()) {
+                        deleteProfilePicAndAuth();
+                        return;
+                    }
+
+                    com.google.firebase.firestore.WriteBatch batch = db.batch();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        batch.update(doc.getReference(), "status", "Cancelled");
+                    }
+
+                    batch.commit().addOnCompleteListener(task -> deleteProfilePicAndAuth());
+                })
+                .addOnFailureListener(e -> {
+                    // Proceed anyway to ensure account deletion isn't blocked by secondary cleanup failure
+                    deleteProfilePicAndAuth();
+                });
+    }
+
+    private void deleteProfilePicAndAuth() {
+        // 2. Delete profile pic document
+        db.collection("profile_pics").document(userId).delete()
+                .addOnCompleteListener(task -> {
+                    // 3. Delete Firebase Auth User
+                    FirebaseUser user = mAuth.getCurrentUser();
+                    if (user != null) {
+                        user.delete().addOnSuccessListener(aVoid2 -> {
+                            forceLogoutForDeletion();
+                        }).addOnFailureListener(e -> {
+                            loadingOverlay.setVisibility(View.GONE);
+                            showStatusOverlay(false, "Deletion Error", "Account updated in DB but Auth deletion failed: " + e.getMessage());
+                        });
+                    } else {
+                        forceLogoutForDeletion();
+                    }
+                });
+    }
+
+    private void forceLogoutForDeletion() {
+        loadingOverlay.setVisibility(View.GONE);
+        mAuth.signOut();
+        try {
+            MasterKey masterKey = new MasterKey.Builder(this)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build();
+            android.content.SharedPreferences prefs = EncryptedSharedPreferences.create(
+                    this, "secret_shared_prefs", masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+            prefs.edit().clear().apply();
+        } catch (Exception ignored) {}
+
+        Intent intent = new Intent(this, AuthActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+        Toast.makeText(this, "Your account has been permanently deleted.", Toast.LENGTH_LONG).show();
     }
 
     private void setFieldError(EditText et, String error, boolean requestFocus) {

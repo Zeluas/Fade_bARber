@@ -286,6 +286,16 @@ public class BookingActivity extends AppCompatActivity {
                 if (tvDate != null) tvDate.setText(originalDate);
                 if (tvTime != null) tvTime.setText(originalTime);
 
+                // Synchronize internal hour/AM-PM state with the fetched booking time
+                if (originalTime != null && originalTime.length() >= 8) {
+                    try {
+                        currentSelectedHour = Integer.parseInt(originalTime.substring(0, 2));
+                        currentSelectedAmPm = originalTime.substring(6);
+                    } catch (Exception e) {
+                        android.util.Log.e("BookingActivity", "Error parsing original time: " + e.getMessage());
+                    }
+                }
+
                 if (isEmployeeEdit) {
                     // Fetch customer info
                     if (originalCustomerId != null) {
@@ -960,9 +970,15 @@ public class BookingActivity extends AppCompatActivity {
                         String selectedTime = String.format(Locale.getDefault(), "%02d:00 %s", currentSelectedHour, currentSelectedAmPm);
 
                         for (QueryDocumentSnapshot doc : value) {
+                            String bid = doc.getString("bookingId");
                             String status = doc.getString("status");
                             String time = doc.getString("time");
                             String cid = doc.getString("customerId");
+
+                            // Skip the current booking being edited to allow re-selection of the same slot
+                            if (isEditMode && editingBookingId != null && editingBookingId.equals(bid)) {
+                                continue;
+                            }
 
                             // Only count non-cancelled bookings
                             if (time != null && !"Cancelled".equalsIgnoreCase(status)) {
@@ -977,26 +993,27 @@ public class BookingActivity extends AppCompatActivity {
                         
                         // Re-validate current selection
                         // We ONLY auto-switch if it's taken by someone else, or now in the past, or out of business hours.
-                        // This avoids the "Slot no longer available" toast when the user just booked it themselves.
-                        boolean isInvalid = conflictFromOtherUser ||
+                        // However, if it's the ORIGINAL slot of the booking being edited, we allow it.
+                        boolean isOriginalSlot = isEditMode && date.equals(originalDate) &&
+                                               selectedTime.equals(originalTime) &&
+                                               selectedEmployee != null && selectedEmployee.getUid().equals(originalEmployeeId);
+
+                        boolean isInvalid = (conflictFromOtherUser ||
                                            !isWithinBusinessHours(currentSelectedHour, currentSelectedAmPm) ||
-                                           isSlotInPast(currentSelectedHour, currentSelectedAmPm);
+                                           isSlotInPast(currentSelectedHour, currentSelectedAmPm)) && !isOriginalSlot;
 
                         if (isInvalid) {
                             findFirstAvailableSlot();
                             tvTime.setText(String.format(Locale.getDefault(), "%02d:00 %s", currentSelectedHour, currentSelectedAmPm));
                             
                             if (conflictFromOtherUser) {
-                                // Suppress toast if employee is editing and it's their original slot
-                                boolean isOriginalSlot = isEmployeeEdit && date.equals(originalDate) &&
-                                                       selectedTime.equals(originalTime) &&
-                                                       selectedEmployee != null && selectedEmployee.getUid().equals(originalEmployeeId);
-
                                 if (!isOriginalSlot) {
                                     Toast.makeText(BookingActivity.this, "The selected slot was just taken. Switched to next available.", Toast.LENGTH_SHORT).show();
                                 }
                             } else {
-                                Toast.makeText(BookingActivity.this, "Slot no longer available. Switched to next available.", Toast.LENGTH_SHORT).show();
+                                if (!isOriginalSlot) {
+                                    Toast.makeText(BookingActivity.this, "Slot no longer available. Switched to next available.", Toast.LENGTH_SHORT).show();
+                                }
                             }
                         }
 
@@ -1030,8 +1047,15 @@ public class BookingActivity extends AppCompatActivity {
                     if (value != null) {
                         java.util.Map<String, Integer> dateCounts = new java.util.HashMap<>();
                         for (QueryDocumentSnapshot doc : value) {
+                            String bid = doc.getString("bookingId");
                             String status = doc.getString("status");
                             String d = doc.getString("date");
+
+                            // Skip the current booking being edited
+                            if (isEditMode && editingBookingId != null && editingBookingId.equals(bid)) {
+                                continue;
+                            }
+
                             if (d != null && !"Cancelled".equalsIgnoreCase(status)) {
                                 dateCounts.compute(d, (key, val) -> (val == null) ? 1 : val + 1);
                             }
@@ -1080,7 +1104,12 @@ public class BookingActivity extends AppCompatActivity {
             if (!fullDates.contains(dateStr)) {
                 tvDate.setText(dateStr);
                 fetchBookedTimes();
-                Toast.makeText(this, "The selected date is full. Switched to " + dateStr, Toast.LENGTH_SHORT).show();
+                
+                // Only toast if we actually changed to a date that isn't the original one
+                boolean isOriginalDate = isEditMode && dateStr.equals(originalDate);
+                if (!isOriginalDate) {
+                    Toast.makeText(this, "The selected date is full. Switched to " + dateStr, Toast.LENGTH_SHORT).show();
+                }
                 return;
             }
         }

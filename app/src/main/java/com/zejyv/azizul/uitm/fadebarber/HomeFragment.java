@@ -895,10 +895,28 @@ public class HomeFragment extends Fragment {
             btnCancelBooking.setOnClickListener(v -> {
                 if (getActivity() instanceof MainActivity && currentBookingId != null) {
                     ((MainActivity) getActivity()).showCancelDialog(() -> {
-                        db.collection("bookings").document(currentBookingId)
-                                .update("status", "Cancelled")
-                                .addOnSuccessListener(aVoid -> Toast.makeText(getContext(), "Booking Cancelled", Toast.LENGTH_SHORT).show())
-                                .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to cancel booking", Toast.LENGTH_SHORT).show());
+                        // Fetch booking details before cancelling to send notification info
+                        db.collection("bookings").document(currentBookingId).get().addOnSuccessListener(doc -> {
+                            if (doc.exists()) {
+                                String employeeId = doc.getString("employeeId");
+                                String bDate = doc.getString("date");
+                                String bTime = doc.getString("time");
+
+                                java.util.Map<String, Object> updates = new java.util.HashMap<>();
+                                updates.put("status", "Cancelled");
+                                updates.put("updatedAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
+
+                                db.collection("bookings").document(currentBookingId)
+                                        .update(updates)
+                                        .addOnSuccessListener(aVoid -> {
+                                            if (isAdded()) Toast.makeText(getContext(), "Booking Cancelled", Toast.LENGTH_SHORT).show();
+                                            sendCancellationNotification(employeeId, bDate, bTime);
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            if (isAdded()) Toast.makeText(getContext(), "Failed to cancel booking", Toast.LENGTH_SHORT).show();
+                                        });
+                            }
+                        });
                     });
                 }
             });
@@ -1445,5 +1463,25 @@ public class HomeFragment extends Fragment {
 
         tvTimeName.setText(timeName);
         ivBg.setImageResource(bgResId);
+    }
+
+    private void sendCancellationNotification(String employeeId, String date, String time) {
+        if (employeeId == null || mAuth.getCurrentUser() == null) return;
+
+        String customerId = mAuth.getCurrentUser().getUid();
+        db.collection("customers").document(customerId).get().addOnSuccessListener(doc -> {
+            String customerName = doc.exists() ? doc.getString("name") : "A customer";
+
+            java.util.Map<String, Object> notification = new java.util.HashMap<>();
+            notification.put("receiverId", employeeId);
+            notification.put("title", "Booking Cancelled");
+            notification.put("message", customerName + " has cancelled their appointment on " + date + " at " + time + ".");
+            notification.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
+            notification.put("type", "CANCELLATION");
+            notification.put("isRead", false);
+            notification.put("isSeen", false);
+
+            db.collection("notifications").add(notification);
+        });
     }
 }

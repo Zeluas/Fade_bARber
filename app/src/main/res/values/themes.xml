@@ -13,7 +13,7 @@
     <style name="Theme.FadeBARber" parent="Base.Theme.FadeBARber" />
 
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/trans_primary_color</item>
+        <item name="windowSplashScreenBackground">@color/primary_color</item>
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
         <item name="postSplashScreenTheme">@style/Theme.FadeBARber</item>
     </style>

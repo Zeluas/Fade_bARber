@@ -103,13 +103,42 @@ public class ActivityFragment extends Fragment {
         layoutTabRead.setOnClickListener(v -> viewPager.setCurrentItem(1));
     }
 
+    private com.google.firebase.firestore.ListenerRegistration countListener;
+
     /**
-     * Fills the tab labels with localized text and counts.
+     * Fills the tab labels with localized text and real counts from Firestore.
      */
     private void populateTabLabels() {
-        // Mocking counts for now
-        textTabInbox.setText(getString(R.string.activity_tab_inbox, 4));
-        textTabRead.setText(getString(R.string.activity_tab_read, 0));
+        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        if (countListener != null) countListener.remove();
+        
+        countListener = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("notifications")
+                .whereEqualTo("receiverId", uid)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) return;
+                    if (value != null) {
+                        int unread = 0;
+                        int read = 0;
+                        for (com.google.firebase.firestore.QueryDocumentSnapshot doc : value) {
+                            Boolean isRead = doc.getBoolean("isRead");
+                            if (isRead != null && isRead) read++;
+                            else unread++;
+                        }
+                        if (isAdded()) {
+                            textTabInbox.setText(getString(R.string.activity_tab_inbox, unread));
+                            textTabRead.setText(getString(R.string.activity_tab_read, read));
+                        }
+                    }
+                });
+    }
+
+    @Override
+    public void onDestroyView() {
+        if (countListener != null) countListener.remove();
+        super.onDestroyView();
     }
 
     /**

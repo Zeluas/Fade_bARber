@@ -767,6 +767,29 @@ public class EmployeeHomeFragment extends Fragment {
         });
     }
 
+    private void sendNoShowNotificationToCustomer() {
+        if (currentBookingId == null) return;
+
+        db.collection("bookings").document(currentBookingId).get().addOnSuccessListener(doc -> {
+            if (doc.exists()) {
+                String customerId = doc.getString("customerId");
+                String date = doc.getString("date");
+                String time = doc.getString("time");
+
+                java.util.Map<String, Object> notification = new java.util.HashMap<>();
+                notification.put("receiverId", customerId);
+                notification.put("title", "Appointment Update");
+                notification.put("message", "Your appointment on " + date + " at " + time + " was marked as a no-show.");
+                notification.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
+                notification.put("type", "NOSHOW");
+                notification.put("isRead", false);
+                notification.put("isSeen", false);
+
+                db.collection("notifications").add(notification);
+            }
+        });
+    }
+
     private void animateBookingArrival(String status) {
         if (llBookingDetailsRow == null || hasAnimatedBooking) {
             if (llBookingDetailsRow != null) llBookingDetailsRow.setVisibility(View.VISIBLE);
@@ -917,10 +940,19 @@ public class EmployeeHomeFragment extends Fragment {
         btnNoShow.setOnClickListener(v -> {
             if (getActivity() instanceof MainActivityEmployee && currentBookingId != null) {
                 ((MainActivityEmployee) getActivity()).showNoShowDialog(() -> {
+                    java.util.Map<String, Object> updates = new java.util.HashMap<>();
+                    updates.put("status", "Cancelled");
+                    updates.put("updatedAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
+
                     db.collection("bookings").document(currentBookingId)
-                            .update("status", "Cancelled")
-                            .addOnSuccessListener(aVoid -> Toast.makeText(getContext(), "Booking marked as No-Show", Toast.LENGTH_SHORT).show())
-                            .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to update status", Toast.LENGTH_SHORT).show());
+                            .update(updates)
+                            .addOnSuccessListener(aVoid -> {
+                                if (isAdded()) Toast.makeText(getContext(), "Booking marked as No-Show", Toast.LENGTH_SHORT).show();
+                                sendNoShowNotificationToCustomer();
+                            })
+                            .addOnFailureListener(e -> {
+                                if (isAdded()) Toast.makeText(getContext(), "Failed to update status", Toast.LENGTH_SHORT).show();
+                            });
                 });
             }
         });

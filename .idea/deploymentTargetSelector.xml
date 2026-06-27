@@ -37,10 +37,10 @@
       </SelectionState>
       <SelectionState runConfigName="main">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-06-26T19:17:15.532007900Z">
+        <DropdownSelection timestamp="2026-06-27T18:42:58.876279500Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\Zejnos\.android\avd\Fossibot_F102.avd" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=F102240100407" />
             </handle>
           </Target>
         </DropdownSelection>
