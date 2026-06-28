@@ -1,7 +1,5 @@
 package com.zejyv.azizul.uitm.fadebarber;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
@@ -9,7 +7,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -36,9 +33,6 @@ import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 import androidx.swiperefreshlayout.widget.CircularProgressDrawable;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
@@ -47,12 +41,12 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.google.firebase.firestore.MemoryCacheSettings;
-import com.google.firebase.firestore.PersistentCacheSettings;
 import com.google.firebase.firestore.Source;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * AuthActivity handles the user authentication process including Login and a multi-step Signup.
@@ -351,7 +345,7 @@ public class AuthActivity extends AppCompatActivity {
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
-        } catch (GeneralSecurityException | java.io.IOException e) {
+        } catch (GeneralSecurityException | IOException e) {
             e.printStackTrace();
         }
     }
@@ -374,11 +368,9 @@ public class AuthActivity extends AppCompatActivity {
                                                 if (userTask.isSuccessful() && userTask.getResult().exists()) {
                                                     String role = userTask.getResult().getString("role");
                                                     if ("employee".equals(role)) {
-                                                        startActivity(new Intent(this, MainActivityEmployee.class));
-                                                        finish();
+                                                        startMainWithExtras(MainActivityEmployee.class);
                                                     } else {
-                                                        startActivity(new Intent(this, MainActivity.class));
-                                                        finish();
+                                                        startMainWithExtras(MainActivity.class);
                                                     }
                                                 } else {
                                                     // Network error during role check or metadata missing
@@ -398,6 +390,22 @@ public class AuthActivity extends AppCompatActivity {
             mAuth.signOut();
             isReady = true;
         }
+    }
+
+    private void startMainWithExtras(Class<?> targetClass) {
+        Intent intent = new Intent(this, targetClass);
+        if (getIntent().getBooleanExtra("FROM_NOTIFICATION", false)) {
+            intent.putExtra("NOTIFICATION_DOC_ID", getIntent().getStringExtra("NOTIFICATION_DOC_ID"));
+            intent.putExtra("NOTIFICATION_TITLE", getIntent().getStringExtra("NOTIFICATION_TITLE"));
+            intent.putExtra("NOTIFICATION_MESSAGE", getIntent().getStringExtra("NOTIFICATION_MESSAGE"));
+            intent.putExtra("NOTIFICATION_TYPE", getIntent().getStringExtra("NOTIFICATION_TYPE"));
+            intent.putExtra("NOTIFICATION_BOOKING_ID", getIntent().getStringExtra("NOTIFICATION_BOOKING_ID"));
+            intent.putExtra("NOTIFICATION_SENDER_ID", getIntent().getStringExtra("NOTIFICATION_SENDER_ID"));
+            intent.putExtra("NOTIFICATION_TIMESTAMP", getIntent().getLongExtra("NOTIFICATION_TIMESTAMP", 0));
+            intent.putExtra("FROM_NOTIFICATION", true);
+        }
+        startActivity(intent);
+        finish();
     }
 
     private void handleAutoLoginFailure(String email, Exception e) {
@@ -532,8 +540,7 @@ public class AuthActivity extends AppCompatActivity {
                                                                                                     saveProfileData(user.getUid(), "", "", "");
                                                                                                 }
                                                                                                 showButtonLoading(false);
-                                                                                                startActivity(new Intent(this, MainActivityEmployee.class));
-                                                                                                finish();
+                                                                                                startMainWithExtras(MainActivityEmployee.class);
                                                                                             })
                                                                                             .addOnFailureListener(e -> {
                                                                                                 showButtonLoading(false);
@@ -569,8 +576,7 @@ public class AuthActivity extends AppCompatActivity {
                                                                                             clearSavedCredentials();
                                                                                             saveProfileData(user.getUid(), shortname, "", fullname);
                                                                                         }
-                                                                                        startActivity(new Intent(this, MainActivityEmployee.class));
-                                                                                        finish();
+                                                                                        startMainWithExtras(MainActivityEmployee.class);
                                                                                     } else {
                                                                                         showErrorBanner("Access denied: Employee profile not found.");
                                                                                     }
@@ -592,8 +598,7 @@ public class AuthActivity extends AppCompatActivity {
                                                                                             // Even if not "remembered", we save for the current session's fragments
                                                                                             saveProfileData(user.getUid(), name, username, "");
                                                                                         }
-                                                                                        startActivity(new Intent(this, MainActivity.class));
-                                                                                        finish();
+                                                                                        startMainWithExtras(MainActivity.class);
                                                                                     } else {
                                                                                         showErrorBanner("Access denied: Customer profile not found.");
                                                                                     }

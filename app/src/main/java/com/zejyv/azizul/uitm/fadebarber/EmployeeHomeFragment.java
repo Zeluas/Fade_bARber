@@ -770,6 +770,27 @@ public class EmployeeHomeFragment extends Fragment {
     private void sendNoShowNotificationToCustomer() {
         if (currentBookingId == null) return;
 
+        // Fetch barber name
+        String barberName = "your barber";
+        try {
+            androidx.security.crypto.MasterKey masterKey = new androidx.security.crypto.MasterKey.Builder(requireContext())
+                    .setKeyScheme(androidx.security.crypto.MasterKey.KeyScheme.AES256_GCM)
+                    .build();
+
+            android.content.SharedPreferences prefs = androidx.security.crypto.EncryptedSharedPreferences.create(
+                    requireContext(),
+                    "secret_shared_prefs",
+                    masterKey,
+                    androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+            barberName = prefs.getString("fullname", "your barber");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        final String finalBarberName = barberName;
+
         db.collection("bookings").document(currentBookingId).get().addOnSuccessListener(doc -> {
             if (doc.exists()) {
                 String customerId = doc.getString("customerId");
@@ -778,10 +799,12 @@ public class EmployeeHomeFragment extends Fragment {
 
                 java.util.Map<String, Object> notification = new java.util.HashMap<>();
                 notification.put("receiverId", customerId);
-                notification.put("title", "Appointment Update");
-                notification.put("message", "Your appointment on " + date + " at " + time + " was marked as a no-show.");
+                notification.put("title", "No-Show");
+                notification.put("message", "Your appointment on " + date + " at " + time + " was marked as a no-show by your hairstylist " + finalBarberName + ".");
                 notification.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
                 notification.put("type", "NOSHOW");
+                notification.put("bookingId", currentBookingId);
+                notification.put("senderId", FirebaseAuth.getInstance().getUid());
                 notification.put("isRead", false);
                 notification.put("isSeen", false);
 

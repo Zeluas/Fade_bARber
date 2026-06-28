@@ -29,7 +29,7 @@
             android:scaleType="centerCrop"
             android:src="@drawable/ic_profile"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
-            app:strokeColor="#EEEEEE"
+            app:strokeColor="@color/black"
             app:strokeWidth="1dp" />
 
         <LinearLayout

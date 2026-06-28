@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/tv_mini_booking_id"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="#FB-1024"
+        android:textColor="@color/grey_grey"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/iv_mini_barber"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="12dp"
+        android:padding="1dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_profile"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_mini_booking_id"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
+        app:strokeColor="@color/black"
+        app:strokeWidth="1dp" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="@id/iv_mini_barber"
+        app:layout_constraintEnd_toStartOf="@id/ll_mini_style"
+        app:layout_constraintStart_toEndOf="@id/iv_mini_barber"
+        app:layout_constraintTop_toTopOf="@id/iv_mini_barber">
+
+        <TextView
+            android:id="@+id/tv_mini_barber_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hairstylist Name"
+            android:textColor="@color/black"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_mini_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="04/05/26"
+            android:textColor="@color/grey_grey"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/tv_mini_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="10:00 AM"
+            android:textColor="@color/primary_color"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_mini_style"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="@id/iv_mini_barber"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/iv_mini_barber">
+
+        <FrameLayout
+            android:layout_width="50dp"
+            android:layout_height="50dp">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="1dp"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
+                app:strokeColor="@color/black"
+                app:strokeWidth="1dp" />
+
+            <ImageView
+                android:id="@+id/iv_mini_style"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="6dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_hair" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tv_mini_style_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Style"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.zejyv.azizul.uitm.fadebarber.CutHistoryActivity;
+import com.zejyv.azizul.uitm.fadebarber.MainActivity;
 import com.zejyv.azizul.uitm.fadebarber.R;
 
 import java.io.IOException;
@@ -91,6 +92,8 @@ public class CutHistoryAdapter extends RecyclerView.Adapter<CutHistoryAdapter.Hi
                 android.content.Context ctx = v.getContext();
                 if (ctx instanceof CutHistoryActivity) {
                     ((CutHistoryActivity) ctx).showCallBarberDialog(item.barberPhone);
+                } else if (ctx instanceof MainActivity) {
+                    ((MainActivity) ctx).showCallStylistDialog(item.barberPhone);
                 }
             });
         }

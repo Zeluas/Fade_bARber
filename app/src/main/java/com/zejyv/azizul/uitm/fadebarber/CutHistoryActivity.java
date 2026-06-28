@@ -100,6 +100,7 @@ public class CutHistoryActivity extends AppCompatActivity {
         public String barberProfileUrl = "";
         public double amount = 0.0;
         public long durationMillis = 0;
+        public com.google.firebase.Timestamp endTime = null;
         public float rating = 0.0f;
         public String comment = "";
 
@@ -250,6 +251,7 @@ public class CutHistoryActivity extends AppCompatActivity {
                 com.google.firebase.Timestamp end = doc.getTimestamp("endTime");
                 Long paused = doc.getLong("totalPausedMillis");
                 if (start != null && end != null) {
+                    item.endTime = end;
                     item.durationMillis = end.toDate().getTime() - start.toDate().getTime() - (paused != null ? paused : 0);
                 }
             }
@@ -483,13 +485,17 @@ public class CutHistoryActivity extends AppCompatActivity {
             // 2. Secondary Sort: Time/Name
             int secondaryRes = 0;
             if (activeSort.equals(getString(R.string.sort_time))) {
-                SimpleDateFormat timeSdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
-                try {
-                    Date t1 = timeSdf.parse(h1.booking.getTime());
-                    Date t2 = timeSdf.parse(h2.booking.getTime());
-                    secondaryRes = t1.compareTo(t2);
-                } catch (Exception e) {
-                    secondaryRes = h1.booking.getCreatedAt().compareTo(h2.booking.getCreatedAt());
+                if (h1.endTime != null && h2.endTime != null) {
+                    secondaryRes = h1.endTime.compareTo(h2.endTime);
+                } else {
+                    SimpleDateFormat timeSdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+                    try {
+                        Date t1 = timeSdf.parse(h1.booking.getTime());
+                        Date t2 = timeSdf.parse(h2.booking.getTime());
+                        secondaryRes = t1.compareTo(t2);
+                    } catch (Exception e) {
+                        secondaryRes = h1.booking.getCreatedAt().compareTo(h2.booking.getCreatedAt());
+                    }
                 }
             } else if (activeSort.equals(getString(R.string.sort_name))) {
                 secondaryRes = h1.barberName.compareTo(h2.barberName);

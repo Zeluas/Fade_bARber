@@ -82,6 +82,8 @@ public class BookingActivity extends AppCompatActivity {
     private String originalDate = "";
     private String originalEmployeeId = "";
     private String originalCustomerId = "";
+    private String originalCustomerName = "";
+    private String originalHairstyleName = "";
     private List<String> bookedTimes = new ArrayList<>();
     private List<String> fullDates = new ArrayList<>();
     private long serverTimeOffset = 0;
@@ -280,7 +282,8 @@ public class BookingActivity extends AppCompatActivity {
                 originalTime = doc.getString("time");
                 originalEmployeeId = doc.getString("employeeId");
                 originalCustomerId = doc.getString("customerId");
-                selectedHairstyleName = doc.getString("hairstyleName");
+                originalHairstyleName = doc.getString("hairstyleName");
+                selectedHairstyleName = originalHairstyleName;
                 selectedHairstyleId = doc.getString("hairstyleId");
 
                 if (tvDate != null) tvDate.setText(originalDate);
@@ -306,6 +309,7 @@ public class BookingActivity extends AppCompatActivity {
                                 TextView tvPhone = findViewById(R.id.tv_booking_customer_phone);
                                 
                                 String name = userDoc.getString("name");
+                                originalCustomerName = name != null ? name : "A customer";
                                 String username = userDoc.getString("username");
                                 String phone = userDoc.getString("phone");
                                 
@@ -435,6 +439,11 @@ public class BookingActivity extends AppCompatActivity {
         db.collection("bookings").document(bookingId).set(bookingMap, com.google.firebase.firestore.SetOptions.merge())
                 .addOnSuccessListener(aVoid -> {
                     if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
+
+                    if (isEditMode) {
+                        sendEditNotification(customerId, employeeId, date, time);
+                    }
+
                     String successTitle = isEditMode ? "Booking Updated!" : "Booking Successful!";
                     showStatusDialog(true, successTitle, "Your appointment has been scheduled. We look forward to seeing you!", true);
                 })
@@ -1244,6 +1253,71 @@ public class BookingActivity extends AppCompatActivity {
             } catch (java.io.IOException e) {
                 ivPreview.setImageResource(R.drawable.ic_hair);
             }
+        }
+    }
+
+    private void sendEditNotification(String customerId, String employeeId, String date, String time) {
+        if (customerId == null || employeeId == null) return;
+
+        if (isEmployeeEdit) {
+            String employeeName = selectedEmployee != null ? selectedEmployee.getFullname() : "";
+            String messagePrefix = employeeName.isEmpty() ? "your hairstylist" : "your hairstylist, " + employeeName;
+            
+            java.util.Map<String, Object> notification = new java.util.HashMap<>();
+            notification.put("receiverId", customerId);
+            notification.put("title", "Booking Updated");
+            notification.put("message", messagePrefix + " has updated your appointment for " + date + " at " + time + ". If this is not an agreeable decision, please call your hairstylist.");
+            notification.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
+            notification.put("type", "UPDATE");
+            notification.put("bookingId", editingBookingId);
+            notification.put("isRead", false);
+            notification.put("isSeen", false);
+            
+            // Sender Info (for callback)
+            notification.put("senderId", employeeId); // The hairstylist who updated it
+            
+            // Before/After Data
+            notification.put("oldDate", originalDate);
+            notification.put("oldTime", originalTime);
+            notification.put("oldEmployeeId", originalEmployeeId);
+            notification.put("oldHairstyleName", originalHairstyleName);
+            
+            notification.put("newDate", date);
+            notification.put("newTime", time);
+            notification.put("newEmployeeId", employeeId);
+            notification.put("newHairstyleName", selectedHairstyleName);
+
+            db.collection("notifications").add(notification);
+        } else {
+            db.collection("customers").document(customerId).get().addOnSuccessListener(doc -> {
+                String customerName = doc.exists() ? doc.getString("name") : "A customer";
+                
+                java.util.Map<String, Object> notification = new java.util.HashMap<>();
+                notification.put("receiverId", employeeId);
+                notification.put("title", "Booking Updated");
+                notification.put("message", customerName + " has updated their appointment for " + date + " at " + time + ".");
+                notification.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
+                notification.put("type", "UPDATE");
+                notification.put("bookingId", editingBookingId);
+                notification.put("isRead", false);
+                notification.put("isSeen", false);
+                
+                // Sender Info (for callback)
+                notification.put("senderId", customerId); // The customer who updated it
+                
+                // Before/After Data
+                notification.put("oldDate", originalDate);
+                notification.put("oldTime", originalTime);
+                notification.put("oldEmployeeId", originalEmployeeId);
+                notification.put("oldHairstyleName", originalHairstyleName);
+
+                notification.put("newDate", date);
+                notification.put("newTime", time);
+                notification.put("newEmployeeId", employeeId);
+                notification.put("newHairstyleName", selectedHairstyleName);
+
+                db.collection("notifications").add(notification);
+            });
         }
     }
 }

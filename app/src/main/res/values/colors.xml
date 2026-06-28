@@ -18,4 +18,5 @@
     <color name="info_blue_icon">#004CA2</color>
     <color name="alert_yellow_icon">#FFBD00</color>
     <color name="grey_grey">#686868</color>
+    <color name="notification_icon_color">#FFFFFF</color>
 </resources>

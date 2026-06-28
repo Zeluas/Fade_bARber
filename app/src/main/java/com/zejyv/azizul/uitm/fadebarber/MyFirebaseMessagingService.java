@@ -29,16 +29,30 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         String title = remoteMessage.getNotification() != null ? remoteMessage.getNotification().getTitle() : "Notification";
         String body = remoteMessage.getNotification() != null ? remoteMessage.getNotification().getBody() : "";
         
-        // Handle data payload if notification is null
+        String docId = null;
+        String type = null;
+        String bookingId = null;
+        String senderId = null;
+        long tsMillis = System.currentTimeMillis();
+
         if (remoteMessage.getData().size() > 0) {
             if (title == null || title.equals("Notification")) title = remoteMessage.getData().get("title");
             if (body == null || body.isEmpty()) body = remoteMessage.getData().get("message");
+            
+            docId = remoteMessage.getData().get("notificationId");
+            type = remoteMessage.getData().get("type");
+            bookingId = remoteMessage.getData().get("bookingId");
+            senderId = remoteMessage.getData().get("senderId");
+            String tsStr = remoteMessage.getData().get("timestamp");
+            if (tsStr != null) {
+                try { tsMillis = Long.parseLong(tsStr); } catch (Exception ignored) {}
+            }
         }
 
-        showNotification(title, body);
+        showNotification(docId, title, body, type, bookingId, tsMillis, senderId);
     }
 
-    private void showNotification(String title, String message) {
+    private void showNotification(String docId, String title, String message, String type, String bookingId, long tsMillis, String senderId) {
         NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -46,12 +60,22 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             notificationManager.createNotificationChannel(channel);
         }
 
-        Intent intent = new Intent(this, AuthActivity.class); // Route to Auth then it handles redirect
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+        Intent intent = new Intent(this, AuthActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.putExtra("NOTIFICATION_DOC_ID", docId);
+        intent.putExtra("NOTIFICATION_TITLE", title);
+        intent.putExtra("NOTIFICATION_MESSAGE", message);
+        intent.putExtra("NOTIFICATION_TYPE", type);
+        intent.putExtra("NOTIFICATION_BOOKING_ID", bookingId);
+        intent.putExtra("NOTIFICATION_SENDER_ID", senderId);
+        intent.putExtra("NOTIFICATION_TIMESTAMP", tsMillis);
+        intent.putExtra("FROM_NOTIFICATION", true);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, (int) System.currentTimeMillis(), intent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_notification)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setColor(androidx.core.content.ContextCompat.getColor(this, R.color.primary_color))
                 .setContentTitle(title)
                 .setContentText(message)
                 .setAutoCancel(true)

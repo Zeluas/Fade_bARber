@@ -621,7 +621,7 @@
                 app:cardBackgroundColor="@color/white"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="2dp"
-                app:cardUseCompatPadding="false">
+                app:cardUseCompatPadding="true">
 
                 <LinearLayout
                     android:id="@+id/ll_cut_history_box"

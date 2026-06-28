@@ -121,7 +121,7 @@ public class ActivityListFragment extends Fragment {
         TextView tvDuration = cardView.findViewById(R.id.tv_dynamic_notif_duration);
 
         if ("NOSHOW".equals(type)) {
-            tvTitle.setText("Appoinment Cancelled");
+            tvTitle.setText("No-Show");
         } else {
             tvTitle.setText(title);
         }
@@ -150,6 +150,10 @@ public class ActivityListFragment extends Fragment {
                 Intent intent = new Intent(getContext(), NotificationDetailActivity.class);
                 intent.putExtra("title", tvTitle.getText().toString());
                 intent.putExtra("message", message);
+                intent.putExtra("type", type);
+                intent.putExtra("bookingId", doc.getString("bookingId"));
+                intent.putExtra("NOTIFICATION_DOC_ID", doc.getId());
+                intent.putExtra("senderId", doc.getString("senderId"));
                 if (ts != null) intent.putExtra("timestamp", ts.toDate().getTime());
                 startActivity(intent);
 

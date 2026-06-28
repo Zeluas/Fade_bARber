@@ -141,8 +141,14 @@ public class ActivityFragment extends Fragment {
         super.onDestroyView();
     }
 
+    public void switchToTab(int position) {
+        if (viewPager != null) {
+            viewPager.setCurrentItem(position, true);
+        }
+    }
+
     /**
-     * Dynamically updates the background, elevation, and text opacity of the tabs.
+     * dynamcially updates the background, elevation, and text opacity of the tabs.
      * @param position The currently selected page index.
      */
     private void updateTabStyles(int position) {

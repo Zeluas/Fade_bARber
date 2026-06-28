@@ -338,8 +338,13 @@ public class HomeFragment extends Fragment {
                         fetchItemDetails(item, () -> {
                             if (pendingCount.decrementAndGet() == 0) {
                                 // Sort by endTime (descending)
-                                Collections.sort(tempItems, (i1, i2) -> Long.compare(i2.booking.getUpdatedAt() != null ? i2.booking.getUpdatedAt().getSeconds() : 0,
-                                                                                  i1.booking.getUpdatedAt() != null ? i1.booking.getUpdatedAt().getSeconds() : 0));
+                                Collections.sort(tempItems, (h1, h2) -> {
+                                    long t1 = h1.endTime != null ? h1.endTime.getSeconds() : 
+                                             (h1.booking.getUpdatedAt() != null ? h1.booking.getUpdatedAt().getSeconds() : 0);
+                                    long t2 = h2.endTime != null ? h2.endTime.getSeconds() : 
+                                             (h2.booking.getUpdatedAt() != null ? h2.booking.getUpdatedAt().getSeconds() : 0);
+                                    return Long.compare(t2, t1);
+                                });
                                 
                                 historyList.clear();
                                 for (int i = 0; i < Math.min(4, tempItems.size()); i++) {
@@ -397,6 +402,7 @@ public class HomeFragment extends Fragment {
                 com.google.firebase.Timestamp end = doc.getTimestamp("endTime");
                 Long paused = doc.getLong("totalPausedMillis");
                 if (start != null && end != null) {
+                    item.endTime = end;
                     item.durationMillis = end.toDate().getTime() - start.toDate().getTime() - (paused != null ? paused : 0);
                 }
             }
@@ -1469,6 +1475,7 @@ public class HomeFragment extends Fragment {
         if (employeeId == null || mAuth.getCurrentUser() == null) return;
 
         String customerId = mAuth.getCurrentUser().getUid();
+        final String bId = currentBookingId;
         db.collection("customers").document(customerId).get().addOnSuccessListener(doc -> {
             String customerName = doc.exists() ? doc.getString("name") : "A customer";
 
@@ -1478,6 +1485,8 @@ public class HomeFragment extends Fragment {
             notification.put("message", customerName + " has cancelled their appointment on " + date + " at " + time + ".");
             notification.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
             notification.put("type", "CANCELLATION");
+            notification.put("bookingId", bId);
+            notification.put("senderId", customerId);
             notification.put("isRead", false);
             notification.put("isSeen", false);
 

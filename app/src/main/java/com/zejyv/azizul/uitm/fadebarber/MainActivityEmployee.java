@@ -128,6 +128,48 @@ public class MainActivityEmployee extends AppCompatActivity {
         setupErrorBanner();
         setupConnectivityListener();
         setupBackPressed();
+
+        handleNotificationIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleNotificationIntent(intent);
+    }
+
+    private void handleNotificationIntent(android.content.Intent intent) {
+        if (intent != null && intent.getBooleanExtra("FROM_NOTIFICATION", false)) {
+            String docId = intent.getStringExtra("NOTIFICATION_DOC_ID");
+            String title = intent.getStringExtra("NOTIFICATION_TITLE");
+            String message = intent.getStringExtra("NOTIFICATION_MESSAGE");
+            String type = intent.getStringExtra("NOTIFICATION_TYPE");
+            String bookingId = intent.getStringExtra("NOTIFICATION_BOOKING_ID");
+            String senderId = intent.getStringExtra("NOTIFICATION_SENDER_ID");
+            long ts = intent.getLongExtra("NOTIFICATION_TIMESTAMP", 0);
+
+            // 1. Redirect to Home tab (position 1)
+            if (viewPager != null) viewPager.setCurrentItem(1, false);
+
+            // 2. Mark as Read in Firestore
+            if (docId != null) {
+                com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("notifications").document(docId)
+                        .update("isRead", true, "lastReadTimestamp", com.google.firebase.Timestamp.now());
+            }
+
+            // 3. Open Detail Activity
+            android.content.Intent detailIntent = new android.content.Intent(this, NotificationDetailActivity.class);
+            detailIntent.putExtra("title", title);
+            detailIntent.putExtra("message", message);
+            detailIntent.putExtra("type", type);
+            detailIntent.putExtra("bookingId", bookingId);
+            detailIntent.putExtra("senderId", senderId);
+            detailIntent.putExtra("NOTIFICATION_DOC_ID", docId);
+            detailIntent.putExtra("timestamp", ts);
+            startActivity(detailIntent);
+        }
     }
 
     @Override

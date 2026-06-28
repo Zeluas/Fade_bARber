@@ -35,7 +35,8 @@ public class BookingNotificationService extends Service {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID_SERVICE)
                 .setContentTitle("Fade bARber Active")
                 .setContentText("Monitoring your appointments...")
-                .setSmallIcon(R.drawable.ic_notification)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setColor(androidx.core.content.ContextCompat.getColor(this, R.color.primary_color))
                 .setContentIntent(pendingIntent)
                 .setPriority(NotificationCompat.PRIORITY_MIN)
                 .setCategory(Notification.CATEGORY_SERVICE)
@@ -70,9 +71,16 @@ public class BookingNotificationService extends Service {
                     if (value != null) {
                         for (DocumentChange dc : value.getDocumentChanges()) {
                             if (dc.getType() == DocumentChange.Type.ADDED) {
+                                String docId = dc.getDocument().getId();
                                 String title = dc.getDocument().getString("title");
                                 String message = dc.getDocument().getString("message");
-                                triggerSystemAlert(title, message);
+                                String type = dc.getDocument().getString("type");
+                                String bookingId = dc.getDocument().getString("bookingId");
+                                String senderId = dc.getDocument().getString("senderId");
+                                com.google.firebase.Timestamp ts = dc.getDocument().getTimestamp("timestamp");
+                                long tsMillis = (ts != null) ? ts.toDate().getTime() : System.currentTimeMillis();
+
+                                triggerSystemAlert(docId, title, message, type, bookingId, tsMillis, senderId);
 
                                 // Mark as seen immediately so it doesn't alert again on relaunch
                                 dc.getDocument().getReference().update("isSeen", true);
@@ -82,17 +90,27 @@ public class BookingNotificationService extends Service {
                 });
     }
 
-    private void triggerSystemAlert(String title, String message) {
+    private void triggerSystemAlert(String docId, String title, String message, String type, String bookingId, long tsMillis, String senderId) {
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         
         Intent intent = new Intent(this, AuthActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.putExtra("NOTIFICATION_DOC_ID", docId);
+        intent.putExtra("NOTIFICATION_TITLE", title);
+        intent.putExtra("NOTIFICATION_MESSAGE", message);
+        intent.putExtra("NOTIFICATION_TYPE", type);
+        intent.putExtra("NOTIFICATION_BOOKING_ID", bookingId);
+        intent.putExtra("NOTIFICATION_SENDER_ID", senderId);
+        intent.putExtra("NOTIFICATION_TIMESTAMP", tsMillis);
+        intent.putExtra("FROM_NOTIFICATION", true);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, (int) System.currentTimeMillis(), intent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
 
         Notification alert = new NotificationCompat.Builder(this, CHANNEL_ID_ALERTS)
                 .setContentTitle(title)
                 .setContentText(message)
-                .setSmallIcon(R.drawable.ic_notification)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setColor(androidx.core.content.ContextCompat.getColor(this, R.color.primary_color))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
