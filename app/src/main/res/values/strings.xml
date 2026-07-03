@@ -123,7 +123,7 @@
     <string name="profile_title">Profile</string>
     <string name="profile_user_name_default">Username (Name)</string>
     <string name="profile_user_id_label">User ID: %1$s</string>
-    <string name="profile_btn_edit">Edit</string>
+    <string name="profile_btn_edit">Edit Profile</string>
     <string name="profile_btn_edit_profile">Edit Profile</string>
     <string name="profile_item_cut_history">Cut History</string>
     <string name="profile_item_settings">Settings</string>
@@ -131,6 +131,9 @@
     <string name="profile_item_user_agreement">User Agreement</string>
     <string name="profile_item_about">About</string>
     <string name="profile_item_colleagues">Colleagues</string>
+    <string name="profile_item_employees">Employees</string>
+    <string name="profile_item_colleagues_admins">Colleagues / Admins</string>
+    <string name="profile_item_employees_admins">Employees / Admins</string>
     <string name="settings_title">Settings</string>
     <string name="settings_header">App Settings</string>
     <string name="settings_languages">Languages</string>
@@ -149,6 +152,7 @@
     <string name="nav_try_on">Try-On</string>
     <string name="nav_notifications">Activity</string>
     <string name="nav_profile">Profile</string>
+    <string name="nav_admin_panel">Admin Panel</string>
 
     <!-- Shift Status -->
     <string name="shift_status_prefix">"Your Shift is"</string>
@@ -159,6 +163,9 @@
     <string name="shift_over">over</string>
     <string name="employee_home_title">Employee Home</string>
     <string name="employee_book_title">Employee Bookings</string>
+    <string name="admin_home_title">Admin Home</string>
+    <string name="admin_panel_title">Admin Panel</string>
+    <string name="admin_profile_title">Admin Profile</string>
     <string name="search_bookings_hint">Search customer or hairstyle…</string>
     <string name="booking_status_pending">Pending</string>
     <string name="booking_status_completed">Completed</string>

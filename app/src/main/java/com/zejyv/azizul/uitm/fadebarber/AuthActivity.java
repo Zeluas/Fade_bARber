@@ -367,8 +367,14 @@ public class AuthActivity extends AppCompatActivity {
                                             .addOnCompleteListener(userTask -> {
                                                 if (userTask.isSuccessful() && userTask.getResult().exists()) {
                                                     String role = userTask.getResult().getString("role");
+                                                    
+                                                    // Ensure role is updated in local prefs for consistent redirection logic
+                                                    if (encryptedPrefs != null) encryptedPrefs.edit().putString("role", role).apply();
+
                                                     if ("employee".equals(role)) {
                                                         startMainWithExtras(MainActivityEmployee.class);
+                                                    } else if ("admin".equals(role)) {
+                                                        startMainWithExtras(MainActivityAdmin.class);
                                                     } else {
                                                         startMainWithExtras(MainActivity.class);
                                                     }
@@ -434,13 +440,14 @@ public class AuthActivity extends AppCompatActivity {
         }
     }
 
-    private void saveProfileData(String uid, String name, String username, String fullname) {
+    private void saveProfileData(String uid, String name, String username, String fullname, String role) {
         if (encryptedPrefs != null) {
             encryptedPrefs.edit()
                     .putString("uid", uid)
                     .putString("name", name)
                     .putString("username", username)
                     .putString("fullname", fullname)
+                    .putString("role", role)
                     .apply();
         }
     }
@@ -494,10 +501,10 @@ public class AuthActivity extends AppCompatActivity {
                     if (checkTask.isSuccessful()) {
                         boolean emailExists = checkTask.getResult() != null && !checkTask.getResult().isEmpty();
                         String role = emailExists ? checkTask.getResult().getDocuments().get(0).getString("role") : null;
-                        boolean shouldMask = "employee".equals(role);
+                        boolean shouldMask = "employee".equals(role) || "admin".equals(role);
 
-                        if (!emailExists && !email.contains(".emp")) {
-                            // Email not found in registry and not a potential first-time employee
+                        if (!emailExists && !email.contains(".emp") && !email.contains(".adm")) {
+                            // Email not found in registry and not a potential first-time employee or admin
                             showButtonLoading(false);
                             setFieldError(etLoginEmail, "Incorrect email");
                             etLoginEmail.requestFocus();
@@ -534,13 +541,50 @@ public class AuthActivity extends AppCompatActivity {
                                                                                             .addOnSuccessListener(aVoid2 -> {
                                                                                                 if (cbRememberMe.isChecked()) {
                                                                                                     saveCredentials(email, password);
-                                                                                                    saveProfileData(user.getUid(), "", "", "");
+                                                                                                    saveProfileData(user.getUid(), "", "", "", "employee");
                                                                                                 } else {
                                                                                                     clearSavedCredentials();
-                                                                                                    saveProfileData(user.getUid(), "", "", "");
+                                                                                                    saveProfileData(user.getUid(), "", "", "", "employee");
                                                                                                 }
                                                                                                 showButtonLoading(false);
                                                                                                 startMainWithExtras(MainActivityEmployee.class);
+                                                                                            })
+                                                                                            .addOnFailureListener(e -> {
+                                                                                                showButtonLoading(false);
+                                                                                                showErrorBanner(formatError(e));
+                                                                                            });
+                                                                                })
+                                                                                .addOnFailureListener(e -> {
+                                                                                    showButtonLoading(false);
+                                                                                    showErrorBanner(formatError(e));
+                                                                                });
+                                                                    } else if (email.contains(".adm")) {
+                                                                        // First-time Admin: Initialize 'users' (metadata) and 'admins' (profile)
+                                                                        Map<String, Object> userData = new HashMap<>();
+                                                                        userData.put("uid", user.getUid());
+                                                                        userData.put("email", email);
+                                                                        userData.put("role", "admin");
+                                                                        userData.put("createdAt", com.google.firebase.Timestamp.now());
+
+                                                                        Map<String, Object> adminProfile = new HashMap<>();
+                                                                        adminProfile.put("uid", user.getUid());
+                                                                        adminProfile.put("fullname", "");
+                                                                        adminProfile.put("phone", "");
+                                                                        adminProfile.put("shortname", "");
+
+                                                                        db.collection("users").document(user.getUid()).set(userData)
+                                                                                .addOnSuccessListener(aVoid -> {
+                                                                                    db.collection("admins").document(user.getUid()).set(adminProfile)
+                                                                                            .addOnSuccessListener(aVoid2 -> {
+                                                                                                if (cbRememberMe.isChecked()) {
+                                                                                                    saveCredentials(email, password);
+                                                                                                    saveProfileData(user.getUid(), "", "", "", "admin");
+                                                                                                } else {
+                                                                                                    clearSavedCredentials();
+                                                                                                    saveProfileData(user.getUid(), "", "", "", "admin");
+                                                                                                }
+                                                                                                showButtonLoading(false);
+                                                                                                startMainWithExtras(MainActivityAdmin.class);
                                                                                             })
                                                                                             .addOnFailureListener(e -> {
                                                                                                 showButtonLoading(false);
@@ -571,14 +615,34 @@ public class AuthActivity extends AppCompatActivity {
                                                                                         String shortname = empTask.getResult().getString("shortname");
                                                                                         if (cbRememberMe.isChecked()) {
                                                                                             saveCredentials(email, password);
-                                                                                            saveProfileData(user.getUid(), shortname, "", fullname);
+                                                                                            saveProfileData(user.getUid(), shortname, "", fullname, "employee");
                                                                                         } else {
                                                                                             clearSavedCredentials();
-                                                                                            saveProfileData(user.getUid(), shortname, "", fullname);
+                                                                                            saveProfileData(user.getUid(), shortname, "", fullname, "employee");
                                                                                         }
                                                                                         startMainWithExtras(MainActivityEmployee.class);
                                                                                     } else {
                                                                                         showErrorBanner("Access denied: Employee profile not found.");
+                                                                                    }
+                                                                                });
+                                                                    } else if ("admin".equals(r) && email.equals(registeredEmail)) {
+                                                                        // Fetch admin profile
+                                                                        db.collection("admins").document(user.getUid()).get(Source.SERVER)
+                                                                                .addOnCompleteListener(adminTask -> {
+                                                                                    showButtonLoading(false);
+                                                                                    if (adminTask.isSuccessful() && adminTask.getResult().exists()) {
+                                                                                        String fullname = adminTask.getResult().getString("fullname");
+                                                                                        String shortname = adminTask.getResult().getString("shortname");
+                                                                                        if (cbRememberMe.isChecked()) {
+                                                                                            saveCredentials(email, password);
+                                                                                            saveProfileData(user.getUid(), shortname, "", fullname, "admin");
+                                                                                        } else {
+                                                                                            clearSavedCredentials();
+                                                                                            saveProfileData(user.getUid(), shortname, "", fullname, "admin");
+                                                                                        }
+                                                                                        startMainWithExtras(MainActivityAdmin.class);
+                                                                                    } else {
+                                                                                        showErrorBanner("Access denied: Admin profile not found.");
                                                                                     }
                                                                                 });
                                                                     } else if ("customer".equals(r)) {
@@ -592,11 +656,11 @@ public class AuthActivity extends AppCompatActivity {
 
                                                                                         if (cbRememberMe.isChecked()) {
                                                                                             saveCredentials(email, password);
-                                                                                            saveProfileData(user.getUid(), name, username, "");
+                                                                                            saveProfileData(user.getUid(), name, username, "", "customer");
                                                                                         } else {
                                                                                             clearSavedCredentials();
                                                                                             // Even if not "remembered", we save for the current session's fragments
-                                                                                            saveProfileData(user.getUid(), name, username, "");
+                                                                                            saveProfileData(user.getUid(), name, username, "", "customer");
                                                                                         }
                                                                                         startMainWithExtras(MainActivity.class);
                                                                                     } else {
@@ -726,7 +790,7 @@ public class AuthActivity extends AppCompatActivity {
                             .addOnSuccessListener(aVoid -> {
                                 db.collection("customers").document(fUser.getUid()).set(custProfile)
                                         .addOnSuccessListener(aVoid2 -> {
-                                            saveProfileData(fUser.getUid(), (String) custProfile.get("name"), (String) custProfile.get("username"), "");
+                                            saveProfileData(fUser.getUid(), (String) custProfile.get("name"), (String) custProfile.get("username"), "", "customer");
                                             showButtonLoading(false);
                                             signupStep = 4;
                                             updateUI(true);
@@ -1042,7 +1106,7 @@ public class AuthActivity extends AppCompatActivity {
         if (!name.matches("^[a-zA-Z\\s@\\-]+$")) { setFieldError(etSignupName, "Name can only contain letters, spaces, @ and -"); etSignupName.requestFocus(); return false; }
         if (phone.isEmpty()) { setFieldError(etSignupPhone, getString(R.string.signup_error_phone_required)); etSignupPhone.requestFocus(); return false; }
         if (!phone.matches("[0-9]+")) { setFieldError(etSignupPhone, "Phone number can only contain digits"); etSignupPhone.requestFocus(); return false; }
-        if (phone.length() < 11) { setFieldError(etSignupPhone, "Phone number must be at least 11 digits"); etSignupPhone.requestFocus(); return false; }
+        if (phone.length() < 9) { setFieldError(etSignupPhone, "Phone number must be at least 9 digits"); etSignupPhone.requestFocus(); return false; }
         return true;
     }
 

@@ -95,17 +95,17 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             BookingUtils.performBookingCleanup();
 
-            // Calculate timing for next check: 
-            // If minute < 50, wait until minute 50.
-            // If minute >= 50, check every minute until next hour starts.
+            // Logic: Check every minute from HH:00 to HH:15 AND from HH:50 to HH:59.
+            // This ensures lock notifications are sent and auto-cancellations (at x:50) happen on time.
             Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
             int minute = cal.get(Calendar.MINUTE);
             long delay;
 
-            if (minute < 50) {
-                delay = TimeUnit.MINUTES.toMillis(50 - minute);
-            } else {
+            if (minute < 15 || minute >= 50) {
                 delay = TimeUnit.MINUTES.toMillis(1);
+            } else {
+                // Wait until the 50th minute
+                delay = TimeUnit.MINUTES.toMillis(50 - minute);
             }
 
             cleanupHandler.postDelayed(this, delay);
@@ -153,35 +153,41 @@ public class MainActivity extends AppCompatActivity {
             String senderId = intent.getStringExtra("NOTIFICATION_SENDER_ID");
             long ts = intent.getLongExtra("NOTIFICATION_TIMESTAMP", 0);
 
-            // 1. Redirect to Activity tab (index 1)
+            // 1. Navigation handling
             if (viewPager != null) {
-                viewPager.setCurrentItem(1, false);
-                // Switch ActivityFragment to Read tab (index 1)
-                viewPager.postDelayed(() -> {
-                    androidx.fragment.app.Fragment fragment = getSupportFragmentManager().findFragmentByTag("f1");
-                    if (fragment instanceof ActivityFragment) {
-                        ((ActivityFragment) fragment).switchToTab(1);
-                    }
-                }, 100);
+                if ("PAYMENT_REQUIRED".equals(type)) {
+                    viewPager.setCurrentItem(0, false);
+                } else {
+                    viewPager.setCurrentItem(1, false);
+                    // Switch ActivityFragment to Read tab (index 1)
+                    viewPager.postDelayed(() -> {
+                        androidx.fragment.app.Fragment fragment = getSupportFragmentManager().findFragmentByTag("f1");
+                        if (fragment instanceof ActivityFragment) {
+                            ((ActivityFragment) fragment).switchToTab(1);
+                        }
+                    }, 100);
+                }
             }
 
-            // 2. Mark as Read in Firestore
-            if (docId != null) {
+            // 2. Mark as Read in Firestore (Skip for PAYMENT_REQUIRED as per requirement)
+            if (docId != null && !"PAYMENT_REQUIRED".equals(type)) {
                 com.google.firebase.firestore.FirebaseFirestore.getInstance()
                         .collection("notifications").document(docId)
                         .update("isRead", true, "lastReadTimestamp", com.google.firebase.Timestamp.now());
             }
 
-            // 3. Open Detail Activity
-            Intent detailIntent = new Intent(this, NotificationDetailActivity.class);
-            detailIntent.putExtra("title", title);
-            detailIntent.putExtra("message", message);
-            detailIntent.putExtra("type", type);
-            detailIntent.putExtra("bookingId", bookingId);
-            detailIntent.putExtra("senderId", senderId);
-            detailIntent.putExtra("NOTIFICATION_DOC_ID", docId);
-            detailIntent.putExtra("timestamp", ts);
-            startActivity(detailIntent);
+            // 3. Open Detail Activity (Skip for PAYMENT_REQUIRED as per requirement)
+            if (!"PAYMENT_REQUIRED".equals(type)) {
+                Intent detailIntent = new Intent(this, NotificationDetailActivity.class);
+                detailIntent.putExtra("title", title);
+                detailIntent.putExtra("message", message);
+                detailIntent.putExtra("type", type);
+                detailIntent.putExtra("bookingId", bookingId);
+                detailIntent.putExtra("senderId", senderId);
+                detailIntent.putExtra("NOTIFICATION_DOC_ID", docId);
+                detailIntent.putExtra("timestamp", ts);
+                startActivity(detailIntent);
+            }
         }
     }
 
@@ -594,6 +600,12 @@ public class MainActivity extends AppCompatActivity {
                 .withEndAction(() -> layoutExitConfirmation.setVisibility(View.GONE)).start();
     }
 
+    public void navigateToHome() {
+        if (viewPager != null) {
+            viewPager.setCurrentItem(0, true);
+        }
+    }
+
     public void navigateToProfile() {
         if (viewPager != null) {
             viewPager.setCurrentItem(2, true);
@@ -899,8 +911,18 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
+    private final android.os.Handler errorBannerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable errorBannerHideRunnable;
+
     public void showErrorBanner(String message) {
         showErrorBanner(message, false);
+    }
+
+    public void showErrorBanner(String message, long durationMillis) {
+        showErrorBanner(message, false);
+        if (errorBannerHideRunnable != null) errorBannerHandler.removeCallbacks(errorBannerHideRunnable);
+        errorBannerHideRunnable = this::hideErrorBanner;
+        errorBannerHandler.postDelayed(errorBannerHideRunnable, durationMillis);
     }
 
     public void showErrorBanner(String message, boolean persistent) {
@@ -929,6 +951,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void hideErrorBanner() {
         if (layoutErrorBannerRoot == null) return;
+        if (errorBannerHideRunnable != null) errorBannerHandler.removeCallbacks(errorBannerHideRunnable);
         isErrorPersistent = false;
         if (radarAnimatorSet != null) radarAnimatorSet.cancel();
         layoutErrorBannerRoot.animate().alpha(0f).setDuration(300).withEndAction(() -> {

@@ -65,7 +65,11 @@ public class CutHistoryAdapter extends RecyclerView.Adapter<CutHistoryAdapter.Hi
         holder.tvStyle.setText(item.booking.getHairstyleName());
 
         if ("Completed".equalsIgnoreCase(item.booking.getStatus())) {
-            holder.tvAmount.setText(String.format(Locale.getDefault(), "RM %.2f", item.amount));
+            java.text.NumberFormat formatter = java.text.NumberFormat.getNumberInstance(Locale.US);
+            formatter.setMinimumFractionDigits(2);
+            formatter.setMaximumFractionDigits(2);
+            holder.tvAmount.setText("RM " + formatter.format(item.amount));
+
             holder.tvSessionTimer.setText(formatDuration(item.durationMillis));
             holder.rbRating.setRating(item.rating);
             holder.tvCollapsedRating.setText(String.format(Locale.getDefault(), "%.1f", item.rating));

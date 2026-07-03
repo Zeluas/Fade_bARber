@@ -150,7 +150,12 @@ public class EmployeeBookingAdapter extends RecyclerView.Adapter<EmployeeBooking
             holder.rbRating.setRating(item.rating);
             holder.tvCollapsedRating.setText(String.format(Locale.getDefault(), "%.1f", item.rating));
             holder.tvComment.setText(item.comment != null && !item.comment.isEmpty() ? item.comment : "No comments provided.");
-            holder.tvAmount.setText(String.format(Locale.getDefault(), "RM %.2f", item.amount));
+            
+            java.text.NumberFormat formatter = java.text.NumberFormat.getNumberInstance(Locale.US);
+            formatter.setMinimumFractionDigits(2);
+            formatter.setMaximumFractionDigits(2);
+            holder.tvAmount.setText("RM " + formatter.format(item.amount));
+
             holder.tvSessionTimer.setText(formatDuration(item.durationMillis));
         } else {
             holder.rbRating.setRating(0);

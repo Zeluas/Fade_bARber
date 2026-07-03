@@ -17,41 +17,50 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tv_colleague_uid"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/grey_grey"
-            android:textSize="10sp"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="UID: 123456" />
-
         <LinearLayout
-            android:id="@+id/ll_rating_container"
-            android:layout_width="wrap_content"
+            android:id="@+id/ll_uid_rating"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <ImageView
-                android:layout_width="12dp"
-                android:layout_height="12dp"
-                android:src="@android:drawable/btn_star_big_on"
-                app:tint="@color/primary_color" />
-
             <TextView
-                android:id="@+id/tv_colleague_rating"
+                android:id="@+id/tv_colleague_uid"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:textColor="@color/grey_grey"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                tools:text="UID: 123456" />
+
+            <LinearLayout
+                android:id="@+id/ll_rating_container"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="2dp"
-                android:textColor="@color/black"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                tools:text="5.0" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@android:drawable/btn_star_big_on"
+                    app:tint="@color/primary_color" />
+
+                <TextView
+                    android:id="@+id/tv_colleague_rating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:textColor="@color/black"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    tools:text="5.0" />
+            </LinearLayout>
         </LinearLayout>
 
         <com.google.android.material.imageview.ShapeableImageView
@@ -62,7 +71,7 @@
             android:scaleType="centerCrop"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_colleague_uid"
+            app:layout_constraintTop_toBottomOf="@id/ll_uid_rating"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
             app:strokeColor="@color/black"
             app:strokeWidth="2dp"
@@ -107,6 +116,7 @@
             android:layout_marginTop="4dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
+            android:visibility="visible"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="@id/tv_colleague_fullname"
             app:layout_constraintTop_toBottomOf="@id/tv_colleague_shortname">
@@ -132,6 +142,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"

@@ -50,6 +50,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import ai.deepar.ar.DeepAR;
 import ai.deepar.ar.AREventListener;
@@ -85,6 +87,8 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
     private DeepAR deepAR;
     private ProcessCameraProvider cameraProvider;
     private boolean isDeepARInitialized = false;
+    private ExecutorService cameraExecutor;
+    private ByteBuffer packedBuffer;
 
     // --- State & Animation Management ---
     private boolean isCarouselExpanded = true;
@@ -114,6 +118,7 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
         setupCarouselLogic();
         setupBackNavigation();
 
+        cameraExecutor = Executors.newSingleThreadExecutor();
         reminderRunnable = this::startReminderAnimation;
 
         // Start camera if permissions are already granted
@@ -419,6 +424,9 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
     protected void onDestroy() {
         super.onDestroy();
         stopReminderAnimation();
+        if (cameraExecutor != null) {
+            cameraExecutor.shutdown();
+        }
         if (deepAR != null) {
             deepAR.release();
             deepAR = null;
@@ -446,19 +454,54 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
 
         CameraSelector cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
 
+        // Use RGBA_8888 for better compatibility and consistent color across all devices.
+        // This avoids YUV-to-RGB conversion issues that cause blue/green tint and glitches.
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
+                .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                 .build();
 
-        imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), image -> {
+        imageAnalysis.setAnalyzer(cameraExecutor, image -> {
             if (isDeepARInitialized && deepAR != null) {
-                // Get the Y plane buffer directly
+                int width = image.getWidth();
+                int height = image.getHeight();
+                
+                // For RGBA_8888, the data is in the first plane
                 ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                // Set mirror to true for a natural "mirror" feel with the front camera
-                deepAR.receiveFrame(buffer, image.getWidth(), image.getHeight(),
-                        image.getImageInfo().getRotationDegrees(),
-                        true, DeepARImageFormat.YUV_420_888, 0);
+                int rowStride = image.getPlanes()[0].getRowStride();
+                int pixelStride = image.getPlanes()[0].getPixelStride();
+                
+                // DeepAR expects a tightly packed buffer (no row padding).
+                // Many devices use padded buffers (rowStride > width * 4), 
+                // which causes "green bars" and distortion if not handled manually.
+                if (packedBuffer == null || packedBuffer.capacity() < width * height * 4) {
+                    packedBuffer = ByteBuffer.allocateDirect(width * height * 4);
+                }
+                packedBuffer.rewind();
+                
+                // Manual copy to remove padding and ensure the buffer is packed for DeepAR
+                if (rowStride == width * 4 && pixelStride == 4) {
+                    packedBuffer.put(buffer);
+                } else {
+                    for (int row = 0; row < height; row++) {
+                        buffer.position(row * rowStride);
+                        int oldLimit = buffer.limit();
+                        buffer.limit(Math.min(buffer.capacity(), row * rowStride + width * 4));
+                        packedBuffer.put(buffer);
+                        buffer.limit(oldLimit);
+                    }
+                }
+                packedBuffer.rewind();
+                
+                // Pass the packed buffer to DeepAR with the correct pixel stride (4 bytes for RGBA).
+                // MUST be called on the Main Thread because DeepAR was initialized there.
+                runOnUiThread(() -> {
+                    if (isDeepARInitialized && deepAR != null) {
+                        deepAR.receiveFrame(packedBuffer, width, height,
+                                image.getImageInfo().getRotationDegrees(),
+                                true, DeepARImageFormat.RGBA_8888, 4);
+                    }
+                });
             }
             image.close();
         });

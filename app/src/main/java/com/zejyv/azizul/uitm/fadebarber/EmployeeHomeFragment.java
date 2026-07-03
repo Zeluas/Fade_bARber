@@ -113,7 +113,6 @@ public class EmployeeHomeFragment extends Fragment {
     private long lastJabTime = 0;
     private static final long JAB_COOLDOWN = 10000;
     private Runnable typingRunnable;
-    private long serverTimeOffset = 0;
 
     private void saveJabPool() {
         if (getContext() == null) return;
@@ -184,23 +183,17 @@ public class EmployeeHomeFragment extends Fragment {
     }
 
     private void syncServerTimeAndFetch() {
-        String uid = mAuth.getUid() != null ? mAuth.getUid() : "employee_sync";
-        java.util.Map<String, Object> syncData = new java.util.HashMap<>();
-        syncData.put("t", FieldValue.serverTimestamp());
+        NetworkTimeManager.getInstance().syncTime(new NetworkTimeManager.OnTimeSyncedListener() {
+            @Override
+            public void onSyncSuccess(long networkTime) {
+                fetchNearestBooking();
+            }
 
-        db.collection("metadata").document("time_sync_" + uid).set(syncData)
-                .addOnSuccessListener(aVoid -> {
-                    db.collection("metadata").document("time_sync_" + uid).get(Source.SERVER)
-                            .addOnSuccessListener(doc -> {
-                                Timestamp serverTime = doc.getTimestamp("t");
-                                if (serverTime != null) {
-                                    serverTimeOffset = serverTime.toDate().getTime() - System.currentTimeMillis();
-                                }
-                                fetchNearestBooking();
-                            })
-                            .addOnFailureListener(e -> fetchNearestBooking());
-                })
-                .addOnFailureListener(e -> fetchNearestBooking());
+            @Override
+            public void onSyncFailed() {
+                fetchNearestBooking();
+            }
+        });
     }
 
     private void initializeViews(View view) {
@@ -301,7 +294,7 @@ public class EmployeeHomeFragment extends Fragment {
                     if (value != null) {
                         List<QueryDocumentSnapshot> todayPendingBookings = new ArrayList<>();
                         Calendar klCal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
-                        klCal.setTimeInMillis(System.currentTimeMillis() + serverTimeOffset);
+                        klCal.setTimeInMillis(NetworkTimeManager.getInstance().getCurrentTime());
                         String todayDateStr = String.format(Locale.getDefault(), "%02d/%02d/%02d",
                                 klCal.get(Calendar.DAY_OF_MONTH), klCal.get(Calendar.MONTH) + 1, klCal.get(Calendar.YEAR) % 100);
 
@@ -665,6 +658,7 @@ public class EmployeeHomeFragment extends Fragment {
 
         TimeZone klTimeZone = TimeZone.getTimeZone("Asia/Kuala_Lumpur");
         Calendar calendar = Calendar.getInstance(klTimeZone);
+        calendar.setTimeInMillis(NetworkTimeManager.getInstance().getCurrentTime());
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         boolean isOpen = (hour >= 10 && hour < 13) || (hour >= 14 && hour < 24);
 
@@ -1141,7 +1135,25 @@ public class EmployeeHomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (handler != null) handler.post(updateTimeThemeRunnable);
+        
+        NetworkTimeManager.getInstance().syncTime(new NetworkTimeManager.OnTimeSyncedListener() {
+            @Override
+            public void onSyncSuccess(long networkTime) {
+                if (isAdded() && handler != null) {
+                    handler.removeCallbacks(updateTimeThemeRunnable);
+                    handler.post(updateTimeThemeRunnable);
+                }
+            }
+
+            @Override
+            public void onSyncFailed() {
+                if (isAdded() && handler != null) {
+                    handler.removeCallbacks(updateTimeThemeRunnable);
+                    handler.post(updateTimeThemeRunnable);
+                }
+            }
+        });
+
         populateWelcomeMessage();
         loadProfileImage();
         fetchNearestBooking();
@@ -1202,7 +1214,7 @@ public class EmployeeHomeFragment extends Fragment {
         String cachedInspiration = prefs.getString("cached_inspiration", "");
 
         Calendar klCal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
-        klCal.setTimeInMillis(System.currentTimeMillis() + serverTimeOffset);
+        klCal.setTimeInMillis(NetworkTimeManager.getInstance().getCurrentTime());
         SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         sdfDate.setTimeZone(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
         String todayDate = sdfDate.format(klCal.getTime());
@@ -1378,6 +1390,7 @@ public class EmployeeHomeFragment extends Fragment {
 
         TimeZone klTimeZone = TimeZone.getTimeZone("Asia/Kuala_Lumpur");
         Calendar calendar = Calendar.getInstance(klTimeZone);
+        calendar.setTimeInMillis(NetworkTimeManager.getInstance().getCurrentTime());
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
 
         // Update Time and Date TextViews manually

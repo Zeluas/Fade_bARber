@@ -203,12 +203,13 @@
                 app:cardElevation="2dp"
                 app:strokeColor="@color/primary_color"
                 app:strokeWidth="1dp">
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="16dp"
                     android:justificationMode="inter_word"
-                    android:text="Fade bARber was conceptualized and developed by Azizul (Zejnos), a software enthusiast dedicated to bridging the gap between digital innovation and everyday lifestyle services. With a background in mobile architecture and a passion for creative problem solving, the developer aimed to create a solution that empowers barbers with business intelligence while offering customers a playful, interactive way to explore their personal style."
+                    android:padding="16dp"
+                    android:text="Hi, my name is Azizul Hakim, and my love affair with technology began at the age of 8, the moment I laid my hands on my very first PC. That machine was the first piece of technology I ever truly interacted with and I spent countless hours lost in the world of games and software it presented to me. Years later, when I got my first smartphone, that initial spark of interest transformed into an unshakeable passion for all things tech, including hardware. As I cycled through numerous smartphones, PCs, laptops and other devices over the years, a question kept coming at me: why don’t I create something of my own? Why not build the software and games I’ve been consuming all this time? That moment of self-reflection set me on an educational journey that took me from highschool to diploma studies, all the way to where I am now, pursuing my degree at UiTM Machang."
                     android:textColor="@color/black"
                     android:textSize="14sp" />
             </com.google.android.material.card.MaterialCardView>
@@ -217,7 +218,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="Fade bARber"
+                android:text="About Fade bARber"
                 android:textColor="@color/black"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -259,12 +260,17 @@
                 app:cardElevation="2dp"
                 app:strokeColor="@color/primary_color"
                 app:strokeWidth="1dp">
+
                 <TextView
+                    android:id="@+id/tv_fyp_journey"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="16dp"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:justificationMode="inter_word"
-                    android:text="The development of Fade bARber has been a rollercoaster of a journey. Like many ambitious projects, it faced its fair share of procrastination and late-night 'I'll do it tomorrow' moments. However, the passion for the vision eventually won over the distractions. Through sheer determination and many cups of coffee, the pieces finally fell into place, turning a conceptual idea into a fully functional reality."
+                    android:padding="16dp"
+                    android:text="Working on this project, I went in as just an average guy trying to complete the Final Year Project (FYP), nothing more, nothing less. At first, I felt genuinely content and ambitious about what I was building, energized by the possibility of creating something meaningful, even as a University Project. But as the weeks progressed, that initial excitement slowly began to fade, worn down by an avalanche of other problems that kept tumbling into my path. Assignments piled up, personal issues emerged and worst of all, I found myself locked in a constant battle with my own procrastination, which dragged the project’s progress to a crawl and stagnated stage. Still, I remained determined. Day after day, week after week, I chipped away at it, even when motivation abandoned me entirely. Eventually, I crossed the finish line, submitting the project and its accompanying report just before the deadline closed."
                     android:textColor="@color/black"
                     android:textSize="14sp" />
             </com.google.android.material.card.MaterialCardView>

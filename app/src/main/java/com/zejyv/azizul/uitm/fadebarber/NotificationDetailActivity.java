@@ -131,8 +131,8 @@ public class NotificationDetailActivity extends AppCompatActivity {
         FirebaseFirestore.getInstance().collection("employees").document(senderId).get()
             .addOnSuccessListener(doc -> {
                 if (doc.exists()) {
-                    // It's an employee, show call button ONLY for UPDATE type (for customer)
-                    if ("UPDATE".equals(type)) {
+                    // It's an employee, show call button for these types (for customer)
+                    if ("UPDATE".equals(type) || "CANCELLATION_LOCK".equals(type) || "AUTO_CANCELLATION".equals(type) || "NOSHOW".equals(type)) {
                         btnCall.setVisibility(View.VISIBLE);
                         btnCall.setText("Call Hairstylist");
                         String phone = doc.getString("phone");

@@ -54,6 +54,7 @@ public class SessionActivity extends AppCompatActivity {
     private String bookingId;
     private String barberName = "the hairstylist";
     private String barberId = "";
+    private String customerId = "";
     private boolean isEmployee = false;
     private ListenerRegistration bookingStatusListener;
     private ListenerRegistration paymentStatusListener;
@@ -110,6 +111,46 @@ public class SessionActivity extends AppCompatActivity {
         cbCompletionConfirm = findViewById(R.id.cb_completion_confirm);
         btnCompletionConfirm = findViewById(R.id.btn_completion_confirm);
         etPaymentAmount = findViewById(R.id.et_payment_amount);
+        
+        // Add TextWatcher for comma formatting
+        etPaymentAmount.addTextChangedListener(new android.text.TextWatcher() {
+            private String current = "";
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (!s.toString().equals(current)) {
+                    etPaymentAmount.removeTextChangedListener(this);
+
+                    String cleanString = s.toString().replaceAll("[,]", "");
+                    if (!cleanString.isEmpty()) {
+                        try {
+                            double parsed = Double.parseDouble(cleanString);
+                            // Format with commas, keep decimals if any
+                            String formatted;
+                            if (cleanString.contains(".")) {
+                                formatted = cleanString; // Let the user type decimals normally for now
+                            } else {
+                                formatted = java.text.NumberFormat.getNumberInstance(Locale.US).format(parsed);
+                            }
+                            current = formatted;
+                            etPaymentAmount.setText(formatted);
+                            etPaymentAmount.setSelection(formatted.length());
+                        } catch (NumberFormatException ignored) {}
+                    } else {
+                        current = "";
+                        etPaymentAmount.setText("");
+                    }
+
+                    etPaymentAmount.addTextChangedListener(this);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
+
         btnSubmitAmount = findViewById(R.id.btn_submit_amount);
         btnPaymentDone = findViewById(R.id.btn_payment_done);
         btnSaveQr = findViewById(R.id.btn_save_qr);
@@ -125,6 +166,19 @@ public class SessionActivity extends AppCompatActivity {
         layoutRatingOverlay = findViewById(R.id.layout_rating_overlay);
         rbSessionRating = findViewById(R.id.rb_session_rating);
         etRatingComment = findViewById(R.id.et_rating_comment);
+        // Force "Done" button on keyboard while allowing word-wrap
+        if (etRatingComment != null) {
+            etRatingComment.setRawInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+            etRatingComment.setOnEditorActionListener((v, actionId, event) -> {
+                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                    etRatingComment.clearFocus();
+                    android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                    if (imm != null) imm.hideSoftInputFromWindow(etRatingComment.getWindowToken(), 0);
+                    return true;
+                }
+                return false;
+            });
+        }
         tvRatingBarberName = findViewById(R.id.tv_rating_barber_name);
 
         findViewById(R.id.btn_back_session).setOnClickListener(v -> finish());
@@ -138,7 +192,8 @@ public class SessionActivity extends AppCompatActivity {
                     resetPaymentMethod();
                 } else {
                     View btnBack = findViewById(R.id.btn_back_session);
-                    if (btnBack != null && btnBack.getVisibility() == View.GONE) {
+                    // Restriction only for customer if session in progress
+                    if (!isEmployee && btnBack != null && btnBack.getVisibility() == View.GONE) {
                         Toast.makeText(SessionActivity.this, "Session in progress. Cannot go back.", Toast.LENGTH_SHORT).show();
                     } else {
                         setEnabled(false);
@@ -229,6 +284,7 @@ public class SessionActivity extends AppCompatActivity {
             if (doc.exists()) {
                 String currentUid = mAuth.getCurrentUser().getUid();
                 barberId = doc.getString("employeeId");
+                customerId = doc.getString("customerId");
                 isEmployee = currentUid.equals(barberId);
                 
                 if (barberId != null) {
@@ -378,7 +434,10 @@ public class SessionActivity extends AppCompatActivity {
 
     private void showPaymentDetails(Double amount, String method) {
         fadeInLayout(llPaymentDetailsContainer);
-        tvPaymentAmountDisplay.setText(String.format(Locale.getDefault(), "RM %.2f", amount));
+        java.text.NumberFormat formatter = java.text.NumberFormat.getNumberInstance(Locale.US);
+        formatter.setMinimumFractionDigits(2);
+        formatter.setMaximumFractionDigits(2);
+        tvPaymentAmountDisplay.setText("RM " + formatter.format(amount));
         
         ivPaymentQr.setVisibility(View.GONE);
         ivPaymentCash.setVisibility(View.GONE);
@@ -493,7 +552,7 @@ public class SessionActivity extends AppCompatActivity {
     }
 
     private void submitAmount() {
-        String amountStr = etPaymentAmount.getText().toString();
+        String amountStr = etPaymentAmount.getText().toString().replaceAll("[,]", "");
         if (amountStr.isEmpty()) {
             etPaymentAmount.setError("Required");
             return;
@@ -574,8 +633,9 @@ public class SessionActivity extends AppCompatActivity {
 
         db.collection("hairstylist_ratings").document(bookingId).set(ratingData)
                 .addOnSuccessListener(aVoid -> {
-                    db.collection("bookings").document(bookingId).update("status", "Completed")
+                    db.collection("bookings").document(bookingId).update("status", "Completed", "updatedAt", FieldValue.serverTimestamp())
                             .addOnSuccessListener(v -> {
+                                sendCompletionNotification();
                                 Toast.makeText(this, "Thank you for your feedback!", Toast.LENGTH_SHORT).show();
                                 finish();
                             });
@@ -623,7 +683,7 @@ public class SessionActivity extends AppCompatActivity {
         
         db.collection("session_timers").document(bookingId).set(timerData)
                 .addOnSuccessListener(aVoid -> {
-                    db.collection("bookings").document(bookingId).update("status", "Starting")
+                    db.collection("bookings").document(bookingId).update("status", "Starting", "updatedAt", FieldValue.serverTimestamp())
                             .addOnSuccessListener(v -> {
                                 db.collection("session_timers").document(bookingId).get()
                                         .addOnSuccessListener(documentSnapshot -> {
@@ -741,12 +801,59 @@ public class SessionActivity extends AppCompatActivity {
                 .update(endData)
                 .addOnSuccessListener(aVoid -> {
                     db.collection("bookings").document(bookingId)
-                            .update("status", "Paying")
+                            .update("status", "Paying", "updatedAt", FieldValue.serverTimestamp())
                             .addOnSuccessListener(v -> {
+                                sendPaymentNotification();
                                 Toast.makeText(this, "Session Ended. Proceeding to Payment.", Toast.LENGTH_SHORT).show();
                             })
                             .addOnFailureListener(e -> Toast.makeText(this, "Error updating status", Toast.LENGTH_SHORT).show());
                 });
+    }
+
+    private void sendPaymentNotification() {
+        if (customerId == null || customerId.isEmpty()) return;
+
+        Map<String, Object> notification = new HashMap<>();
+        notification.put("receiverId", customerId);
+        notification.put("title", "Payment Required");
+        notification.put("message", "Your session with " + barberName + " has ended. Please proceed to payment.");
+        notification.put("timestamp", FieldValue.serverTimestamp());
+        notification.put("type", "PAYMENT_REQUIRED");
+        notification.put("bookingId", bookingId);
+        notification.put("senderId", barberId);
+        notification.put("isRead", false);
+        notification.put("isSeen", false);
+
+        db.collection("notifications").add(notification);
+    }
+
+    private void sendCompletionNotification() {
+        if (customerId == null || customerId.isEmpty()) return;
+
+        db.collection("session_payments").document(bookingId).get().addOnSuccessListener(payDoc -> {
+            if (payDoc.exists()) {
+                Double amount = payDoc.getDouble("paymentAmount");
+                String method = payDoc.getString("paymentMethod");
+                
+                java.text.NumberFormat formatter = java.text.NumberFormat.getNumberInstance(Locale.US);
+                formatter.setMinimumFractionDigits(2);
+                formatter.setMaximumFractionDigits(2);
+                String amountStr = (amount != null) ? "RM " + formatter.format(amount) : "N/A";
+
+                Map<String, Object> notification = new HashMap<>();
+                notification.put("receiverId", customerId);
+                notification.put("title", "Booking Completed");
+                notification.put("message", "Payment of " + amountStr + " via " + method + " received. Thank you and please visit again!");
+                notification.put("timestamp", FieldValue.serverTimestamp());
+                notification.put("type", "COMPLETED");
+                notification.put("bookingId", bookingId);
+                notification.put("senderId", barberId);
+                notification.put("isRead", false);
+                notification.put("isSeen", false);
+
+                db.collection("notifications").add(notification);
+            }
+        });
     }
 
     @Override

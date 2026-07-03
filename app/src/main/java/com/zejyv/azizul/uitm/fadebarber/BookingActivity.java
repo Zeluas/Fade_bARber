@@ -14,6 +14,7 @@ import android.view.Window;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -68,6 +69,7 @@ public class BookingActivity extends AppCompatActivity {
     private StylistAdapter stylistAdapter;
     private List<Employee> stylistList = new ArrayList<>();
     private View loadingOverlay;
+    private ListenerRegistration employeesListener;
     
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
@@ -819,7 +821,8 @@ public class BookingActivity extends AppCompatActivity {
     }
 
     private boolean isPeriodFullyBooked(String amPm) {
-        for (int h = 1; h <= 12; h++) {
+        int[] hours = amPm.equals("AM") ? new int[]{10, 11} : new int[]{12, 1, 3, 4, 5, 6, 8, 9, 10, 11};
+        for (int h : hours) {
             if (!isSlotDisabled(h, amPm)) {
                 return false; // Found at least one valid and available slot
             }
@@ -834,10 +837,9 @@ public class BookingActivity extends AppCompatActivity {
         } else {
             // PM
             // 12 PM (Noon) is valid.
-            // 2 PM is break time.
-            if (hour == 2) return false;
-            // 12 AM was mentioned as shift over, which corresponds to the start of AM cycle.
-            // So all PM hours except 2 PM are valid.
+            // 2 PM is break time. 7 PM is now disabled.
+            if (hour == 2 || hour == 7) return false;
+            // All other PM hours are valid.
             return true;
         }
     }
@@ -894,20 +896,39 @@ public class BookingActivity extends AppCompatActivity {
     }
 
     private void findFirstAvailableSlot() {
-        // Try current AM/PM first
-        for (int h = 1; h <= 12; h++) {
-            if (!isSlotDisabled(h, currentSelectedAmPm)) {
-                currentSelectedHour = h;
-                return;
+        // Targeted search for business hours only to avoid scanning invalid slots
+        int[] amHours = {10, 11};
+        int[] pmHours = {12, 1, 3, 4, 5, 6, 8, 9, 10, 11};
+
+        if (currentSelectedAmPm.equals("AM")) {
+            for (int h : amHours) {
+                if (!isSlotDisabled(h, "AM")) {
+                    currentSelectedHour = h;
+                    return;
+                }
             }
-        }
-        // Try other AM/PM
-        String otherAmPm = currentSelectedAmPm.equals("AM") ? "PM" : "AM";
-        for (int h = 1; h <= 12; h++) {
-            if (!isSlotDisabled(h, otherAmPm)) {
-                currentSelectedHour = h;
-                currentSelectedAmPm = otherAmPm;
-                return;
+            // If AM is full, try PM
+            for (int h : pmHours) {
+                if (!isSlotDisabled(h, "PM")) {
+                    currentSelectedHour = h;
+                    currentSelectedAmPm = "PM";
+                    return;
+                }
+            }
+        } else {
+            for (int h : pmHours) {
+                if (!isSlotDisabled(h, "PM")) {
+                    currentSelectedHour = h;
+                    return;
+                }
+            }
+            // If PM is full, try AM
+            for (int h : amHours) {
+                if (!isSlotDisabled(h, "AM")) {
+                    currentSelectedHour = h;
+                    currentSelectedAmPm = "AM";
+                    return;
+                }
             }
         }
 
@@ -1045,9 +1066,9 @@ public class BookingActivity extends AppCompatActivity {
 
         // Total possible slots based on business hours:
         // AM: 10, 11 (2)
-        // PM: 12, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11 (11)
-        // Total = 13
-        final int TOTAL_DAILY_SLOTS = 13;
+        // PM: 12, 1, 3, 4, 5, 6, 8, 9, 10, 11 (10)
+        // Total = 12
+        final int TOTAL_DAILY_SLOTS = 12;
 
         fullDatesListener = db.collection("bookings")
                 .whereEqualTo("employeeId", selectedEmployee.getUid())
@@ -1129,6 +1150,7 @@ public class BookingActivity extends AppCompatActivity {
         super.onDestroy();
         if (bookedTimesListener != null) bookedTimesListener.remove();
         if (fullDatesListener != null) fullDatesListener.remove();
+        if (employeesListener != null) employeesListener.remove();
     }
 
     /**
@@ -1174,12 +1196,22 @@ public class BookingActivity extends AppCompatActivity {
         }
 
         pbStylists.setVisibility(View.VISIBLE);
-        db.collection("employees").get(Source.SERVER).addOnCompleteListener(task -> {
+        
+        if (employeesListener != null) employeesListener.remove();
+        
+        employeesListener = db.collection("employees").addSnapshotListener((value, error) -> {
             pbStylists.setVisibility(View.GONE);
-            if (task.isSuccessful() && task.getResult() != null) {
+            if (error != null) {
+                Toast.makeText(this, "Failed to fetch stylists. Please check your network.", Toast.LENGTH_SHORT).show();
+                tvNoStylists.setVisibility(View.VISIBLE);
+                tvNoStylists.setText("Error loading stylists.");
+                return;
+            }
+            
+            if (value != null) {
                 stylistList.clear();
                 int targetPosition = -1;
-                for (QueryDocumentSnapshot document : task.getResult()) {
+                for (QueryDocumentSnapshot document : value) {
                     Employee employee = document.toObject(Employee.class);
                     stylistList.add(employee);
 
@@ -1206,10 +1238,6 @@ public class BookingActivity extends AppCompatActivity {
                 } else {
                     tvNoStylists.setVisibility(View.GONE);
                 }
-            } else {
-                Toast.makeText(this, "Failed to fetch stylists. Please check your network.", Toast.LENGTH_SHORT).show();
-                tvNoStylists.setVisibility(View.VISIBLE);
-                tvNoStylists.setText("Error loading stylists.");
             }
         });
     }

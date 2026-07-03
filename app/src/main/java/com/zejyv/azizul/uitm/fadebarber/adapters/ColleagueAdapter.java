@@ -19,11 +19,27 @@ import java.util.Locale;
 
 public class ColleagueAdapter extends RecyclerView.Adapter<ColleagueAdapter.ColleagueViewHolder> {
 
+    public interface OnColleagueClickListener {
+        void onPhoneClick(String rawPhone);
+        void onUidClick(String uid);
+    }
+
     private final List<Employee> colleagueList;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM yyyy", Locale.getDefault());
+    private boolean isShowingAdmins = false;
+    private OnColleagueClickListener listener;
 
     public ColleagueAdapter(List<Employee> colleagueList) {
         this.colleagueList = colleagueList;
+    }
+
+    public void setOnColleagueClickListener(OnColleagueClickListener listener) {
+        this.listener = listener;
+    }
+
+    public void setShowingAdmins(boolean showingAdmins) {
+        this.isShowingAdmins = showingAdmins;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -39,14 +55,30 @@ public class ColleagueAdapter extends RecyclerView.Adapter<ColleagueAdapter.Coll
 
         holder.tvFullname.setText(employee.getFullname());
         holder.tvShortname.setText("@" + employee.getShortname());
-        holder.tvSpecialty.setText(employee.getSpecialty());
         holder.tvUid.setText("UID: " + employee.getUid());
+
+        // Specialty binding
+        String specialty = employee.getSpecialty();
+        if (specialty == null || specialty.trim().isEmpty()) {
+            holder.tvSpecialty.setText("Not set");
+            holder.tvSpecialty.setTypeface(null, android.graphics.Typeface.ITALIC);
+        } else {
+            holder.tvSpecialty.setText(specialty);
+            holder.tvSpecialty.setTypeface(null, android.graphics.Typeface.NORMAL);
+        }
         
         // Rating binding
-        if (employee.getOverallRating() > 0) {
-            holder.tvRating.setText(String.format(Locale.getDefault(), "%.1f", employee.getOverallRating()));
+        if (isShowingAdmins) {
+            holder.ratingContainer.setVisibility(View.GONE);
         } else {
-            holder.tvRating.setText("N/A");
+            holder.ratingContainer.setVisibility(View.VISIBLE);
+            if (employee.getOverallRating() > 0) {
+                holder.tvRating.setText(String.format(Locale.getDefault(), "%.1f", employee.getOverallRating()));
+                holder.tvRating.setTypeface(null, android.graphics.Typeface.BOLD);
+            } else {
+                holder.tvRating.setText("N/A");
+                holder.tvRating.setTypeface(null, android.graphics.Typeface.ITALIC);
+            }
         }
 
         // Phone formatting logic from MainActivityEmployee
@@ -93,6 +125,11 @@ public class ColleagueAdapter extends RecyclerView.Adapter<ColleagueAdapter.Coll
                 .placeholder(R.drawable.ic_profile)
                 .error(R.drawable.ic_profile)
                 .into(holder.ivPic);
+
+        if (listener != null) {
+            holder.phoneContainer.setOnClickListener(v -> listener.onPhoneClick(employee.getPhone()));
+            holder.tvUid.setOnClickListener(v -> listener.onUidClick(employee.getUid()));
+        }
     }
 
     @Override
@@ -103,6 +140,7 @@ public class ColleagueAdapter extends RecyclerView.Adapter<ColleagueAdapter.Coll
     static class ColleagueViewHolder extends RecyclerView.ViewHolder {
         ImageView ivPic;
         TextView tvFullname, tvShortname, tvSpecialty, tvPhone, tvUid, tvJoined, tvRating;
+        View ratingContainer, phoneContainer;
 
         public ColleagueViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -114,6 +152,8 @@ public class ColleagueAdapter extends RecyclerView.Adapter<ColleagueAdapter.Coll
             tvUid = itemView.findViewById(R.id.tv_colleague_uid);
             tvJoined = itemView.findViewById(R.id.tv_colleague_joined);
             tvRating = itemView.findViewById(R.id.tv_colleague_rating);
+            ratingContainer = itemView.findViewById(R.id.ll_rating_container);
+            phoneContainer = itemView.findViewById(R.id.ll_phone_container);
         }
     }
 }

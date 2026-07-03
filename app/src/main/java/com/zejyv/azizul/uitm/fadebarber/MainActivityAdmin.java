@@ -2,9 +2,6 @@ package com.zejyv.azizul.uitm.fadebarber;
 
 import android.animation.ValueAnimator;
 import android.Manifest;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
@@ -22,7 +19,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
@@ -31,9 +27,6 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentChange;
-import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.io.IOException;
@@ -42,7 +35,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivityEmployee extends AppCompatActivity {
+public class MainActivityAdmin extends AppCompatActivity {
 
     private ViewPager2 viewPager;
     private BottomNavigationView bottomNavigationView;
@@ -92,8 +85,6 @@ public class MainActivityEmployee extends AppCompatActivity {
         public void run() {
             BookingUtils.performBookingCleanup();
 
-            // Logic: Check every minute from HH:00 to HH:15 AND from HH:50 to HH:59.
-            // This ensures lock notifications are sent and auto-cancellations (at x:50) happen on time.
             Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
             int minute = cal.get(Calendar.MINUTE);
             long delay;
@@ -101,7 +92,6 @@ public class MainActivityEmployee extends AppCompatActivity {
             if (minute < 15 || minute >= 50) {
                 delay = TimeUnit.MINUTES.toMillis(1);
             } else {
-                // Wait until the 50th minute
                 delay = TimeUnit.MINUTES.toMillis(50 - minute);
             }
 
@@ -112,7 +102,7 @@ public class MainActivityEmployee extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main_employee);
+        setContentView(R.layout.activity_main_admin);
 
         checkNotificationPermission();
         FCMUtils.updateTokenInFirestore();
@@ -171,17 +161,14 @@ public class MainActivityEmployee extends AppCompatActivity {
             String senderId = intent.getStringExtra("NOTIFICATION_SENDER_ID");
             long ts = intent.getLongExtra("NOTIFICATION_TIMESTAMP", 0);
 
-            // 1. Redirect to Home tab (position 1)
             if (viewPager != null) viewPager.setCurrentItem(1, false);
 
-            // 2. Mark as Read in Firestore
             if (docId != null) {
                 com.google.firebase.firestore.FirebaseFirestore.getInstance()
                         .collection("notifications").document(docId)
                         .update("isRead", true, "lastReadTimestamp", com.google.firebase.Timestamp.now());
             }
 
-            // 3. Open Detail Activity
             android.content.Intent detailIntent = new android.content.Intent(this, NotificationDetailActivity.class);
             detailIntent.putExtra("title", title);
             detailIntent.putExtra("message", message);
@@ -212,7 +199,7 @@ public class MainActivityEmployee extends AppCompatActivity {
         tvFabLabel = findViewById(R.id.tv_fab_label);
         fab = findViewById(R.id.fab);
 
-        EmployeePagerAdapter adapter = new EmployeePagerAdapter(this);
+        AdminPagerAdapter adapter = new AdminPagerAdapter(this);
         viewPager.setAdapter(adapter);
     }
 
@@ -220,7 +207,7 @@ public class MainActivityEmployee extends AppCompatActivity {
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
             
-            if (itemId == R.id.navigation_book) {
+            if (itemId == R.id.navigation_admin_panel) {
                 animateBottomNavigationItem(itemId);
                 viewPager.setCurrentItem(0);
                 return true;
@@ -241,7 +228,6 @@ public class MainActivityEmployee extends AppCompatActivity {
             }
         });
 
-        // Default to Home (position 1)
         viewPager.setCurrentItem(1, false);
         updateUiForPage(1);
     }
@@ -249,7 +235,7 @@ public class MainActivityEmployee extends AppCompatActivity {
     private void updateUiForPage(int position) {
         switch (position) {
             case 0:
-                bottomNavigationView.setSelectedItemId(R.id.navigation_book);
+                bottomNavigationView.setSelectedItemId(R.id.navigation_admin_panel);
                 setFabActive(false);
                 break;
             case 1:
@@ -286,8 +272,8 @@ public class MainActivityEmployee extends AppCompatActivity {
         Button btnExitCancel = findViewById(R.id.btn_exit_cancel);
         Button btnExitConfirm = findViewById(R.id.btn_exit_confirm);
 
-        btnExitCancel.setOnClickListener(v -> hideExitDialog());
-        btnExitConfirm.setOnClickListener(v -> finish());
+        if (btnExitCancel != null) btnExitCancel.setOnClickListener(v -> hideExitDialog());
+        if (btnExitConfirm != null) btnExitConfirm.setOnClickListener(v -> finish());
 
         if (layoutExitConfirmation != null) {
             layoutExitConfirmation.setOnClickListener(v -> hideExitDialog());
@@ -300,10 +286,10 @@ public class MainActivityEmployee extends AppCompatActivity {
         Button btnLogoutConfirm = findViewById(R.id.btn_logout_confirm);
 
         if (btnLogoutConfirm != null) btnLogoutConfirm.setOnClickListener(v -> {
-            stopService(new android.content.Intent(MainActivityEmployee.this, BookingNotificationService.class));
+            stopService(new android.content.Intent(MainActivityAdmin.this, BookingNotificationService.class));
             clearStoredCredentials();
             com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
-            android.content.Intent intent = new android.content.Intent(MainActivityEmployee.this, AuthActivity.class);
+            android.content.Intent intent = new android.content.Intent(MainActivityAdmin.this, AuthActivity.class);
             intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();
@@ -354,9 +340,6 @@ public class MainActivityEmployee extends AppCompatActivity {
                 .withEndAction(() -> layoutLogoutConfirmation.setVisibility(View.GONE)).start();
     }
 
-    /**
-     * Initializes and configures the call customer dialog.
-     */
     private void setupCallCustomerDialog() {
         layoutCallCustomer = findViewById(R.id.layout_call_customer);
         mcvCallDialog = findViewById(R.id.mcv_call_dialog);
@@ -379,16 +362,11 @@ public class MainActivityEmployee extends AppCompatActivity {
         }
     }
 
-    /**
-     * Shows the call customer dialog with a formatted phone number.
-     * @param rawPhone Number in format like "012345678911"
-     */
     public void showCallCustomerDialog(String rawPhone) {
         if (layoutCallCustomer == null || mcvCallDialog == null || tvCustomerPhone == null) return;
 
         this.rawCustomerPhone = rawPhone;
 
-        // Logic for formatting: "+60 12-3456 789..."
         String formatted = rawPhone;
         if (rawPhone != null && !rawPhone.isEmpty()) {
             String digits = rawPhone;
@@ -430,9 +408,6 @@ public class MainActivityEmployee extends AppCompatActivity {
         });
     }
 
-    /**
-     * Hides the call customer dialog with animation.
-     */
     public void hideCallCustomerDialog() {
         if (layoutCallCustomer == null || mcvCallDialog == null) return;
 
@@ -441,9 +416,6 @@ public class MainActivityEmployee extends AppCompatActivity {
                 .withEndAction(() -> layoutCallCustomer.setVisibility(View.GONE)).start();
     }
 
-    /**
-     * Initializes and configures the no-show confirmation dialog.
-     */
     private void setupNoShowDialog() {
         layoutNoShowConfirmation = findViewById(R.id.layout_noshow_confirmation);
         mcvNoShowDialog = findViewById(R.id.mcv_noshow_dialog);
@@ -473,15 +445,10 @@ public class MainActivityEmployee extends AppCompatActivity {
         }
     }
 
-    /**
-     * Shows the no-show confirmation dialog.
-     * @param confirmAction Callback to run when confirmed.
-     */
     public void showNoShowDialog(Runnable confirmAction) {
         if (layoutNoShowConfirmation == null || mcvNoShowDialog == null) return;
         this.onNoShowConfirmAction = confirmAction;
 
-        // Reset state
         com.google.android.material.checkbox.MaterialCheckBox cbConfirm = findViewById(R.id.cb_noshow_confirm);
         Button btnNoShowConfirm = findViewById(R.id.btn_noshow_confirm);
         if (cbConfirm != null) cbConfirm.setChecked(false);
@@ -499,9 +466,6 @@ public class MainActivityEmployee extends AppCompatActivity {
         mcvNoShowDialog.animate().scaleX(1f).scaleY(1f).setDuration(300).start();
     }
 
-    /**
-     * Hides the no-show confirmation dialog.
-     */
     public void hideNoShowDialog() {
         if (layoutNoShowConfirmation == null || mcvNoShowDialog == null) return;
 
@@ -518,13 +482,15 @@ public class MainActivityEmployee extends AppCompatActivity {
     }
 
     private void showExitDialog() {
-        layoutExitConfirmation.setVisibility(View.VISIBLE);
-        layoutExitConfirmation.setAlpha(0f);
-        layoutExitConfirmation.animate().alpha(1f).setDuration(200).start();
+        if (layoutExitConfirmation != null && mcvExitDialog != null) {
+            layoutExitConfirmation.setVisibility(View.VISIBLE);
+            layoutExitConfirmation.setAlpha(0f);
+            layoutExitConfirmation.animate().alpha(1f).setDuration(200).start();
 
-        mcvExitDialog.setScaleX(0f);
-        mcvExitDialog.setScaleY(0f);
-        mcvExitDialog.animate().scaleX(1f).scaleY(1f).setDuration(300).start();
+            mcvExitDialog.setScaleX(0f);
+            mcvExitDialog.setScaleY(0f);
+            mcvExitDialog.animate().scaleX(1f).scaleY(1f).setDuration(300).start();
+        }
     }
 
     public void navigateToProfile() {
@@ -574,45 +540,47 @@ public class MainActivityEmployee extends AppCompatActivity {
             }
         });
 
-        ivFullPreview.setOnTouchListener((v, event) -> {
-            scaleGestureDetector.onTouchEvent(event);
-            gestureDetector.onTouchEvent(event);
+        if (ivFullPreview != null) {
+            ivFullPreview.setOnTouchListener((v, event) -> {
+                scaleGestureDetector.onTouchEvent(event);
+                gestureDetector.onTouchEvent(event);
 
-            int action = event.getAction() & android.view.MotionEvent.ACTION_MASK;
-            switch (action) {
-                case android.view.MotionEvent.ACTION_DOWN:
-                    lastTouch[0] = event.getX();
-                    lastTouch[1] = event.getY();
-                    isPanning = false;
-                    break;
+                int action = event.getAction() & android.view.MotionEvent.ACTION_MASK;
+                switch (action) {
+                    case android.view.MotionEvent.ACTION_DOWN:
+                        lastTouch[0] = event.getX();
+                        lastTouch[1] = event.getY();
+                        isPanning = false;
+                        break;
 
-                case android.view.MotionEvent.ACTION_POINTER_DOWN:
-                    isPanning = false;
-                    break;
+                    case android.view.MotionEvent.ACTION_POINTER_DOWN:
+                        isPanning = false;
+                        break;
 
-                case android.view.MotionEvent.ACTION_MOVE:
-                    if (!scaleGestureDetector.isInProgress() && event.getPointerCount() == 1) {
-                        float dx = event.getX() - lastTouch[0];
-                        float dy = event.getY() - lastTouch[1];
+                    case android.view.MotionEvent.ACTION_MOVE:
+                        if (!scaleGestureDetector.isInProgress() && event.getPointerCount() == 1) {
+                            float dx = event.getX() - lastTouch[0];
+                            float dy = event.getY() - lastTouch[1];
 
-                        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-                            isPanning = true;
-                            matrix.postTranslate(dx, dy);
-                            ivFullPreview.setImageMatrix(matrix);
-                            lastTouch[0] = event.getX();
-                            lastTouch[1] = event.getY();
+                            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                                isPanning = true;
+                                matrix.postTranslate(dx, dy);
+                                ivFullPreview.setImageMatrix(matrix);
+                                lastTouch[0] = event.getX();
+                                lastTouch[1] = event.getY();
+                            }
                         }
-                    }
-                    break;
+                        break;
 
-                case android.view.MotionEvent.ACTION_POINTER_UP:
-                    int remainingPointerIndex = (event.getActionIndex() == 0) ? 1 : 0;
-                    lastTouch[0] = event.getX(remainingPointerIndex);
-                    lastTouch[1] = event.getY(remainingPointerIndex);
-                    break;
-            }
-            return true;
-        });
+                    case android.view.MotionEvent.ACTION_POINTER_UP:
+                        int remainingPointerIndex = (event.getActionIndex() == 0) ? 1 : 0;
+                        lastTouch[0] = event.getX(remainingPointerIndex);
+                        lastTouch[1] = event.getY(remainingPointerIndex);
+                        break;
+                }
+                return true;
+            });
+        }
     }
 
     private void animateMatrixZoom(float targetFactor, float focusX, float focusY) {
@@ -767,7 +735,6 @@ public class MainActivityEmployee extends AppCompatActivity {
         android.net.ConnectivityManager connectivityManager = (android.net.ConnectivityManager) getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
         if (connectivityManager == null) return;
 
-        // Initial check
         if (!isNetworkAvailable()) {
             showErrorBanner("No internet connection. Please check your network.", true);
         }
@@ -864,19 +831,6 @@ public class MainActivityEmployee extends AppCompatActivity {
         }).start();
     }
 
-    public String formatError(Exception e) {
-        if (e == null) return "An unexpected error occurred. Please try again.";
-        String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-        if (msg.contains("network") || msg.contains("unavailable") || msg.contains("offline") || msg.contains("failed to get document") || msg.contains("grpc")) {
-            return "No internet connection. Please check your network.";
-        } else if (msg.contains("timeout") || msg.contains("deadline")) {
-            return "Connection timed out. Please try again.";
-        } else if (msg.contains("quota exceeded") || msg.contains("too many requests")) {
-            return "Too many requests. Please try again later.";
-        }
-        return "Something went wrong. Please try again.";
-    }
-
     private void setupBackPressed() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -884,33 +838,23 @@ public class MainActivityEmployee extends AppCompatActivity {
                 if (layoutErrorBannerRoot != null && layoutErrorBannerRoot.getVisibility() == View.VISIBLE) {
                     if (!isErrorPersistent) hideErrorBanner();
                 } else {
-                    // Check if fragment overlay is visible
-                androidx.fragment.app.Fragment currentFragment = getSupportFragmentManager().findFragmentByTag("f" + viewPager.getCurrentItem());
-                if (currentFragment instanceof EmployeeBookFragment) {
-                    EmployeeBookFragment bookFragment = (EmployeeBookFragment) currentFragment;
-                    if (bookFragment.isOverlayVisible()) {
-                        bookFragment.hideAllOverlays();
-                        return;
+                    if (layoutImagePreview != null && layoutImagePreview.getVisibility() == View.VISIBLE) {
+                        hideImagePreview();
+                    } else if (layoutNoShowConfirmation != null && layoutNoShowConfirmation.getVisibility() == View.VISIBLE) {
+                        hideNoShowDialog();
+                    } else if (layoutCallCustomer != null && layoutCallCustomer.getVisibility() == View.VISIBLE) {
+                        hideCallCustomerDialog();
+                    } else if (layoutLogoutConfirmation != null && layoutLogoutConfirmation.getVisibility() == View.VISIBLE) {
+                        hideLogoutDialog();
+                    } else if (layoutExitConfirmation != null && layoutExitConfirmation.getVisibility() == View.VISIBLE) {
+                        hideExitDialog();
+                    } else {
+                        showExitDialog();
                     }
                 }
-
-                if (layoutImagePreview != null && layoutImagePreview.getVisibility() == View.VISIBLE) {
-                    hideImagePreview();
-                } else if (layoutNoShowConfirmation != null && layoutNoShowConfirmation.getVisibility() == View.VISIBLE) {
-                    hideNoShowDialog();
-                } else if (layoutCallCustomer.getVisibility() == View.VISIBLE) {
-                    hideCallCustomerDialog();
-                } else if (layoutLogoutConfirmation.getVisibility() == View.VISIBLE) {
-                    hideLogoutDialog();
-                } else if (layoutExitConfirmation.getVisibility() == View.VISIBLE) {
-                    hideExitDialog();
-                } else {
-                    showExitDialog();
-                }
             }
-        }
-    });
-}
+        });
+    }
 
     @Override
     protected void onDestroy() {

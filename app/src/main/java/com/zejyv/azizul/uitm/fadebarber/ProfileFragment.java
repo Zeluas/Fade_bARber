@@ -70,7 +70,7 @@ public class ProfileFragment extends Fragment {
         calculateDimensions();
         setupCollapsingTopBar();
         setupLogoutAction(view);
-        adjustLayoutForEmployee();
+        adjustLayoutForRole();
     }
 
     @Override
@@ -80,22 +80,36 @@ public class ProfileFragment extends Fragment {
     }
 
     /**
-     * Hides specific items if the fragment is hosted in the Employee Space.
+     * Hides specific items based on the hosting Activity (Customer, Employee, or Admin).
      */
-    private void adjustLayoutForEmployee() {
+    private void adjustLayoutForRole() {
         View view = getView();
         if (view == null) return;
-        
-        if (getActivity() instanceof MainActivityEmployee) {
-            View cutHistory = view.findViewById(R.id.mcv_cut_history);
-            View privacyPolicy = view.findViewById(R.id.mcv_privacy_policy);
-            View userAgreement = view.findViewById(R.id.mcv_user_agreement);
-            View colleagues = view.findViewById(R.id.mcv_colleagues);
 
+        View cutHistory = view.findViewById(R.id.mcv_cut_history);
+        View privacyPolicy = view.findViewById(R.id.mcv_privacy_policy);
+        View userAgreement = view.findViewById(R.id.mcv_user_agreement);
+        View colleagues = view.findViewById(R.id.mcv_colleagues);
+        TextView tvColleagues = view.findViewById(R.id.tv_colleagues);
+
+        if (getActivity() instanceof MainActivityEmployee) {
             if (cutHistory != null) cutHistory.setVisibility(View.GONE);
             if (privacyPolicy != null) privacyPolicy.setVisibility(View.GONE);
             if (userAgreement != null) userAgreement.setVisibility(View.GONE);
             if (colleagues != null) colleagues.setVisibility(View.VISIBLE);
+            if (tvColleagues != null) tvColleagues.setText(R.string.profile_item_colleagues_admins);
+        } else if (getActivity() instanceof MainActivityAdmin) {
+            if (cutHistory != null) cutHistory.setVisibility(View.GONE);
+            if (privacyPolicy != null) privacyPolicy.setVisibility(View.GONE);
+            if (userAgreement != null) userAgreement.setVisibility(View.GONE);
+            if (colleagues != null) colleagues.setVisibility(View.VISIBLE);
+            if (tvColleagues != null) tvColleagues.setText(R.string.profile_item_employees_admins);
+        } else {
+            // Customer
+            if (cutHistory != null) cutHistory.setVisibility(View.VISIBLE);
+            if (privacyPolicy != null) privacyPolicy.setVisibility(View.VISIBLE);
+            if (userAgreement != null) userAgreement.setVisibility(View.VISIBLE);
+            if (colleagues != null) colleagues.setVisibility(View.GONE);
         }
     }
 
@@ -221,6 +235,8 @@ public class ProfileFragment extends Fragment {
                                     ((MainActivity) getActivity()).showImagePreview(url);
                                 } else if (getActivity() instanceof MainActivityEmployee) {
                                     ((MainActivityEmployee) getActivity()).showImagePreview(url);
+                                } else if (getActivity() instanceof MainActivityAdmin) {
+                                    ((MainActivityAdmin) getActivity()).showImagePreview(url);
                                 }
                             });
                             return;
@@ -419,6 +435,8 @@ public class ProfileFragment extends Fragment {
                     ((MainActivity) getActivity()).showLogoutDialog();
                 } else if (getActivity() instanceof MainActivityEmployee) {
                     ((MainActivityEmployee) getActivity()).showLogoutDialog();
+                } else if (getActivity() instanceof MainActivityAdmin) {
+                    ((MainActivityAdmin) getActivity()).showLogoutDialog();
                 }
             });
         }

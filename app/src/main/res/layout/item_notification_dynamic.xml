@@ -22,7 +22,8 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="5dp"
-        android:paddingVertical="10dp">
+        android:paddingTop="10dp"
+        android:paddingBottom="14dp">
 
         <FrameLayout
             android:layout_width="50dp"

@@ -24,6 +24,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.widget.NestedScrollView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -73,7 +74,7 @@ public class HomeFragment extends Fragment {
 
     private Handler handler;
     private MaterialCardView mcvTopBar, mcvStatusHome;
-    private ScrollView svHomeContent;
+    private NestedScrollView svHomeContent;
     private TextView tvAiJab, tvTimeHome, tvDateHome;
     private ImageView ivProfile;
 
@@ -92,11 +93,12 @@ public class HomeFragment extends Fragment {
     private TextView tvNoStylists;
     private StylistAdapter stylistAdapter;
     private List<Employee> stylistList = new ArrayList<>();
+    private ListenerRegistration employeesListener;
 
     // Recent Cut History UI
     private RecyclerView rvCutHistory;
     private ProgressBar pbHistoryHome;
-    private TextView tvEmptyHistoryHome;
+    private View vEmptyHistoryHome;
     private CutHistoryAdapter historyAdapter;
     private final List<CutHistoryActivity.HistoryItem> historyList = new ArrayList<>();
 
@@ -176,13 +178,26 @@ public class HomeFragment extends Fragment {
 
     /**
      * Runnable to periodically update the time-based theme (e.g., background and greeting).
+     * Follows the auto-cancel optimization logic:
+     * - Checks every minute from HH:00 to HH:15.
+     * - Otherwise waits until the start of the next hour.
      */
     private final Runnable updateTimeThemeRunnable = new Runnable() {
         @Override
         public void run() {
             updateTimeTheme();
+            
             if (handler != null) {
-                handler.postDelayed(this, 60000); // Update every minute
+                Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+                int minute = cal.get(Calendar.MINUTE);
+                long delay;
+
+                if (minute < 15) {
+                    delay = 60000; // 1 minute
+                } else {
+                    delay = (60 - minute) * 60000; // wait until next hour start
+                }
+                handler.postDelayed(this, delay);
             }
         }
     };
@@ -247,7 +262,7 @@ public class HomeFragment extends Fragment {
         // Recent Cut History initialization
         rvCutHistory = view.findViewById(R.id.rv_cut_history_home);
         pbHistoryHome = view.findViewById(R.id.pb_history_home);
-        tvEmptyHistoryHome = view.findViewById(R.id.tv_empty_history_home);
+        vEmptyHistoryHome = view.findViewById(R.id.mcv_empty_history_home);
         setupHistoryRecyclerView();
 
         // Configure smooth layout transitions for the top bar's text container
@@ -272,6 +287,8 @@ public class HomeFragment extends Fragment {
     private void setupStylistRecyclerView() {
         if (rvStylists == null) return;
         rvStylists.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvStylists.setNestedScrollingEnabled(false);
+        rvStylists.setHasFixedSize(false);
         stylistAdapter = new StylistAdapter(stylistList, false, employee -> {
             // Unclickable on Home screen
         });
@@ -281,29 +298,40 @@ public class HomeFragment extends Fragment {
     private void setupHistoryRecyclerView() {
         if (rvCutHistory == null) return;
         rvCutHistory.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvCutHistory.setNestedScrollingEnabled(false);
+        rvCutHistory.setHasFixedSize(false);
         historyAdapter = new CutHistoryAdapter(historyList, false); // false = hide status badge
         rvCutHistory.setAdapter(historyAdapter);
     }
 
     private void fetchStylists() {
         if (pbStylists != null) pbStylists.setVisibility(View.VISIBLE);
-        db.collection("employees").get(Source.SERVER).addOnCompleteListener(task -> {
+        
+        if (employeesListener != null) employeesListener.remove();
+        
+        employeesListener = db.collection("employees").addSnapshotListener((value, error) -> {
             if (pbStylists != null) pbStylists.setVisibility(View.GONE);
-            if (task.isSuccessful() && task.getResult() != null) {
-                stylistList.clear();
-                for (QueryDocumentSnapshot document : task.getResult()) {
-                    Employee employee = document.toObject(Employee.class);
-                    stylistList.add(employee);
-                }
-                if (stylistAdapter != null) stylistAdapter.notifyDataSetChanged();
-
-                if (tvNoStylists != null) {
-                    tvNoStylists.setVisibility(stylistList.isEmpty() ? View.VISIBLE : View.GONE);
-                }
-            } else {
+            if (error != null) {
                 if (tvNoStylists != null) {
                     tvNoStylists.setVisibility(View.VISIBLE);
                     tvNoStylists.setText("Error loading stylists.");
+                }
+                return;
+            }
+            
+            if (value != null) {
+                stylistList.clear();
+                for (QueryDocumentSnapshot document : value) {
+                    Employee employee = document.toObject(Employee.class);
+                    stylistList.add(employee);
+                }
+                if (stylistAdapter != null) {
+                    stylistAdapter.notifyDataSetChanged();
+                    rvStylists.post(() -> rvStylists.requestLayout());
+                }
+
+                if (tvNoStylists != null) {
+                    tvNoStylists.setVisibility(stylistList.isEmpty() ? View.VISIBLE : View.GONE);
                 }
             }
         });
@@ -322,7 +350,7 @@ public class HomeFragment extends Fragment {
                 .addOnSuccessListener(value -> {
                     if (value == null || value.isEmpty()) {
                         if (pbHistoryHome != null) pbHistoryHome.setVisibility(View.GONE);
-                        if (tvEmptyHistoryHome != null) tvEmptyHistoryHome.setVisibility(View.VISIBLE);
+                        if (vEmptyHistoryHome != null) vEmptyHistoryHome.setVisibility(View.VISIBLE);
                         historyList.clear();
                         if (historyAdapter != null) historyAdapter.notifyDataSetChanged();
                         return;
@@ -353,8 +381,11 @@ public class HomeFragment extends Fragment {
                                 
                                 if (isAdded()) {
                                     if (pbHistoryHome != null) pbHistoryHome.setVisibility(View.GONE);
-                                    if (tvEmptyHistoryHome != null) tvEmptyHistoryHome.setVisibility(historyList.isEmpty() ? View.VISIBLE : View.GONE);
-                                    if (historyAdapter != null) historyAdapter.notifyDataSetChanged();
+                                    if (vEmptyHistoryHome != null) vEmptyHistoryHome.setVisibility(historyList.isEmpty() ? View.VISIBLE : View.GONE);
+                                    if (historyAdapter != null) {
+                                        historyAdapter.notifyDataSetChanged();
+                                        rvCutHistory.post(() -> rvCutHistory.requestLayout());
+                                    }
                                 }
                             }
                         });
@@ -363,7 +394,7 @@ public class HomeFragment extends Fragment {
                 .addOnFailureListener(e -> {
                     if (isAdded()) {
                         if (pbHistoryHome != null) pbHistoryHome.setVisibility(View.GONE);
-                        if (tvEmptyHistoryHome != null) tvEmptyHistoryHome.setVisibility(View.VISIBLE);
+                        if (vEmptyHistoryHome != null) vEmptyHistoryHome.setVisibility(View.VISIBLE);
                     }
                 });
     }
@@ -565,6 +596,7 @@ public class HomeFragment extends Fragment {
         if (tvHaircut != null) tvHaircut.setText(nearestBookingHaircut);
 
         updateFriendlyStatus(nearestBookingDate, nearestBookingTime, nearestBookingStatus);
+        checkAndLockCancelButton(nearestBookingDate, nearestBookingTime);
 
         if (ivHairPreview != null) {
             loadHaircutImage(nearestBookingHaircut);
@@ -618,9 +650,12 @@ public class HomeFragment extends Fragment {
             if (llBookingDetailsRow != null) llBookingDetailsRow.setVisibility(View.VISIBLE);
         }
 
+        fetchCutHistory();
+
         // Context Check for AI Jabs
         TimeZone klTimeZone = TimeZone.getTimeZone("Asia/Kuala_Lumpur");
         Calendar calendar = Calendar.getInstance(klTimeZone);
+        calendar.setTimeInMillis(NetworkTimeManager.getInstance().getCurrentTime());
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         boolean isOpen = hour >= 10 && hour < 24;
         
@@ -706,7 +741,13 @@ public class HomeFragment extends Fragment {
                 // C. Animate Buttons (Last)
                 handler.postDelayed(() -> {
                     for (View v : buttons) {
-                        if (v != null) v.animate().alpha(1f).translationY(0f).setDuration(800).start();
+                        if (v != null) {
+                            v.animate().alpha(1f).translationY(0f).setDuration(800).withEndAction(() -> {
+                                if (v == btnCancelBooking && nearestBookingDate != null && nearestBookingTime != null) {
+                                    checkAndLockCancelButton(nearestBookingDate, nearestBookingTime);
+                                }
+                            }).start();
+                        }
                     }
                 }, 1400);
             }
@@ -763,6 +804,8 @@ public class HomeFragment extends Fragment {
         if (llBookingDetailsRow != null) llBookingDetailsRow.setVisibility(View.GONE);
         if (tvNoBookingPlaceholder != null) tvNoBookingPlaceholder.setVisibility(View.VISIBLE);
         hasAnimatedBooking = false; // Allow re-animation if they book again later
+
+        fetchCutHistory();
 
         // Context tracking for "no booking"
         String newBookingId = "no_booking";
@@ -1070,7 +1113,7 @@ public class HomeFragment extends Fragment {
             Date bookingDate = sdf.parse(dateStr + " " + timeStr);
             if (bookingDate == null) return;
 
-            long diff = bookingDate.getTime() - System.currentTimeMillis();
+            long diff = bookingDate.getTime() - NetworkTimeManager.getInstance().getCurrentTime();
             long days = diff / (24 * 60 * 60 * 1000);
             long hours = diff / (60 * 60 * 1000);
             long minutes = diff / (60 * 1000);
@@ -1326,9 +1369,27 @@ public class HomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (handler != null) {
-            handler.post(updateTimeThemeRunnable);
-        }
+        
+        // Sync time from network then start the update loop
+        NetworkTimeManager.getInstance().syncTime(new NetworkTimeManager.OnTimeSyncedListener() {
+            @Override
+            public void onSyncSuccess(long networkTime) {
+                if (isAdded() && handler != null) {
+                    handler.removeCallbacks(updateTimeThemeRunnable);
+                    handler.post(updateTimeThemeRunnable);
+                }
+            }
+
+            @Override
+            public void onSyncFailed() {
+                // Fallback to local time if sync fails
+                if (isAdded() && handler != null) {
+                    handler.removeCallbacks(updateTimeThemeRunnable);
+                    handler.post(updateTimeThemeRunnable);
+                }
+            }
+        });
+
         populateWelcomeMessage(getView());
         loadProfileImage();
         fetchNearestBooking();
@@ -1373,6 +1434,9 @@ public class HomeFragment extends Fragment {
         if (bookingListener != null) {
             bookingListener.remove();
         }
+        if (employeesListener != null) {
+            employeesListener.remove();
+        }
     }
 
     /**
@@ -1385,6 +1449,7 @@ public class HomeFragment extends Fragment {
         // Update Friendly Status if there's an active booking
         if (currentBookingId != null && nearestBookingDate != null && nearestBookingTime != null) {
             updateFriendlyStatus(nearestBookingDate, nearestBookingTime, nearestBookingStatus);
+            checkAndLockCancelButton(nearestBookingDate, nearestBookingTime);
         }
 
         ImageView ivBg = view.findViewById(R.id.iv_time_bg);
@@ -1396,6 +1461,7 @@ public class HomeFragment extends Fragment {
 
         TimeZone klTimeZone = TimeZone.getTimeZone("Asia/Kuala_Lumpur");
         Calendar calendar = Calendar.getInstance(klTimeZone);
+        calendar.setTimeInMillis(NetworkTimeManager.getInstance().getCurrentTime());
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
 
         // Update Time and Date TextViews manually
@@ -1469,6 +1535,73 @@ public class HomeFragment extends Fragment {
 
         tvTimeName.setText(timeName);
         ivBg.setImageResource(bgResId);
+    }
+
+    private void checkAndLockCancelButton(String dateStr, String timeStr) {
+        if (btnCancelBooking == null) return;
+
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault());
+        try {
+            Date bookingDate = sdf.parse(dateStr + " " + timeStr);
+            if (bookingDate == null) return;
+
+            long diffMillis = bookingDate.getTime() - NetworkTimeManager.getInstance().getCurrentTime();
+            long oneHourInMillis = 60 * 60 * 1000;
+
+            if (diffMillis <= oneHourInMillis) {
+                // Lock the button
+                btnCancelBooking.setAlpha(0.5f);
+                if (btnCancelBooking instanceof com.google.android.material.button.MaterialButton) {
+                    ((com.google.android.material.button.MaterialButton) btnCancelBooking).setRippleColor(android.content.res.ColorStateList.valueOf(Color.TRANSPARENT));
+                }
+                
+                btnCancelBooking.setOnClickListener(v -> {
+                    if (getActivity() instanceof MainActivity) {
+                        String msg;
+                        if (diffMillis > 0) {
+                            msg = "Cancellation is locked 1 hour before your appointment. If urgent, please call your hairstylist directly.";
+                        } else {
+                            msg = "Cancellation is no longer allowed once the appointment time has reached. If urgent, please call your hairstylist directly.";
+                        }
+                        ((MainActivity) getActivity()).showErrorBanner(msg, 10000);
+                    }
+                });
+            } else {
+                // Restore normal state
+                btnCancelBooking.setAlpha(1.0f);
+                if (btnCancelBooking instanceof com.google.android.material.button.MaterialButton) {
+                    ((com.google.android.material.button.MaterialButton) btnCancelBooking).setRippleColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#FF7979"))); // Original ripple
+                }
+                
+                // Re-attach original click listener logic
+                btnCancelBooking.setOnClickListener(v -> {
+                    if (getActivity() instanceof MainActivity && currentBookingId != null) {
+                        ((MainActivity) getActivity()).showCancelDialog(() -> {
+                            db.collection("bookings").document(currentBookingId).get().addOnSuccessListener(doc -> {
+                                if (doc.exists()) {
+                                    String employeeId = doc.getString("employeeId");
+                                    String bDate = doc.getString("date");
+                                    String bTime = doc.getString("time");
+
+                                    java.util.Map<String, Object> updates = new java.util.HashMap<>();
+                                    updates.put("status", "Cancelled");
+                                    updates.put("updatedAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
+
+                                    db.collection("bookings").document(currentBookingId)
+                                            .update(updates)
+                                            .addOnSuccessListener(aVoid -> {
+                                                if (isAdded()) Toast.makeText(getContext(), "Booking Cancelled", Toast.LENGTH_SHORT).show();
+                                                sendCancellationNotification(employeeId, bDate, bTime);
+                                            });
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
     }
 
     private void sendCancellationNotification(String employeeId, String date, String time) {

@@ -102,16 +102,18 @@
     </com.google.android.material.card.MaterialCardView>
 
     <!-- Main Content Area: Scrollable -->
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:id="@+id/sv_home_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:overScrollMode="never">
 
         <LinearLayout
             android:id="@+id/ll_home_scroll_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:animateLayoutChanges="true"
             android:clipToPadding="false"
             android:orientation="vertical"
             android:padding="12dp">
@@ -681,19 +683,33 @@
                         android:layout_margin="16dp"
                         android:visibility="gone" />
 
-                    <TextView
-                        android:id="@+id/tv_empty_history_home"
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/mcv_empty_history_home"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:padding="16dp"
-                        android:text="No past bookings found."
-                        android:visibility="gone" />
+                        android:layout_marginTop="8dp"
+                        android:visibility="gone"
+                        app:cardBackgroundColor="@android:color/transparent"
+                        app:cardCornerRadius="6dp"
+                        app:cardElevation="0dp"
+                        app:cardUseCompatPadding="false">
+
+                        <TextView
+                            android:id="@+id/tv_empty_history_home"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:padding="16dp"
+                            android:text="No past bookings found."
+                            android:textColor="@color/grey_grey"
+                            android:textSize="13sp"
+                            android:textStyle="italic" />
+                    </com.google.android.material.card.MaterialCardView>
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

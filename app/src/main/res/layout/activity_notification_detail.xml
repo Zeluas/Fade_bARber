@@ -109,7 +109,7 @@
                         android:lineSpacingExtra="4dp"
                         android:paddingHorizontal="16dp"
                         android:paddingTop="16dp"
-                        android:paddingBottom="8dp"
+                        android:paddingBottom="16dp"
                         android:textColor="@color/black"
                         android:textSize="14sp"
                         tools:text="Detailed message about the activity goes here. It can be multiple lines and will explain why this notification was sent." />

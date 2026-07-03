@@ -34,8 +34,6 @@ public class ActivityListFragment extends Fragment {
 
     private LinearLayout llDynamicNotifications;
     private TextView tvNoNotifications;
-    private View vReferenceDivider, tvReferenceLabel;
-    private LinearLayout llStaticList;
     
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
@@ -51,12 +49,8 @@ public class ActivityListFragment extends Fragment {
 
         llDynamicNotifications = view.findViewById(R.id.ll_dynamic_notifications);
         tvNoNotifications = view.findViewById(R.id.tv_no_notifications);
-        vReferenceDivider = view.findViewById(R.id.v_reference_divider);
-        tvReferenceLabel = view.findViewById(R.id.tv_reference_label);
-        llStaticList = view.findViewById(R.id.ll_notification_list);
 
         startNotificationListener();
-        initializeStaticNotifications(view);
 
         return view;
     }
@@ -76,14 +70,8 @@ public class ActivityListFragment extends Fragment {
                     
                     if (value.isEmpty()) {
                         tvNoNotifications.setVisibility(View.VISIBLE);
-                        vReferenceDivider.setVisibility(View.GONE);
-                        tvReferenceLabel.setVisibility(View.GONE);
-                        llStaticList.setAlpha(1.0f);
                     } else {
                         tvNoNotifications.setVisibility(View.GONE);
-                        vReferenceDivider.setVisibility(View.VISIBLE);
-                        tvReferenceLabel.setVisibility(View.VISIBLE);
-                        llStaticList.setAlpha(0.5f);
                         
                         List<QueryDocumentSnapshot> docs = new ArrayList<>();
                         for (QueryDocumentSnapshot doc : value) docs.add(doc);
@@ -134,14 +122,36 @@ public class ActivityListFragment extends Fragment {
             tvDuration.setText(getTimeAgo(ts.toDate()));
         }
 
-        if ("NOSHOW".equals(type) || "CANCELLATION".equals(type)) {
+        if ("NOSHOW".equals(type) || "CANCELLATION".equals(type) || "PROFILE_ERROR".equals(type) || "AUTO_CANCELLATION".equals(type) || "CANCELLATION_LOCK".equals(type)) {
             ivBg.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.warning_red));
             ivIcon.setImageResource(R.drawable.ic_warning_circle);
             ivIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.warning_red_icon));
+            int p = (int) (10 * getResources().getDisplayMetrics().density);
+            ivIcon.setPadding(p, p, p, p);
+        } else if ("PROFILE_UPDATE".equals(type)) {
+            ivBg.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.alert_yellow));
+            ivIcon.setImageResource(R.drawable.ic_notification);
+            ivIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.alert_yellow_icon));
+            int p = (int) (13 * getResources().getDisplayMetrics().density);
+            ivIcon.setPadding(p, p, p, p);
+        } else if ("PAYMENT_REQUIRED".equals(type)) {
+            ivBg.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.success_green));
+            ivIcon.setImageResource(R.drawable.ic_cash);
+            ivIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.success_green_icon));
+            int p = (int) (14 * getResources().getDisplayMetrics().density);
+            ivIcon.setPadding(p, p, p, p);
+        } else if ("COMPLETED".equals(type)) {
+            ivBg.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.success_green));
+            ivIcon.setImageResource(R.drawable.ic_check_circle);
+            ivIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.success_green_icon));
+            int p = (int) (8 * getResources().getDisplayMetrics().density);
+            ivIcon.setPadding(p, p, p, p);
         } else {
             ivBg.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.info_blue));
             ivIcon.setImageResource(R.drawable.ic_info_circle);
             ivIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.info_blue_icon));
+            int p = (int) (10 * getResources().getDisplayMetrics().density);
+            ivIcon.setPadding(p, p, p, p);
         }
 
         if (clickableContainer != null) {
@@ -187,14 +197,6 @@ public class ActivityListFragment extends Fragment {
         if (mins < 60) return mins + "m ago";
         if (hours < 24) return hours + "h ago";
         return days + "d ago";
-    }
-
-    private void initializeStaticNotifications(View view) {
-        int[] ids = {R.id.tv_duration_success, R.id.tv_duration_promo, R.id.tv_duration_reminder, R.id.tv_duration_profile};
-        for (int id : ids) {
-            TextView tv = view.findViewById(id);
-            if (tv != null) tv.setText(getString(R.string.notif_duration_placeholder, 30));
-        }
     }
 
     @Override

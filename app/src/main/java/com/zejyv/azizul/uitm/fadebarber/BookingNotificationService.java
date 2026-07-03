@@ -35,7 +35,7 @@ public class BookingNotificationService extends Service {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID_SERVICE)
                 .setContentTitle("Fade bARber Active")
                 .setContentText("Monitoring your appointments...")
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.ic_hair)
                 .setColor(androidx.core.content.ContextCompat.getColor(this, R.color.primary_color))
                 .setContentIntent(pendingIntent)
                 .setPriority(NotificationCompat.PRIORITY_MIN)
@@ -83,7 +83,13 @@ public class BookingNotificationService extends Service {
                                 triggerSystemAlert(docId, title, message, type, bookingId, tsMillis, senderId);
 
                                 // Mark as seen immediately so it doesn't alert again on relaunch
-                                dc.getDocument().getReference().update("isSeen", true);
+                                java.util.Map<String, Object> updates = new java.util.HashMap<>();
+                                updates.put("isSeen", true);
+                                if ("PAYMENT_REQUIRED".equals(type)) {
+                                    updates.put("isRead", true);
+                                    updates.put("lastReadTimestamp", com.google.firebase.Timestamp.now());
+                                }
+                                dc.getDocument().getReference().update(updates);
                             }
                         }
                     }
@@ -109,7 +115,7 @@ public class BookingNotificationService extends Service {
         Notification alert = new NotificationCompat.Builder(this, CHANNEL_ID_ALERTS)
                 .setContentTitle(title)
                 .setContentText(message)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.ic_hair)
                 .setColor(androidx.core.content.ContextCompat.getColor(this, R.color.primary_color))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)

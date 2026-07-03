@@ -81,9 +81,13 @@ public class ProfileEditActivity extends AppCompatActivity {
     private com.google.android.material.button.MaterialButton btnReauthDeleteCancel, btnReauthDeleteConfirm;
 
     private boolean isEmployee = false;
+    private boolean isAdmin = false;
+    private boolean isFirstTime = false;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
     private String userId;
+
+    private String initialFullname, initialUsername, initialSpecialty, initialPhone, initialEmail;
 
     private final Handler errorCleanupHandler = new Handler(Looper.getMainLooper());
     private final Map<EditText, Runnable> activeErrorCleanups = new HashMap<>();
@@ -125,6 +129,8 @@ public class ProfileEditActivity extends AppCompatActivity {
         if (user != null) {
             userId = user.getUid();
         }
+
+        isFirstTime = getIntent().getBooleanExtra("IS_FIRST_TIME", false);
 
         initializeViews();
         checkUserTypeAndLoadData();
@@ -175,7 +181,14 @@ public class ProfileEditActivity extends AppCompatActivity {
         btnReauthDeleteCancel = findViewById(R.id.btn_reauth_delete_cancel);
         btnReauthDeleteConfirm = findViewById(R.id.btn_reauth_delete_confirm);
 
-        findViewById(R.id.iv_back_profile_edit).setOnClickListener(v -> finish());
+        ImageView btnBack = findViewById(R.id.iv_back_profile_edit);
+        btnBack.setOnClickListener(v -> finish());
+        
+        if (isFirstTime) {
+            btnBack.setVisibility(View.GONE);
+            TextView tvTitle = findViewById(R.id.tv_title_profile_edit);
+            if (tvTitle != null) tvTitle.setText("First Time Login");
+        }
         
         setupPasswordVisibilityToggle(etPassword);
         setupPasswordVisibilityToggle(etConfirmPassword);
@@ -244,6 +257,9 @@ public class ProfileEditActivity extends AppCompatActivity {
             hideDeleteConfirmation();
         } else if (layoutReauthConfirmation != null && layoutReauthConfirmation.getVisibility() == View.VISIBLE) {
             hideReauthOverlay();
+        } else if (isFirstTime) {
+            // Prevent going back during first-time setup
+            Toast.makeText(this, "Please complete your profile setup first.", Toast.LENGTH_SHORT).show();
         } else {
             super.onBackPressed();
         }
@@ -291,16 +307,20 @@ public class ProfileEditActivity extends AppCompatActivity {
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
 
-            String fullnameInPrefs = prefs.getString("fullname", "");
-            isEmployee = !fullnameInPrefs.isEmpty();
+            String role = prefs.getString("role", "customer");
+            isEmployee = "employee".equals(role);
+            isAdmin = "admin".equals(role);
 
             if (btnDeleteAccount != null) {
-                btnDeleteAccount.setVisibility(isEmployee ? View.GONE : View.VISIBLE);
+                btnDeleteAccount.setVisibility((isEmployee || isAdmin) ? View.GONE : View.VISIBLE);
             }
 
             if (isEmployee) {
                 mcvSpecialty.setVisibility(View.VISIBLE);
                 loadEmployeeData();
+            } else if (isAdmin) {
+                mcvSpecialty.setVisibility(View.GONE);
+                loadAdminData();
             } else {
                 mcvSpecialty.setVisibility(View.GONE);
                 loadCustomerData();
@@ -314,15 +334,39 @@ public class ProfileEditActivity extends AppCompatActivity {
         }
     }
 
+    private void loadAdminData() {
+        if (userId == null) return;
+        loadingOverlay.setVisibility(View.VISIBLE);
+        db.collection("admins").document(userId).get().addOnSuccessListener(doc -> {
+            if (doc.exists()) {
+                initialFullname = doc.getString("fullname");
+                initialUsername = doc.getString("shortname");
+                initialPhone = doc.getString("phone");
+                initialEmail = mAuth.getCurrentUser().getEmail();
+
+                etFullname.setText(initialFullname);
+                etUsername.setText(initialUsername);
+                etPhone.setText(initialPhone);
+                etEmail.setText(initialEmail);
+            }
+            fetchLatestProfilePic();
+        }).addOnFailureListener(e -> loadingOverlay.setVisibility(View.GONE));
+    }
+
     private void loadCustomerData() {
         if (userId == null) return;
         loadingOverlay.setVisibility(View.VISIBLE);
         db.collection("customers").document(userId).get().addOnSuccessListener(doc -> {
             if (doc.exists()) {
-                etFullname.setText(doc.getString("name"));
-                etUsername.setText(doc.getString("username"));
-                etPhone.setText(doc.getString("phone"));
-                etEmail.setText(mAuth.getCurrentUser().getEmail());
+                initialFullname = doc.getString("name");
+                initialUsername = doc.getString("username");
+                initialPhone = doc.getString("phone");
+                initialEmail = mAuth.getCurrentUser().getEmail();
+
+                etFullname.setText(initialFullname);
+                etUsername.setText(initialUsername);
+                etPhone.setText(initialPhone);
+                etEmail.setText(initialEmail);
             }
             fetchLatestProfilePic();
         }).addOnFailureListener(e -> loadingOverlay.setVisibility(View.GONE));
@@ -333,11 +377,17 @@ public class ProfileEditActivity extends AppCompatActivity {
         loadingOverlay.setVisibility(View.VISIBLE);
         db.collection("employees").document(userId).get().addOnSuccessListener(doc -> {
             if (doc.exists()) {
-                etFullname.setText(doc.getString("fullname"));
-                etUsername.setText(doc.getString("shortname"));
-                etSpecialty.setText(doc.getString("specialty"));
-                etPhone.setText(doc.getString("phone"));
-                etEmail.setText(mAuth.getCurrentUser().getEmail());
+                initialFullname = doc.getString("fullname");
+                initialUsername = doc.getString("shortname");
+                initialSpecialty = doc.getString("specialty");
+                initialPhone = doc.getString("phone");
+                initialEmail = mAuth.getCurrentUser().getEmail();
+
+                etFullname.setText(initialFullname);
+                etUsername.setText(initialUsername);
+                etSpecialty.setText(initialSpecialty);
+                etPhone.setText(initialPhone);
+                etEmail.setText(initialEmail);
             }
             fetchLatestProfilePic();
         }).addOnFailureListener(e -> loadingOverlay.setVisibility(View.GONE));
@@ -439,10 +489,7 @@ public class ProfileEditActivity extends AppCompatActivity {
     }
 
     private boolean validateSpecialty(boolean requestFocus) {
-        if (isEmployee && etSpecialty.getText().toString().trim().isEmpty()) {
-            setFieldError(etSpecialty, "Specialty is required", requestFocus);
-            return false;
-        }
+        // Specialty is now optional for employees.
         return true;
     }
 
@@ -456,8 +503,8 @@ public class ProfileEditActivity extends AppCompatActivity {
             setFieldError(etPhone, "Phone number can only contain digits", requestFocus); 
             return false; 
         }
-        if (phone.length() < 11) { 
-            setFieldError(etPhone, "Phone number must be at least 11 digits", requestFocus); 
+        if (phone.length() < 9) { 
+            setFieldError(etPhone, "Phone number must be at least 9 digits", requestFocus);
             return false; 
         }
         return true;
@@ -635,6 +682,7 @@ public class ProfileEditActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         loadingOverlay.setVisibility(View.GONE);
                         showStatusOverlay(false, "Upload Failed", "Connection error: " + e.getMessage());
+                        sendProfileUpdateNotification(false, "Image upload connection error.");
                     });
                 }
 
@@ -650,6 +698,7 @@ public class ProfileEditActivity extends AppCompatActivity {
                             loadingOverlay.setVisibility(View.GONE);
                             Log.e("ImgBB", "Error response: " + responseBody);
                             showStatusOverlay(false, "Upload Failed", "ImgBB service error.");
+                            sendProfileUpdateNotification(false, "ImgBB service error.");
                         });
                     }
                 }
@@ -697,6 +746,7 @@ public class ProfileEditActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     loadingOverlay.setVisibility(View.GONE);
                     showStatusOverlay(false, "Database Error", "Failed to save image metadata.");
+                    sendProfileUpdateNotification(false, "Failed to save image metadata.");
                 });
         });
     }
@@ -712,12 +762,18 @@ public class ProfileEditActivity extends AppCompatActivity {
         boolean emailChanged = fUser != null && !email.equals(fUser.getEmail());
 
         Map<String, Object> updates = new HashMap<>();
-        String collection = isEmployee ? "employees" : "customers";
+        String collection;
+        if (isEmployee) collection = "employees";
+        else if (isAdmin) collection = "admins";
+        else collection = "customers";
 
         if (isEmployee) {
             updates.put("fullname", name);
             updates.put("shortname", user);
             updates.put("specialty", etSpecialty.getText().toString().trim());
+        } else if (isAdmin) {
+            updates.put("fullname", name);
+            updates.put("shortname", user);
         } else {
             updates.put("name", name);
             updates.put("username", user);
@@ -739,11 +795,13 @@ public class ProfileEditActivity extends AppCompatActivity {
                 } else {
                     loadingOverlay.setVisibility(View.GONE);
                     showStatusOverlay(true, "Update Successful!", "Your profile has been updated successfully.");
+                    sendProfileUpdateNotification(true, null);
                 }
             })
             .addOnFailureListener(e -> {
                 loadingOverlay.setVisibility(View.GONE);
                 showStatusOverlay(false, "Update Failed", e.getMessage());
+                sendProfileUpdateNotification(false, e.getMessage());
             });
     }
 
@@ -757,28 +815,35 @@ public class ProfileEditActivity extends AppCompatActivity {
         if (!newEmail.equals(user.getEmail()) && !newPassword.isEmpty()) {
             user.updateEmail(newEmail).addOnSuccessListener(v1 -> {
                 user.updatePassword(newPassword).addOnSuccessListener(v2 -> {
+                    sendProfileUpdateNotification(true, null);
                     forceLogout();
                 }).addOnFailureListener(e -> {
                     loadingOverlay.setVisibility(View.GONE);
                     showStatusOverlay(false, "Auth Error", "Email updated, but password failed.");
+                    sendProfileUpdateNotification(false, "Email updated, but password failed.");
                 });
             }).addOnFailureListener(e -> {
                 loadingOverlay.setVisibility(View.GONE);
                 showStatusOverlay(false, "Auth Error", "Failed to update email.");
+                sendProfileUpdateNotification(false, "Failed to update email.");
             });
         } else if (!newEmail.equals(user.getEmail())) {
             user.updateEmail(newEmail).addOnSuccessListener(v1 -> {
+                sendProfileUpdateNotification(true, null);
                 forceLogout();
             }).addOnFailureListener(e -> {
                 loadingOverlay.setVisibility(View.GONE);
                 showStatusOverlay(false, "Auth Error", "Failed to update email.");
+                sendProfileUpdateNotification(false, "Failed to update email.");
             });
         } else if (!newPassword.isEmpty()) {
             user.updatePassword(newPassword).addOnSuccessListener(v2 -> {
+                sendProfileUpdateNotification(true, null);
                 forceLogout();
             }).addOnFailureListener(e -> {
                 loadingOverlay.setVisibility(View.GONE);
                 showStatusOverlay(false, "Auth Error", "Failed to update password.");
+                sendProfileUpdateNotification(false, "Failed to update password.");
             });
         }
     }
@@ -820,7 +885,7 @@ public class ProfileEditActivity extends AppCompatActivity {
             );
 
             android.content.SharedPreferences.Editor editor = prefs.edit();
-            if (isEmployee) {
+            if (isEmployee || isAdmin) {
                 editor.putString("fullname", name);
                 editor.putString("name", user); // shortname
             } else {
@@ -1033,5 +1098,54 @@ public class ProfileEditActivity extends AppCompatActivity {
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             if (imm != null) imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
         }
+    }
+
+    private void sendProfileUpdateNotification(boolean isSuccess, String errorMsg) {
+        if (userId == null) return;
+
+        Map<String, Object> notification = new HashMap<>();
+        notification.put("receiverId", userId);
+        notification.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
+        notification.put("isRead", false);
+        notification.put("isSeen", false);
+        notification.put("senderId", "system");
+
+        if (isSuccess) {
+            notification.put("type", "PROFILE_UPDATE");
+            notification.put("title", "Profile Updated");
+
+            StringBuilder sb = new StringBuilder("You have successfully updated your ");
+            java.util.List<String> changes = new java.util.ArrayList<>();
+
+            if (selectedImageUri != null) changes.add("Profile Picture");
+            if (!etFullname.getText().toString().trim().equals(initialFullname)) changes.add("Fullname");
+            if (!etUsername.getText().toString().trim().equals(initialUsername)) changes.add("Username");
+            
+            String currentSpecialty = etSpecialty.getText().toString().trim();
+            String oldSpecialty = initialSpecialty != null ? initialSpecialty : "";
+            if (isEmployee && !currentSpecialty.equals(oldSpecialty)) changes.add("Specialty");
+
+            if (!etPhone.getText().toString().trim().equals(initialPhone)) changes.add("Phone Number");
+            if (!etEmail.getText().toString().trim().equals(initialEmail)) changes.add("Email");
+            if (!etPassword.getText().toString().isEmpty()) changes.add("Password");
+
+            if (changes.isEmpty()) {
+                sb.append("profile.");
+            } else {
+                for (int i = 0; i < changes.size(); i++) {
+                    sb.append(changes.get(i));
+                    if (i < changes.size() - 2) sb.append(", ");
+                    else if (i == changes.size() - 2) sb.append(" and ");
+                }
+                sb.append(".");
+            }
+            notification.put("message", sb.toString());
+        } else {
+            notification.put("type", "PROFILE_ERROR");
+            notification.put("title", "Update Failed");
+            notification.put("message", "We couldn't update your profile: " + errorMsg);
+        }
+
+        db.collection("notifications").add(notification);
     }
 }

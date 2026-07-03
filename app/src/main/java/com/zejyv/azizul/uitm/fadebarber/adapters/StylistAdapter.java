@@ -52,6 +52,7 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
         holder.tvName.setText(employee.getFullname());
         holder.tvSpecialty.setText(String.format("Specialty: %s", employee.getSpecialty()));
         holder.rbRating.setRating(0); // Default rating as 0 for now
+        holder.tvRatingVal.setText("0.0");
 
         // Load profile picture from profile_pics collection
         FirebaseFirestore.getInstance().collection("profile_pics").document(employee.getUid()).get()
@@ -72,12 +73,16 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
                 })
                 .addOnFailureListener(e -> holder.ivStylist.setImageResource(R.drawable.ic_profile));
 
-        // Fetch and calculate average rating for the stylist
+        // Fetch and calculate average rating for the stylist in real-time
         FirebaseFirestore.getInstance().collection("hairstylist_ratings")
                 .whereEqualTo("employeeId", employee.getUid())
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) {
+                .addSnapshotListener((queryDocumentSnapshots, e) -> {
+                    if (e != null) {
+                        holder.rbRating.setRating(0);
+                        holder.tvRatingVal.setText("0.0");
+                        return;
+                    }
+                    if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
                         double totalRating = 0;
                         int count = queryDocumentSnapshots.size();
                         for (com.google.firebase.firestore.DocumentSnapshot doc : queryDocumentSnapshots) {
@@ -86,11 +91,12 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
                         }
                         float average = (float) (totalRating / count);
                         holder.rbRating.setRating(average);
+                        holder.tvRatingVal.setText(String.format(java.util.Locale.getDefault(), "%.1f", average));
                     } else {
                         holder.rbRating.setRating(0);
+                        holder.tvRatingVal.setText("0.0");
                     }
-                })
-                .addOnFailureListener(e -> holder.rbRating.setRating(0));
+                });
 
         if (isSelectionEnabled) {
             holder.cbSelected.setVisibility(View.VISIBLE);
@@ -144,7 +150,7 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
 
     static class StylistViewHolder extends RecyclerView.ViewHolder {
         View rootContainer;
-        TextView tvName, tvSpecialty;
+        TextView tvName, tvSpecialty, tvRatingVal;
         RatingBar rbRating;
         MaterialCheckBox cbSelected;
         ImageView ivStylist;
@@ -155,6 +161,7 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
             rootContainer = itemView.findViewById(R.id.ll_stylist_item);
             tvName = itemView.findViewById(R.id.tv_stylist_name);
             tvSpecialty = itemView.findViewById(R.id.tv_stylist_specialty);
+            tvRatingVal = itemView.findViewById(R.id.tv_stylist_rating_val);
             rbRating = itemView.findViewById(R.id.rb_stylist_rating);
             cbSelected = itemView.findViewById(R.id.cb_stylist);
             ivStylist = itemView.findViewById(R.id.iv_stylist_img);

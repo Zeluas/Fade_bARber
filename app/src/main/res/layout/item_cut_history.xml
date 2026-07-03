@@ -264,17 +264,27 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tv_history_comment"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:background="@drawable/bg_pill_stroke"
-                android:padding="8dp"
-                android:text="No comments provided."
-                android:textColor="@color/grey_grey"
-                android:textSize="13sp"
-                android:textStyle="italic" />
+                app:cardBackgroundColor="@android:color/transparent"
+                app:cardCornerRadius="6dp"
+                app:cardElevation="0dp"
+                app:cardUseCompatPadding="false"
+                app:strokeColor="@color/primary_color"
+                app:strokeWidth="2dp">
+
+                <TextView
+                    android:id="@+id/tv_history_comment"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    android:text="No comments provided."
+                    android:textColor="@color/grey_grey"
+                    android:textSize="13sp"
+                    android:textStyle="italic" />
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
 

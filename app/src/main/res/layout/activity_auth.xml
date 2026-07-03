@@ -762,9 +762,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/warning_red_icon"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
             android:padding="16dp"
-            android:gravity="center_vertical"
             app:layout_constraintTop_toTopOf="parent">
 
             <ImageView

@@ -147,14 +147,36 @@ public class ReadFragment extends Fragment {
             tvDuration.setText("30d left");
         }
 
-        if ("NOSHOW".equals(type) || "CANCELLATION".equals(type)) {
+        if ("NOSHOW".equals(type) || "CANCELLATION".equals(type) || "PROFILE_ERROR".equals(type) || "AUTO_CANCELLATION".equals(type) || "CANCELLATION_LOCK".equals(type)) {
             ivBg.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.warning_red));
             ivIcon.setImageResource(R.drawable.ic_warning_circle);
             ivIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.warning_red_icon));
+            int p = (int) (10 * getResources().getDisplayMetrics().density);
+            ivIcon.setPadding(p, p, p, p);
+        } else if ("PROFILE_UPDATE".equals(type)) {
+            ivBg.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.alert_yellow));
+            ivIcon.setImageResource(R.drawable.ic_notification);
+            ivIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.alert_yellow_icon));
+            int p = (int) (13 * getResources().getDisplayMetrics().density);
+            ivIcon.setPadding(p, p, p, p);
+        } else if ("PAYMENT_REQUIRED".equals(type)) {
+            ivBg.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.success_green));
+            ivIcon.setImageResource(R.drawable.ic_cash);
+            ivIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.success_green_icon));
+            int p = (int) (14 * getResources().getDisplayMetrics().density);
+            ivIcon.setPadding(p, p, p, p);
+        } else if ("COMPLETED".equals(type)) {
+            ivBg.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.success_green));
+            ivIcon.setImageResource(R.drawable.ic_check_circle);
+            ivIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.success_green_icon));
+            int p = (int) (8 * getResources().getDisplayMetrics().density);
+            ivIcon.setPadding(p, p, p, p);
         } else {
             ivBg.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.info_blue));
             ivIcon.setImageResource(R.drawable.ic_info_circle);
             ivIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.info_blue_icon));
+            int p = (int) (10 * getResources().getDisplayMetrics().density);
+            ivIcon.setPadding(p, p, p, p);
         }
 
         if (clickableContainer != null) {

@@ -123,8 +123,14 @@ public class EmployeeBookFragment extends Fragment {
         setupSearchLogic(view);
         setupOverlayLogic(view);
         
+        long currentTime = NetworkTimeManager.getInstance().getCurrentTime();
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yy", Locale.getDefault());
-        selectedDate = sdf.format(new Date());
+        selectedDate = sdf.format(new Date(currentTime));
+        
+        if (calendarView != null) {
+            calendarView.setDate(currentTime, false, true);
+        }
+
         fetchBookings();
         rebuildFilterBar();
     }
@@ -277,7 +283,10 @@ public class EmployeeBookFragment extends Fragment {
             if ("Completed".equalsIgnoreCase(item.booking.getStatus())) total += item.amount;
         }
         if (tvEarnToday != null) {
-            tvEarnToday.setText(String.format(Locale.getDefault(), "RM %.2f", total));
+            java.text.NumberFormat formatter = java.text.NumberFormat.getNumberInstance(Locale.US);
+            formatter.setMinimumFractionDigits(2);
+            formatter.setMaximumFractionDigits(2);
+            tvEarnToday.setText("RM " + formatter.format(total));
         }
 
         try {
@@ -307,16 +316,25 @@ public class EmployeeBookFragment extends Fragment {
                                         Double amt = payDoc.getDouble("paymentAmount");
                                         if (amt != null) monthlyTotal[0] += amt;
                                         if (count.incrementAndGet() == totalDocs && isAdded() && tvEarnMonth != null) {
-                                            tvEarnMonth.setText(String.format(Locale.getDefault(), "RM %.2f", monthlyTotal[0]));
+                                            java.text.NumberFormat formatter = java.text.NumberFormat.getNumberInstance(Locale.US);
+                                            formatter.setMinimumFractionDigits(2);
+                                            formatter.setMaximumFractionDigits(2);
+                                            tvEarnMonth.setText("RM " + formatter.format(monthlyTotal[0]));
                                         }
                                     }).addOnFailureListener(e -> {
                                         if (count.incrementAndGet() == totalDocs && isAdded() && tvEarnMonth != null) {
-                                            tvEarnMonth.setText(String.format(Locale.getDefault(), "RM %.2f", monthlyTotal[0]));
+                                            java.text.NumberFormat formatter = java.text.NumberFormat.getNumberInstance(Locale.US);
+                                            formatter.setMinimumFractionDigits(2);
+                                            formatter.setMaximumFractionDigits(2);
+                                            tvEarnMonth.setText("RM " + formatter.format(monthlyTotal[0]));
                                         }
                                     });
                                 } else {
                                     if (count.incrementAndGet() == totalDocs && isAdded() && tvEarnMonth != null) {
-                                        tvEarnMonth.setText(String.format(Locale.getDefault(), "RM %.2f", monthlyTotal[0]));
+                                        java.text.NumberFormat formatter = java.text.NumberFormat.getNumberInstance(Locale.US);
+                                        formatter.setMinimumFractionDigits(2);
+                                        formatter.setMaximumFractionDigits(2);
+                                        tvEarnMonth.setText("RM " + formatter.format(monthlyTotal[0]));
                                     }
                                 }
                             }
@@ -414,7 +432,10 @@ public class EmployeeBookFragment extends Fragment {
     private void showCancelConfirmation(Booking booking) {
         if (getActivity() instanceof MainActivityEmployee) {
              ((MainActivityEmployee) getActivity()).showNoShowDialog(() -> {
-                 db.collection("bookings").document(booking.getBookingId()).update("status", "Cancelled")
+                 db.collection("bookings").document(booking.getBookingId()).update(
+                                 "status", "Cancelled",
+                                 "updatedAt", com.google.firebase.firestore.FieldValue.serverTimestamp()
+                         )
                          .addOnSuccessListener(aVoid -> { if (isAdded()) Toast.makeText(getContext(), "Booking Cancelled", Toast.LENGTH_SHORT).show(); });
              });
         }
