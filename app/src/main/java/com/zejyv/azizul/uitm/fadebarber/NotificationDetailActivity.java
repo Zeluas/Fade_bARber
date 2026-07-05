@@ -191,7 +191,7 @@ public class NotificationDetailActivity extends AppCompatActivity {
         tvStyle.setText(styleName);
         tvBookingId.setText("#" + bookingId.substring(0, 8).toUpperCase());
 
-        loadHairstyleImage(styleName, ivStyle);
+        loadHairstyleImage(styleName, null, ivStyle);
 
         if (employeeId != null) {
             FirebaseFirestore.getInstance().collection("employees").document(employeeId).get()
@@ -241,7 +241,7 @@ public class NotificationDetailActivity extends AppCompatActivity {
                     tvStyle.setText(styleName);
 
                     // Load Style Image from Assets
-                    loadHairstyleImage(styleName, ivHairSmall);
+                    loadHairstyleImage(styleName, doc.getString("hairstyleId"), ivHairSmall);
 
                     // Fetch Barber Details
                     if (employeeId != null) {
@@ -264,24 +264,47 @@ public class NotificationDetailActivity extends AppCompatActivity {
             });
     }
 
-    private void loadHairstyleImage(String name, ImageView iv) {
-        if (name == null) { iv.setImageResource(R.drawable.ic_hair); return; }
+    private void loadHairstyleImage(String name, String id, ImageView iv) {
+        if (name == null || iv == null) {
+            iv.setPadding(6, 6, 6, 6);
+            iv.setImageResource(R.drawable.ic_hair);
+            return;
+        }
         try {
             String[] images = getAssets().list("images");
             if (images != null) {
+                // Derive search terms: clean name and derived key from ID
+                String key = (id != null && id.startsWith("hs_")) ? id.substring(3) : "";
+                String cleanKey = key.toLowerCase().replace(" ", "").replace("-", "");
                 String cleanName = name.toLowerCase().replace(" ", "").replace("-", "");
+
                 for (String imageName : images) {
                     String cleanImg = imageName.toLowerCase().split("\\.")[0].replace(" ", "").replace("-", "");
-                    if (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)) {
-                        try (java.io.InputStream is = getAssets().open("images/" + imageName)) {
-                            android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(is);
-                            iv.setImageBitmap(bitmap);
-                            return;
-                        }
+
+                    // Match if the filename contains the key/name, or vice-versa
+                    boolean matchFound = (!cleanKey.isEmpty() && (cleanImg.contains(cleanKey) || cleanKey.contains(cleanImg))) ||
+                                       (!cleanName.isEmpty() && (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)));
+
+                    if (matchFound) {
+                        // Small padding (same as stroke width) so the image sits INSIDE the border
+                        int strokePadding = (int) (1.0 * getResources().getDisplayMetrics().density);
+                        iv.setPadding(strokePadding, strokePadding, strokePadding, strokePadding);
+
+                        Glide.with(this)
+                                .load("file:///android_asset/images/" + imageName)
+                                .transform(new com.bumptech.glide.load.resource.bitmap.CenterCrop(),
+                                           new com.bumptech.glide.load.resource.bitmap.RoundedCorners((int) (12 * getResources().getDisplayMetrics().density)))
+                                .into(iv);
+                        return;
                     }
                 }
             }
-        } catch (java.io.IOException e) { e.printStackTrace(); }
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+
+        // Fallback if no specific image found
+        iv.setPadding(6, 6, 6, 6);
         iv.setImageResource(R.drawable.ic_hair);
     }
 }

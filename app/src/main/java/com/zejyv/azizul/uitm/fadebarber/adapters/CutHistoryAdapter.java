@@ -109,7 +109,7 @@ public class CutHistoryAdapter extends RecyclerView.Adapter<CutHistoryAdapter.Hi
                 .into(holder.ivHair);
 
         // Load Hairstyle Image (Small)
-        loadHairstyleImage(item.booking.getHairstyleName(), holder.ivHairSmall);
+        loadHairstyleImage(item.booking.getHairstyleName(), item.booking.getHairstyleId(), holder.ivHairSmall);
 
         // Expand/Collapse Logic
         ViewGroup.LayoutParams lp = holder.llExpandable.getLayoutParams();
@@ -211,25 +211,48 @@ public class CutHistoryAdapter extends RecyclerView.Adapter<CutHistoryAdapter.Hi
         else return String.format(Locale.getDefault(), "%02d:%02d", m, seconds);
     }
 
-    private void loadHairstyleImage(String name, ImageView iv) {
-        if (name == null) { iv.setImageResource(R.drawable.ic_hair); return; }
+    private void loadHairstyleImage(String name, String id, ImageView iv) {
+        if (name == null || iv == null) {
+            iv.setPadding(8, 8, 8, 8);
+            iv.setImageResource(R.drawable.ic_hair);
+            return;
+        }
         Context context = iv.getContext();
         try {
             String[] images = context.getAssets().list("images");
             if (images != null) {
+                // Derive search terms: clean name and derived key from ID
+                String key = (id != null && id.startsWith("hs_")) ? id.substring(3) : "";
+                String cleanKey = key.toLowerCase().replace(" ", "").replace("-", "");
                 String cleanName = name.toLowerCase().replace(" ", "").replace("-", "");
+
                 for (String imageName : images) {
                     String cleanImg = imageName.toLowerCase().split("\\.")[0].replace(" ", "").replace("-", "");
-                    if (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)) {
-                        try (InputStream is = context.getAssets().open("images/" + imageName)) {
-                            Bitmap bitmap = BitmapFactory.decodeStream(is);
-                            iv.setImageBitmap(bitmap);
-                            return;
-                        }
+
+                    // Match if the filename contains the key/name, or vice-versa
+                    boolean matchFound = (!cleanKey.isEmpty() && (cleanImg.contains(cleanKey) || cleanKey.contains(cleanImg))) ||
+                                       (!cleanName.isEmpty() && (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)));
+
+                    if (matchFound) {
+                        // Small padding (same as stroke width) so the image sits INSIDE the border
+                        int strokePadding = (int) (1.0 * context.getResources().getDisplayMetrics().density);
+                        iv.setPadding(strokePadding, strokePadding, strokePadding, strokePadding);
+
+                        Glide.with(context)
+                                .load("file:///android_asset/images/" + imageName)
+                                .transform(new com.bumptech.glide.load.resource.bitmap.CenterCrop(),
+                                           new com.bumptech.glide.load.resource.bitmap.RoundedCorners((int) (12 * context.getResources().getDisplayMetrics().density)))
+                                .into(iv);
+                        return;
                     }
                 }
             }
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Fallback if no specific image found
+        iv.setPadding(8, 8, 8, 8);
         iv.setImageResource(R.drawable.ic_hair);
     }
 

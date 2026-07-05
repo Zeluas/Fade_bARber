@@ -48,6 +48,10 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CenterCrop;
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -191,8 +195,6 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
             if (images == null) return;
 
             java.util.Map<String, Integer> viewMap = new java.util.HashMap<>();
-            viewMap.put("viking_helmet", R.id.v_icon_viking_helmet);
-            viewMap.put("vendetta_mask", R.id.v_icon_vendetta_mask);
             viewMap.put("brazilian", R.id.v_icon_brazilian);
             viewMap.put("bird_hair", R.id.v_icon_bird_hair);
             viewMap.put("side_sweep", R.id.v_icon_side_sweep);
@@ -206,15 +208,21 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
             for (String imageName : images) {
                 for (String key : viewMap.keySet()) {
                     if (imageName.toLowerCase().startsWith(key)) {
-                        View container = findViewById(viewMap.get(key));
-                        if (container instanceof android.widget.FrameLayout) {
-                            android.widget.ImageView iv = (android.widget.ImageView) ((android.widget.FrameLayout) container).getChildAt(1);
-                            try (java.io.InputStream is = getAssets().open("images/" + imageName)) {
-                                android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(is);
-                                iv.setImageBitmap(bitmap);
-                                iv.setImageTintList(null); // Remove white tint if a real image is loaded
-                                iv.setPadding(0, 0, 0, 0); // Remove padding for full image display
-                            }
+                        View view = findViewById(viewMap.get(key));
+                        if (view instanceof android.widget.ImageView) {
+                            android.widget.ImageView iv = (android.widget.ImageView) view;
+                            
+                            // Small padding (same as stroke width) so the image sits INSIDE the border
+                            int strokePadding = (int) (1.5 * getResources().getDisplayMetrics().density);
+                            iv.setPadding(strokePadding, strokePadding, strokePadding, strokePadding);
+                            
+                            // Load image with rounding to match the background corners
+                            Glide.with(this)
+                                .load("file:///android_asset/images/" + imageName)
+                                .transform(new CenterCrop(), new RoundedCorners((int) (12 * getResources().getDisplayMetrics().density)))
+                                .into(iv);
+                            
+                            iv.setImageTintList(null); // Remove white tint for real images
                         }
                     }
                 }
@@ -261,8 +269,6 @@ public class TryOnActivity extends AppCompatActivity implements AREventListener,
         findViewById(R.id.item_disconnect_undercut).setOnClickListener(v -> switchHairstyle("disconnect_undercut.deepar", getString(R.string.style_disconnect_undercut), getString(R.string.desc_disconnect_undercut), "disconnect_undercut", "hs_disconnect_undercut"));
         findViewById(R.id.item_afro_tapper).setOnClickListener(v -> switchHairstyle("afro_tapper.deepar", getString(R.string.style_afro_tapper), getString(R.string.desc_afro_tapper), "afro_tapper", "hs_afro_tapper"));
         findViewById(R.id.item_punk).setOnClickListener(v -> switchHairstyle("punk.deepar", getString(R.string.style_punk), getString(R.string.desc_punk), "punk", "hs_punk"));
-        findViewById(R.id.item_viking_helmet).setOnClickListener(v -> switchHairstyle("viking_helmet.deepar", getString(R.string.style_viking_helmet), getString(R.string.desc_viking_helmet), "viking_helmet", "hs_viking_helmet"));
-        findViewById(R.id.item_vendetta_mask).setOnClickListener(v -> switchHairstyle("Vendetta_Mask.deepar", getString(R.string.style_vendetta_mask), getString(R.string.desc_vendetta_mask), "vendetta_mask", "hs_vendetta_mask"));
 
         // Swipe-to-collapse/expand logic
         View rootView = findViewById(android.R.id.content);

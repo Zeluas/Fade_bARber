@@ -153,7 +153,7 @@
                 android:layout_marginTop="8dp"
                 android:clipToPadding="false"
                 android:paddingStart="16dp"
-                android:paddingEnd="4dp"
+                android:paddingEnd="-20dp"
                 android:scrollbars="none"
                 app:layout_constraintTop_toBottomOf="@id/iv_carousel_arrow">
 
@@ -172,21 +172,14 @@
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <FrameLayout
+                        <ImageView
                             android:id="@+id/v_icon_brazilian"
                             android:layout_width="80dp"
-                            android:layout_height="80dp">
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/bg_carousel_item" />
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_hair"
-                                app:tint="@color/white" />
-                        </FrameLayout>
+                            android:layout_height="80dp"
+                            android:background="@drawable/bg_carousel_item"
+                            android:padding="16dp"
+                            android:src="@drawable/ic_hair"
+                            app:tint="@color/white" />
 
                         <TextView
                             android:id="@+id/tv_label_brazilian"
@@ -208,21 +201,14 @@
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <FrameLayout
+                        <ImageView
                             android:id="@+id/v_icon_bird_hair"
                             android:layout_width="80dp"
-                            android:layout_height="80dp">
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/bg_carousel_item" />
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_hair"
-                                app:tint="@color/white" />
-                        </FrameLayout>
+                            android:layout_height="80dp"
+                            android:background="@drawable/bg_carousel_item"
+                            android:padding="16dp"
+                            android:src="@drawable/ic_hair"
+                            app:tint="@color/white" />
 
                         <TextView
                             android:id="@+id/tv_label_bird_hair"
@@ -244,21 +230,14 @@
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <FrameLayout
+                        <ImageView
                             android:id="@+id/v_icon_side_sweep"
                             android:layout_width="80dp"
-                            android:layout_height="80dp">
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/bg_carousel_item" />
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_hair"
-                                app:tint="@color/white" />
-                        </FrameLayout>
+                            android:layout_height="80dp"
+                            android:background="@drawable/bg_carousel_item"
+                            android:padding="16dp"
+                            android:src="@drawable/ic_hair"
+                            app:tint="@color/white" />
 
                         <TextView
                             android:id="@+id/tv_label_side_sweep"
@@ -280,21 +259,14 @@
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <FrameLayout
+                        <ImageView
                             android:id="@+id/v_icon_wolf_hair"
                             android:layout_width="80dp"
-                            android:layout_height="80dp">
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/bg_carousel_item" />
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_hair"
-                                app:tint="@color/white" />
-                        </FrameLayout>
+                            android:layout_height="80dp"
+                            android:background="@drawable/bg_carousel_item"
+                            android:padding="16dp"
+                            android:src="@drawable/ic_hair"
+                            app:tint="@color/white" />
 
                         <TextView
                             android:id="@+id/tv_label_wolf_hair"
@@ -316,21 +288,14 @@
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <FrameLayout
+                        <ImageView
                             android:id="@+id/v_icon_70s_afro"
                             android:layout_width="80dp"
-                            android:layout_height="80dp">
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/bg_carousel_item" />
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_hair"
-                                app:tint="@color/white" />
-                        </FrameLayout>
+                            android:layout_height="80dp"
+                            android:background="@drawable/bg_carousel_item"
+                            android:padding="16dp"
+                            android:src="@drawable/ic_hair"
+                            app:tint="@color/white" />
 
                         <TextView
                             android:id="@+id/tv_label_70s_afro"
@@ -352,21 +317,14 @@
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <FrameLayout
+                        <ImageView
                             android:id="@+id/v_icon_curtain"
                             android:layout_width="80dp"
-                            android:layout_height="80dp">
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/bg_carousel_item" />
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_hair"
-                                app:tint="@color/white" />
-                        </FrameLayout>
+                            android:layout_height="80dp"
+                            android:background="@drawable/bg_carousel_item"
+                            android:padding="16dp"
+                            android:src="@drawable/ic_hair"
+                            app:tint="@color/white" />
 
                         <TextView
                             android:id="@+id/tv_label_curtain"
@@ -388,21 +346,14 @@
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <FrameLayout
+                        <ImageView
                             android:id="@+id/v_icon_disconnect_undercut"
                             android:layout_width="80dp"
-                            android:layout_height="80dp">
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/bg_carousel_item" />
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_hair"
-                                app:tint="@color/white" />
-                        </FrameLayout>
+                            android:layout_height="80dp"
+                            android:background="@drawable/bg_carousel_item"
+                            android:padding="16dp"
+                            android:src="@drawable/ic_hair"
+                            app:tint="@color/white" />
 
                         <TextView
                             android:id="@+id/tv_label_disconnect_undercut"
@@ -424,21 +375,14 @@
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <FrameLayout
+                        <ImageView
                             android:id="@+id/v_icon_afro_tapper"
                             android:layout_width="80dp"
-                            android:layout_height="80dp">
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/bg_carousel_item" />
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_hair"
-                                app:tint="@color/white" />
-                        </FrameLayout>
+                            android:layout_height="80dp"
+                            android:background="@drawable/bg_carousel_item"
+                            android:padding="16dp"
+                            android:src="@drawable/ic_hair"
+                            app:tint="@color/white" />
 
                         <TextView
                             android:id="@+id/tv_label_afro_tapper"
@@ -460,21 +404,14 @@
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <FrameLayout
+                        <ImageView
                             android:id="@+id/v_icon_punk"
                             android:layout_width="80dp"
-                            android:layout_height="80dp">
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/bg_carousel_item" />
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_hair"
-                                app:tint="@color/white" />
-                        </FrameLayout>
+                            android:layout_height="80dp"
+                            android:background="@drawable/bg_carousel_item"
+                            android:padding="16dp"
+                            android:src="@drawable/ic_hair"
+                            app:tint="@color/white" />
 
                         <TextView
                             android:id="@+id/tv_label_punk"
@@ -494,34 +431,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
                         android:gravity="center"
-                        android:orientation="vertical">
-
-                        <FrameLayout
-                            android:id="@+id/v_icon_viking_helmet"
-                            android:layout_width="80dp"
-                            android:layout_height="80dp">
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/bg_carousel_item" />
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_hair"
-                                app:tint="@color/white" />
-                        </FrameLayout>
-
-                        <TextView
-                            android:id="@+id/tv_label_viking_helmet"
-                            android:layout_width="80dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="@string/style_viking_helmet"
-                            android:textAlignment="center"
-                            android:textColor="@color/white"
-                            android:textSize="12sp" />
-                    </LinearLayout>
+                        android:orientation="vertical" />
 
                     <!-- Hairstyle Item: Vendetta Mask (Test) -->
                     <LinearLayout
@@ -530,34 +440,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="12dp"
                         android:gravity="center"
-                        android:orientation="vertical">
-
-                        <FrameLayout
-                            android:id="@+id/v_icon_vendetta_mask"
-                            android:layout_width="80dp"
-                            android:layout_height="80dp">
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="@drawable/bg_carousel_item" />
-                            <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:padding="12dp"
-                                android:src="@drawable/ic_hair"
-                                app:tint="@color/white" />
-                        </FrameLayout>
-
-                        <TextView
-                            android:id="@+id/tv_label_vendetta_mask"
-                            android:layout_width="80dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="@string/style_vendetta_mask"
-                            android:textAlignment="center"
-                            android:textColor="@color/white"
-                            android:textSize="12sp" />
-                    </LinearLayout>
+                        android:orientation="vertical" />
 
                 </LinearLayout>
             </HorizontalScrollView>

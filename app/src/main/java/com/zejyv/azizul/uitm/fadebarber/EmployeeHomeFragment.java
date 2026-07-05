@@ -504,7 +504,7 @@ public class EmployeeHomeFragment extends Fragment {
             }
 
             // Load image
-            loadHaircutImageToView(doc.getString("hairstyleName"), ivService);
+            loadHaircutImageToView(doc.getString("hairstyleName"), doc.getString("hairstyleId"), ivService);
 
             btnCall.setOnClickListener(v -> {
                 if (cid != null) {
@@ -558,23 +558,36 @@ public class EmployeeHomeFragment extends Fragment {
         });
     }
 
-    private void loadHaircutImageToView(String name, ImageView imageView) {
-        if (name == null || imageView == null) return;
+    private void loadHaircutImageToView(String name, String id, ImageView imageView) {
+        if (name == null || imageView == null || !isAdded()) return;
         try {
             String[] images = requireContext().getAssets().list("images");
             if (images != null) {
+                String key = (id != null && id.startsWith("hs_")) ? id.substring(3) : "";
+                String cleanKey = key.toLowerCase().replace(" ", "").replace("-", "");
                 String cleanName = name.toLowerCase().replace(" ", "").replace("-", "");
+
                 for (String imageName : images) {
                     String cleanImg = imageName.toLowerCase().split("\\.")[0].replace(" ", "").replace("-", "");
-                    if (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)) {
-                        try (java.io.InputStream is = requireContext().getAssets().open("images/" + imageName)) {
-                            imageView.setImageBitmap(android.graphics.BitmapFactory.decodeStream(is));
-                            return;
-                        }
+                    boolean matchFound = (!cleanKey.isEmpty() && (cleanImg.contains(cleanKey) || cleanKey.contains(cleanImg))) ||
+                                       (!cleanName.isEmpty() && (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)));
+
+                    if (matchFound) {
+                        int strokePadding = (int) (1.0 * getResources().getDisplayMetrics().density);
+                        imageView.setPadding(strokePadding, strokePadding, strokePadding, strokePadding);
+                        Glide.with(this)
+                                .load("file:///android_asset/images/" + imageName)
+                                .transform(new com.bumptech.glide.load.resource.bitmap.CenterCrop(),
+                                           new com.bumptech.glide.load.resource.bitmap.RoundedCorners((int) (12 * getResources().getDisplayMetrics().density)))
+                                .into(imageView);
+                        return;
                     }
                 }
             }
         } catch (IOException e) { e.printStackTrace(); }
+        
+        // Fallback for upcoming list: 8dp padding (smaller card)
+        imageView.setPadding(8, 8, 8, 8);
         imageView.setImageResource(R.drawable.ic_hair);
     }
 
@@ -646,7 +659,7 @@ public class EmployeeHomeFragment extends Fragment {
         }
 
         if (ivServicePreview != null) {
-            loadHaircutImage(serviceName);
+            loadHaircutImage(serviceName, doc.getString("hairstyleId"));
         }
 
         if (tvNoBookingPlaceholder != null) tvNoBookingPlaceholder.setVisibility(View.GONE);
@@ -890,6 +903,11 @@ public class EmployeeHomeFragment extends Fragment {
         if (tvNoBookingPlaceholder != null) tvNoBookingPlaceholder.setVisibility(View.VISIBLE);
         hasAnimatedBooking = false;
 
+        if (ivServicePreview != null) {
+            ivServicePreview.setPadding(32, 32, 32, 32);
+            ivServicePreview.setImageResource(R.drawable.ic_hair);
+        }
+
         Calendar calendar = Calendar.getInstance();
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         boolean isOpen = hour >= 10 && hour < 24;
@@ -907,23 +925,36 @@ public class EmployeeHomeFragment extends Fragment {
         }
     }
 
-    private void loadHaircutImage(String name) {
-        if (name == null || ivServicePreview == null) return;
+    private void loadHaircutImage(String name, String id) {
+        if (name == null || ivServicePreview == null || !isAdded()) return;
         try {
             String[] images = requireContext().getAssets().list("images");
             if (images != null) {
+                String key = (id != null && id.startsWith("hs_")) ? id.substring(3) : "";
+                String cleanKey = key.toLowerCase().replace(" ", "").replace("-", "");
                 String cleanName = name.toLowerCase().replace(" ", "").replace("-", "");
+
                 for (String imageName : images) {
                     String cleanImg = imageName.toLowerCase().split("\\.")[0].replace(" ", "").replace("-", "");
-                    if (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)) {
-                        try (java.io.InputStream is = requireContext().getAssets().open("images/" + imageName)) {
-                            ivServicePreview.setImageBitmap(android.graphics.BitmapFactory.decodeStream(is));
-                            return;
-                        }
+                    boolean matchFound = (!cleanKey.isEmpty() && (cleanImg.contains(cleanKey) || cleanKey.contains(cleanImg))) ||
+                                       (!cleanName.isEmpty() && (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)));
+
+                    if (matchFound) {
+                        int strokePadding = (int) (1.0 * getResources().getDisplayMetrics().density);
+                        ivServicePreview.setPadding(strokePadding, strokePadding, strokePadding, strokePadding);
+                        Glide.with(this)
+                                .load("file:///android_asset/images/" + imageName)
+                                .transform(new com.bumptech.glide.load.resource.bitmap.CenterCrop(),
+                                           new com.bumptech.glide.load.resource.bitmap.RoundedCorners((int) (12 * getResources().getDisplayMetrics().density)))
+                                .into(ivServicePreview);
+                        return;
                     }
                 }
             }
         } catch (IOException e) { e.printStackTrace(); }
+
+        // Fallback for current booking: 32dp padding
+        ivServicePreview.setPadding(32, 32, 32, 32);
         ivServicePreview.setImageResource(R.drawable.ic_hair);
     }
 

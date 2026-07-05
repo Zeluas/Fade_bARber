@@ -21,6 +21,7 @@
             android:id="@+id/ll_uid_rating"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingBottom="7dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             app:layout_constraintTop_toTopOf="parent">
@@ -77,107 +78,106 @@
             app:strokeWidth="2dp"
             tools:src="@drawable/ic_profile" />
 
-        <TextView
-            android:id="@+id/tv_colleague_fullname"
+        <!-- Info Container -->
+        <LinearLayout
+            android:id="@+id/ll_info_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:background="@drawable/bg_pill_primary"
-            android:ellipsize="end"
-            android:gravity="center"
-            android:maxLines="1"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="4dp"
-            android:textColor="@color/white"
-            android:textSize="16sp"
-            android:textStyle="bold"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="@id/iv_colleague_pic"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/iv_colleague_pic"
-            app:layout_constraintTop_toTopOf="@id/iv_colleague_pic"
-            tools:text="Full Name Here" />
-
-        <TextView
-            android:id="@+id/tv_colleague_shortname"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textColor="@color/primary_color"
-            android:textSize="14sp"
-            android:textStyle="bold|italic"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="@id/tv_colleague_fullname"
-            app:layout_constraintTop_toBottomOf="@id/tv_colleague_fullname"
-            tools:text="shortname" />
-
-        <LinearLayout
-            android:id="@+id/ll_specialty_container"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="visible"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="@id/tv_colleague_fullname"
-            app:layout_constraintTop_toBottomOf="@id/tv_colleague_shortname">
-
-            <ImageView
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:src="@drawable/ic_hair"
-                app:tint="@color/primary_color" />
+            app:layout_constraintTop_toTopOf="@id/iv_colleague_pic">
 
             <TextView
-                android:id="@+id/tv_colleague_specialty"
-                android:layout_width="wrap_content"
+                android:id="@+id/tv_colleague_fullname"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:textColor="@color/black"
-                android:textSize="13sp"
-                tools:text="Master Barber" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/ll_phone_container"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="@id/tv_colleague_fullname"
-            app:layout_constraintTop_toBottomOf="@id/ll_specialty_container">
-
-            <ImageView
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:src="@drawable/ic_phone"
-                app:tint="@color/primary_color" />
+                android:background="@drawable/bg_pill_primary"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="Full Name Here" />
 
             <TextView
-                android:id="@+id/tv_colleague_phone"
+                android:id="@+id/tv_colleague_shortname"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/primary_color"
+                android:textSize="14sp"
+                android:textStyle="bold|italic"
+                tools:text="shortname" />
+
+            <LinearLayout
+                android:id="@+id/ll_specialty_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="visible">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_hair"
+                    app:tint="@color/primary_color" />
+
+                <TextView
+                    android:id="@+id/tv_colleague_specialty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textColor="@color/black"
+                    android:textSize="13sp"
+                    tools:text="Master Barber" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/ll_phone_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_phone"
+                    app:tint="@color/primary_color" />
+
+                <TextView
+                    android:id="@+id/tv_colleague_phone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textColor="@color/grey_grey"
+                    android:textSize="12sp"
+                    tools:text="+60 12-3456 789" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_colleague_joined"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
+                android:layout_marginTop="6dp"
                 android:textColor="@color/grey_grey"
-                android:textSize="12sp"
-                tools:text="+60 12-3456 789" />
+                android:textSize="10sp"
+                android:textStyle="italic"
+                tools:text="Joined: June 2026" />
         </LinearLayout>
-
-        <TextView
-            android:id="@+id/tv_colleague_joined"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textColor="@color/grey_grey"
-            android:textSize="10sp"
-            android:textStyle="italic"
-            app:layout_constraintStart_toStartOf="@id/tv_colleague_fullname"
-            app:layout_constraintTop_toBottomOf="@id/ll_phone_container"
-            tools:text="Joined: June 2026" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

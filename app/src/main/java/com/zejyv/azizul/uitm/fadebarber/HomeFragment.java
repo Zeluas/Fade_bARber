@@ -599,7 +599,7 @@ public class HomeFragment extends Fragment {
         checkAndLockCancelButton(nearestBookingDate, nearestBookingTime);
 
         if (ivHairPreview != null) {
-            loadHaircutImage(nearestBookingHaircut);
+            loadHaircutImage(nearestBookingHaircut, doc.getString("hairstyleId"));
         }
 
         // Handle Session in Progress for Customers
@@ -756,27 +756,44 @@ public class HomeFragment extends Fragment {
         heightAnimator.start();
     }
 
-    private void loadHaircutImage(String name) {
-        if (name == null || ivHairPreview == null) return;
+    private void loadHaircutImage(String name, String id) {
+        if (name == null || ivHairPreview == null || !isAdded()) return;
 
         try {
             String[] images = requireContext().getAssets().list("images");
             if (images != null) {
+                // Derive search terms: clean name and derived key from ID
+                String key = (id != null && id.startsWith("hs_")) ? id.substring(3) : "";
+                String cleanKey = key.toLowerCase().replace(" ", "").replace("-", "");
                 String cleanName = name.toLowerCase().replace(" ", "").replace("-", "");
+
                 for (String imageName : images) {
                     String cleanImg = imageName.toLowerCase().split("\\.")[0].replace(" ", "").replace("-", "");
-                    if (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)) {
-                        try (java.io.InputStream is = requireContext().getAssets().open("images/" + imageName)) {
-                            android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(is);
-                            ivHairPreview.setImageBitmap(bitmap);
-                            return;
-                        }
+                    
+                    // Match if the filename contains the key/name, or vice-versa
+                    boolean matchFound = (!cleanKey.isEmpty() && (cleanImg.contains(cleanKey) || cleanKey.contains(cleanImg))) ||
+                                       (!cleanName.isEmpty() && (cleanName.contains(cleanImg) || cleanImg.contains(cleanName)));
+
+                    if (matchFound) {
+                        // Small padding (same as stroke width) so the image sits INSIDE the border
+                        int strokePadding = (int) (1.0 * getResources().getDisplayMetrics().density);
+                        ivHairPreview.setPadding(strokePadding, strokePadding, strokePadding, strokePadding);
+
+                        Glide.with(this)
+                                .load("file:///android_asset/images/" + imageName)
+                                .transform(new com.bumptech.glide.load.resource.bitmap.CenterCrop(), 
+                                           new com.bumptech.glide.load.resource.bitmap.RoundedCorners((int) (12 * getResources().getDisplayMetrics().density)))
+                                .into(ivHairPreview);
+                        return;
                     }
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // Fallback if no specific image found
+        ivHairPreview.setPadding(32, 32, 32, 32);
         ivHairPreview.setImageResource(R.drawable.ic_hair);
     }
 
@@ -829,7 +846,10 @@ public class HomeFragment extends Fragment {
         if (tvBookingTime != null) tvBookingTime.setText("--:--");
         if (tvHairstylist != null) tvHairstylist.setText("N/A");
         if (tvHaircut != null) tvHaircut.setText("Select a style");
-        if (ivHairPreview != null) ivHairPreview.setImageResource(R.drawable.ic_hair);
+        if (ivHairPreview != null) {
+            ivHairPreview.setPadding(32, 32, 32, 32);
+            ivHairPreview.setImageResource(R.drawable.ic_hair);
+        }
     }
 
     /**

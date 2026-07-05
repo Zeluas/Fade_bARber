@@ -22,6 +22,7 @@ public class ColleagueAdapter extends RecyclerView.Adapter<ColleagueAdapter.Coll
     public interface OnColleagueClickListener {
         void onPhoneClick(String rawPhone);
         void onUidClick(String uid);
+        void onPicClick(String imageUrl);
     }
 
     private final List<Employee> colleagueList;
@@ -58,13 +59,18 @@ public class ColleagueAdapter extends RecyclerView.Adapter<ColleagueAdapter.Coll
         holder.tvUid.setText("UID: " + employee.getUid());
 
         // Specialty binding
-        String specialty = employee.getSpecialty();
-        if (specialty == null || specialty.trim().isEmpty()) {
-            holder.tvSpecialty.setText("Not set");
-            holder.tvSpecialty.setTypeface(null, android.graphics.Typeface.ITALIC);
+        if (isShowingAdmins) {
+            holder.specialtyContainer.setVisibility(View.GONE);
         } else {
-            holder.tvSpecialty.setText(specialty);
-            holder.tvSpecialty.setTypeface(null, android.graphics.Typeface.NORMAL);
+            holder.specialtyContainer.setVisibility(View.VISIBLE);
+            String specialty = employee.getSpecialty();
+            if (specialty == null || specialty.trim().isEmpty()) {
+                holder.tvSpecialty.setText("Not set");
+                holder.tvSpecialty.setTypeface(null, android.graphics.Typeface.ITALIC);
+            } else {
+                holder.tvSpecialty.setText(specialty);
+                holder.tvSpecialty.setTypeface(null, android.graphics.Typeface.NORMAL);
+            }
         }
         
         // Rating binding
@@ -129,6 +135,7 @@ public class ColleagueAdapter extends RecyclerView.Adapter<ColleagueAdapter.Coll
         if (listener != null) {
             holder.phoneContainer.setOnClickListener(v -> listener.onPhoneClick(employee.getPhone()));
             holder.tvUid.setOnClickListener(v -> listener.onUidClick(employee.getUid()));
+            holder.ivPic.setOnClickListener(v -> listener.onPicClick(employee.getProfilePicUrl()));
         }
     }
 
@@ -140,7 +147,7 @@ public class ColleagueAdapter extends RecyclerView.Adapter<ColleagueAdapter.Coll
     static class ColleagueViewHolder extends RecyclerView.ViewHolder {
         ImageView ivPic;
         TextView tvFullname, tvShortname, tvSpecialty, tvPhone, tvUid, tvJoined, tvRating;
-        View ratingContainer, phoneContainer;
+        View ratingContainer, phoneContainer, specialtyContainer;
 
         public ColleagueViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -154,6 +161,7 @@ public class ColleagueAdapter extends RecyclerView.Adapter<ColleagueAdapter.Coll
             tvRating = itemView.findViewById(R.id.tv_colleague_rating);
             ratingContainer = itemView.findViewById(R.id.ll_rating_container);
             phoneContainer = itemView.findViewById(R.id.ll_phone_container);
+            specialtyContainer = itemView.findViewById(R.id.ll_specialty_container);
         }
     }
 }

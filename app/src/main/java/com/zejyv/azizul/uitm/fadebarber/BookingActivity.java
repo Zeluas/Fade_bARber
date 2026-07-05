@@ -41,6 +41,9 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.Source;
 import com.google.firebase.firestore.FieldValue;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CenterCrop;
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.zejyv.azizul.uitm.fadebarber.adapters.StylistAdapter;
 import com.zejyv.azizul.uitm.fadebarber.models.Booking;
 import com.zejyv.azizul.uitm.fadebarber.models.Employee;
@@ -309,12 +312,12 @@ public class BookingActivity extends AppCompatActivity {
                                 TextView tvCustName = findViewById(R.id.tv_booking_customer_name);
                                 TextView tvUsername = findViewById(R.id.tv_booking_customer_username);
                                 TextView tvPhone = findViewById(R.id.tv_booking_customer_phone);
-                                
+
                                 String name = userDoc.getString("name");
                                 originalCustomerName = name != null ? name : "A customer";
                                 String username = userDoc.getString("username");
                                 String phone = userDoc.getString("phone");
-                                
+
                                 if (tvCustName != null) tvCustName.setText(name != null ? name : "-");
                                 if (tvUsername != null) tvUsername.setText(username != null ? username : "-");
                                 if (tvPhone != null) tvPhone.setText(phone != null ? formatPhoneNumber(phone) : "-");
@@ -326,8 +329,14 @@ public class BookingActivity extends AppCompatActivity {
                 // Now that we have the originalEmployeeId, fetch the stylists
                 fetchStylists();
                 
-                // Prefill hairstyle preview
-                updateHairstylePreview(selectedHairstyleName, "Current selection", selectedHairstyleName);
+                // Prefill hairstyle preview - derive key from ID
+                String derivedKey = "";
+                if (selectedHairstyleId != null && selectedHairstyleId.startsWith("hs_")) {
+                    derivedKey = selectedHairstyleId.substring(3);
+                } else if (selectedHairstyleName != null) {
+                    derivedKey = selectedHairstyleName.toLowerCase().replace(" ", "_");
+                }
+                updateHairstylePreview(selectedHairstyleName, "Current selection", derivedKey);
             } else {
                 // If booking not found, fallback to defaults
                 setDefaultDateTime();
@@ -1242,9 +1251,6 @@ public class BookingActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Updates the hairstyle preview section with selected data from TryOnActivity.
-     */
     private void updateHairstylePreview(String name, String desc, String key) {
         TextView tvName = findViewById(R.id.tv_haircut_name_booking);
         TextView tvDesc = findViewById(R.id.tv_haircut_desc_booking);
@@ -1268,17 +1274,25 @@ public class BookingActivity extends AppCompatActivity {
                 if (images != null) {
                     for (String imageName : images) {
                         if (imageName.toLowerCase().startsWith(key.toLowerCase())) {
-                            try (java.io.InputStream is = getAssets().open("images/" + imageName)) {
-                                android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(is);
-                                ivPreview.setImageBitmap(bitmap);
-                                return;
-                            }
+                            // Small padding (same as stroke width) so the image sits INSIDE the border
+                            int strokePadding = (int) (1.0 * getResources().getDisplayMetrics().density);
+                            ivPreview.setPadding(strokePadding, strokePadding, strokePadding, strokePadding);
+
+                            // Load image using Glide with rounding
+                            Glide.with(this)
+                                .load("file:///android_asset/images/" + imageName)
+                                .transform(new CenterCrop(), new RoundedCorners((int) (12 * getResources().getDisplayMetrics().density)))
+                                .into(ivPreview);
+                            return;
                         }
                     }
                 }
+                
                 // Fallback if no specific image found
+                ivPreview.setPadding(32, 32, 32, 32); // Center the generic icon
                 ivPreview.setImageResource(R.drawable.ic_hair);
             } catch (java.io.IOException e) {
+                ivPreview.setPadding(32, 32, 32, 32);
                 ivPreview.setImageResource(R.drawable.ic_hair);
             }
         }

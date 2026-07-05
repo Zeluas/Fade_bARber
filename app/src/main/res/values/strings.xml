@@ -123,7 +123,7 @@
     <string name="profile_title">Profile</string>
     <string name="profile_user_name_default">Username (Name)</string>
     <string name="profile_user_id_label">User ID: %1$s</string>
-    <string name="profile_btn_edit">Edit Profile</string>
+    <string name="profile_btn_edit">Edit</string>
     <string name="profile_btn_edit_profile">Edit Profile</string>
     <string name="profile_item_cut_history">Cut History</string>
     <string name="profile_item_settings">Settings</string>
