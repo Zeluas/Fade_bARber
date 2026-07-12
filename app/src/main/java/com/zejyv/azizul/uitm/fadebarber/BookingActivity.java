@@ -89,6 +89,7 @@ public class BookingActivity extends AppCompatActivity {
     private String originalCustomerId = "";
     private String originalCustomerName = "";
     private String originalHairstyleName = "";
+    private String originalHairstyleId = "";
     private List<String> bookedTimes = new ArrayList<>();
     private List<String> fullDates = new ArrayList<>();
     private long serverTimeOffset = 0;
@@ -288,8 +289,9 @@ public class BookingActivity extends AppCompatActivity {
                 originalEmployeeId = doc.getString("employeeId");
                 originalCustomerId = doc.getString("customerId");
                 originalHairstyleName = doc.getString("hairstyleName");
+                originalHairstyleId = doc.getString("hairstyleId");
                 selectedHairstyleName = originalHairstyleName;
-                selectedHairstyleId = doc.getString("hairstyleId");
+                selectedHairstyleId = originalHairstyleId;
 
                 if (tvDate != null) tvDate.setText(originalDate);
                 if (tvTime != null) tvTime.setText(originalTime);
@@ -1323,11 +1325,13 @@ public class BookingActivity extends AppCompatActivity {
             notification.put("oldTime", originalTime);
             notification.put("oldEmployeeId", originalEmployeeId);
             notification.put("oldHairstyleName", originalHairstyleName);
+            notification.put("oldHairstyleId", originalHairstyleId);
             
             notification.put("newDate", date);
             notification.put("newTime", time);
             notification.put("newEmployeeId", employeeId);
             notification.put("newHairstyleName", selectedHairstyleName);
+            notification.put("newHairstyleId", selectedHairstyleId);
 
             db.collection("notifications").add(notification);
         } else {
@@ -1352,11 +1356,13 @@ public class BookingActivity extends AppCompatActivity {
                 notification.put("oldTime", originalTime);
                 notification.put("oldEmployeeId", originalEmployeeId);
                 notification.put("oldHairstyleName", originalHairstyleName);
+                notification.put("oldHairstyleId", originalHairstyleId);
 
                 notification.put("newDate", date);
                 notification.put("newTime", time);
                 notification.put("newEmployeeId", employeeId);
                 notification.put("newHairstyleName", selectedHairstyleName);
+                notification.put("newHairstyleId", selectedHairstyleId);
 
                 db.collection("notifications").add(notification);
             });

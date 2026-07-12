@@ -71,7 +71,7 @@
 
     <LinearLayout
         android:id="@+id/ll_mini_style"
-        android:layout_width="wrap_content"
+        android:layout_width="90dp"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
@@ -88,17 +88,21 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@drawable/bg_booking_hair_preview"
-                android:padding="6dp"
+                android:padding="1dp"
                 android:scaleType="centerCrop"
                 android:src="@drawable/ic_hair" />
         </FrameLayout>
 
         <TextView
             android:id="@+id/tv_mini_style_name"
-            android:layout_width="60dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:breakStrategy="simple"
             android:gravity="center"
+            android:hyphenationFrequency="none"
+            android:maxWidth="90dp"
+            android:minWidth="60dp"
             android:text="Style"
             android:textColor="@color/black"
             android:textSize="12sp"

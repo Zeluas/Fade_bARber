@@ -1,5 +1,6 @@
 package com.zejyv.azizul.uitm.fadebarber.adapters;
 
+import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,7 +51,12 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
     public void onBindViewHolder(@NonNull StylistViewHolder holder, int position) {
         Employee employee = stylistList.get(position);
         holder.tvName.setText(employee.getFullname());
-        holder.tvSpecialty.setText(String.format("Specialty: %s", employee.getSpecialty()));
+        String specialty = employee.getSpecialty();
+        if (specialty == null || specialty.trim().isEmpty()) {
+            holder.tvSpecialty.setText(Html.fromHtml("Specialty: <i>None</i>", Html.FROM_HTML_MODE_LEGACY));
+        } else {
+            holder.tvSpecialty.setText(String.format("Specialty: %s", specialty));
+        }
         holder.rbRating.setRating(0); // Default rating as 0 for now
         holder.tvRatingVal.setText("0.0");
 

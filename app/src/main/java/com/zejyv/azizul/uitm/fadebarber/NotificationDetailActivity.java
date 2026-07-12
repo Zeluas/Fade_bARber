@@ -163,6 +163,7 @@ public class NotificationDetailActivity extends AppCompatActivity {
                         doc.getString("oldDate"),
                         doc.getString("oldTime"),
                         doc.getString("oldHairstyleName"),
+                        doc.getString("oldHairstyleId"),
                         bookingId);
 
                     populateMiniCard(findViewById(R.id.layout_after_update),
@@ -170,12 +171,13 @@ public class NotificationDetailActivity extends AppCompatActivity {
                         doc.getString("newDate"),
                         doc.getString("newTime"),
                         doc.getString("newHairstyleName"),
+                        doc.getString("newHairstyleId"),
                         bookingId);
                 }
             });
     }
 
-    private void populateMiniCard(View cardView, String employeeId, String date, String time, String styleName, String bookingId) {
+    private void populateMiniCard(View cardView, String employeeId, String date, String time, String styleName, String styleId, String bookingId) {
         if (cardView == null) return;
 
         TextView tvBarber = cardView.findViewById(R.id.tv_mini_barber_name);
@@ -191,7 +193,7 @@ public class NotificationDetailActivity extends AppCompatActivity {
         tvStyle.setText(styleName);
         tvBookingId.setText("#" + bookingId.substring(0, 8).toUpperCase());
 
-        loadHairstyleImage(styleName, null, ivStyle);
+        loadHairstyleImage(styleName, styleId, ivStyle);
 
         if (employeeId != null) {
             FirebaseFirestore.getInstance().collection("employees").document(employeeId).get()
@@ -275,11 +277,11 @@ public class NotificationDetailActivity extends AppCompatActivity {
             if (images != null) {
                 // Derive search terms: clean name and derived key from ID
                 String key = (id != null && id.startsWith("hs_")) ? id.substring(3) : "";
-                String cleanKey = key.toLowerCase().replace(" ", "").replace("-", "");
-                String cleanName = name.toLowerCase().replace(" ", "").replace("-", "");
+                String cleanKey = key.toLowerCase().replace(" ", "").replace("-", "").replace("_", "");
+                String cleanName = name.toLowerCase().replace(" ", "").replace("-", "").replace("_", "");
 
                 for (String imageName : images) {
-                    String cleanImg = imageName.toLowerCase().split("\\.")[0].replace(" ", "").replace("-", "");
+                    String cleanImg = imageName.toLowerCase().split("\\.")[0].replace(" ", "").replace("-", "").replace("_", "");
 
                     // Match if the filename contains the key/name, or vice-versa
                     boolean matchFound = (!cleanKey.isEmpty() && (cleanImg.contains(cleanKey) || cleanKey.contains(cleanImg))) ||

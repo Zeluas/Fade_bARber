@@ -186,12 +186,16 @@ public class EmployeeHomeFragment extends Fragment {
         NetworkTimeManager.getInstance().syncTime(new NetworkTimeManager.OnTimeSyncedListener() {
             @Override
             public void onSyncSuccess(long networkTime) {
-                fetchNearestBooking();
+                if (isAdded()) {
+                    handler.post(() -> fetchNearestBooking());
+                }
             }
 
             @Override
             public void onSyncFailed() {
-                fetchNearestBooking();
+                if (isAdded()) {
+                    handler.post(() -> fetchNearestBooking());
+                }
             }
         });
     }
@@ -1027,7 +1031,15 @@ public class EmployeeHomeFragment extends Fragment {
         }
 
         mcvTopBar.setOnClickListener(v -> {
-            showNextJabFromPool();
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastJabTime < JAB_COOLDOWN) {
+                long timeLeft = (JAB_COOLDOWN - (currentTime - lastJabTime)) / 1000;
+                String message = getString(R.string.jab_cooldown, (int) timeLeft);
+                Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+            } else {
+                lastJabTime = currentTime;
+                showNextJabFromPool();
+            }
             if (svHomeContent != null) svHomeContent.smoothScrollTo(0, 0);
         });
     }
@@ -1171,16 +1183,20 @@ public class EmployeeHomeFragment extends Fragment {
             @Override
             public void onSyncSuccess(long networkTime) {
                 if (isAdded() && handler != null) {
-                    handler.removeCallbacks(updateTimeThemeRunnable);
-                    handler.post(updateTimeThemeRunnable);
+                    handler.post(() -> {
+                        handler.removeCallbacks(updateTimeThemeRunnable);
+                        handler.post(updateTimeThemeRunnable);
+                    });
                 }
             }
 
             @Override
             public void onSyncFailed() {
                 if (isAdded() && handler != null) {
-                    handler.removeCallbacks(updateTimeThemeRunnable);
-                    handler.post(updateTimeThemeRunnable);
+                    handler.post(() -> {
+                        handler.removeCallbacks(updateTimeThemeRunnable);
+                        handler.post(updateTimeThemeRunnable);
+                    });
                 }
             }
         });

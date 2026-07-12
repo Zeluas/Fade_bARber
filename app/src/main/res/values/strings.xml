@@ -166,6 +166,7 @@
     <string name="admin_home_title">Admin Home</string>
     <string name="admin_panel_title">Admin Panel</string>
     <string name="admin_profile_title">Admin Profile</string>
+    <string name="welcome_admin">Hello, (Admin)</string>
     <string name="search_bookings_hint">Search customer or hairstyle…</string>
     <string name="booking_status_pending">Pending</string>
     <string name="booking_status_completed">Completed</string>
