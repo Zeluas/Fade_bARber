@@ -1,5 +1,7 @@
 package com.zejyv.azizul.uitm.fadebarber;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -21,6 +23,12 @@ public class AboutActivity extends AppCompatActivity {
 
         findViewById(R.id.iv_back_about).setOnClickListener(v -> finish());
 
+        findViewById(R.id.cv_github_repo).setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setData(Uri.parse("https://github.com/Zeluas/Fade_bARber"));
+            startActivity(intent);
+        });
+
         TextView tvVersion = findViewById(R.id.tv_app_version);
         
         try {
@@ -36,9 +44,11 @@ public class AboutActivity extends AppCompatActivity {
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
 
-            String fullname = prefs.getString("fullname", "");
-            if (!fullname.isEmpty()) {
+            String role = prefs.getString("role", "");
+            if ("employee".equals(role)) {
                 tvVersion.setText("Version 1.0.0 (Employee Side)");
+            } else if ("admin".equals(role)) {
+                tvVersion.setText("Version 1.0.0 (Admin Side)");
             } else {
                 tvVersion.setText("Version 1.0.0");
             }

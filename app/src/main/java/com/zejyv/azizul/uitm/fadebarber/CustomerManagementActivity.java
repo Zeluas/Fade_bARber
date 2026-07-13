@@ -4,7 +4,6 @@ import android.graphics.Matrix;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.ScaleGestureDetector;
 import android.view.View;
@@ -34,29 +33,24 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.zejyv.azizul.uitm.fadebarber.adapters.EmployeeManagementAdapter;
-import com.zejyv.azizul.uitm.fadebarber.models.Employee;
+import com.zejyv.azizul.uitm.fadebarber.adapters.CustomerManagementAdapter;
+import com.zejyv.azizul.uitm.fadebarber.models.Customer;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class EmployeeManagementActivity extends AppCompatActivity {
+public class CustomerManagementActivity extends AppCompatActivity {
 
-    private RecyclerView rvEmployees;
-    private EmployeeManagementAdapter adapter;
-    private final List<Employee> employeeList = new ArrayList<>();
-    private final List<Employee> filteredList = new ArrayList<>();
+    private RecyclerView rvCustomers;
+    private CustomerManagementAdapter adapter;
+    private final List<Customer> customerList = new ArrayList<>();
+    private final List<Customer> filteredList = new ArrayList<>();
     private FirebaseFirestore db;
     private View loadingOverlay, llEmptyState;
-    private TextView tvEmployeeCount;
+    private TextView tvCustomerCount;
     private EditText etSearch;
-    private ListenerRegistration employeesListener;
-    private ListenerRegistration innerEmployeesListener;
-
-    // --- Add Employee Overlay ---
-    private View layoutAddEmployee, mcvAddDialog;
-    private EditText etNewEmpEmailPrefix;
-    private com.google.android.material.button.MaterialButton btnAddCancel, btnAddConfirm;
+    private ListenerRegistration customersListener;
+    private ListenerRegistration innerCustomersListener;
 
     // --- Profile Image Preview Components ---
     private View layoutImagePreview, vPreviewTopBar;
@@ -72,31 +66,24 @@ public class EmployeeManagementActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_employee_management);
+        setContentView(R.layout.activity_customer_management);
 
         db = FirebaseFirestore.getInstance();
         initializeViews();
         setupRecyclerView();
         setupImagePreview();
-        setupAddEmployeeOverlay();
         setupBackPressed();
-        fetchEmployees();
+        fetchCustomers();
     }
 
     private void initializeViews() {
-        rvEmployees = findViewById(R.id.rv_employees);
+        rvCustomers = findViewById(R.id.rv_customers);
         loadingOverlay = findViewById(R.id.loading_overlay);
         llEmptyState = findViewById(R.id.ll_empty_state);
-        tvEmployeeCount = findViewById(R.id.tv_employee_count);
-        etSearch = findViewById(R.id.et_search_employee);
+        tvCustomerCount = findViewById(R.id.tv_customer_count);
+        etSearch = findViewById(R.id.et_search_customer);
 
         findViewById(R.id.iv_back_mgmt).setOnClickListener(v -> finish());
-        
-        TextView tvAdd = findViewById(R.id.tv_add_employee_link);
-        if (tvAdd != null) {
-            tvAdd.setPaintFlags(tvAdd.getPaintFlags() | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
-            tvAdd.setOnClickListener(v -> showAddEmployeeOverlay());
-        }
 
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override
@@ -111,15 +98,15 @@ public class EmployeeManagementActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerView() {
-        adapter = new EmployeeManagementAdapter(filteredList, new EmployeeManagementAdapter.OnEmployeeActionListener() {
+        adapter = new CustomerManagementAdapter(filteredList, new CustomerManagementAdapter.OnCustomerActionListener() {
             @Override
-            public void onEdit(Employee employee) {
-                showEditEmployeeDialog(employee);
+            public void onEdit(Customer customer) {
+                showEditCustomerDialog(customer);
             }
 
             @Override
-            public void onDelete(Employee employee) {
-                confirmDeleteEmployee(employee);
+            public void onDelete(Customer customer) {
+                confirmDeleteCustomer(customer);
             }
 
             @Override
@@ -129,18 +116,18 @@ public class EmployeeManagementActivity extends AppCompatActivity {
                 }
             }
         });
-        rvEmployees.setLayoutManager(new LinearLayoutManager(this));
-        rvEmployees.setAdapter(adapter);
+        rvCustomers.setLayoutManager(new LinearLayoutManager(this));
+        rvCustomers.setAdapter(adapter);
     }
 
-    private void fetchEmployees() {
+    private void fetchCustomers() {
         loadingOverlay.setVisibility(View.VISIBLE);
         
-        if (employeesListener != null) employeesListener.remove();
+        if (customersListener != null) customersListener.remove();
 
-        // Fetch users who are active employees first
-        employeesListener = db.collection("users")
-                .whereEqualTo("role", "employee")
+        // Fetch users who are customers first
+        customersListener = db.collection("users")
+                .whereEqualTo("role", "customer")
                 .addSnapshotListener((userSnapshot, userError) -> {
                     if (userError != null) {
                         loadingOverlay.setVisibility(View.GONE);
@@ -149,22 +136,22 @@ public class EmployeeManagementActivity extends AppCompatActivity {
                     }
 
                     if (userSnapshot != null) {
-                        List<String> activeEmployeeIds = new ArrayList<>();
+                        List<String> activeCustomerIds = new ArrayList<>();
                         for (QueryDocumentSnapshot userDoc : userSnapshot) {
-                            activeEmployeeIds.add(userDoc.getId());
+                            activeCustomerIds.add(userDoc.getId());
                         }
 
-                        if (activeEmployeeIds.isEmpty()) {
+                        if (activeCustomerIds.isEmpty()) {
                             loadingOverlay.setVisibility(View.GONE);
-                            employeeList.clear();
+                            customerList.clear();
                             filter("");
                             return;
                         }
 
-                        // Now fetch the actual employee details for these IDs
-                        if (innerEmployeesListener != null) innerEmployeesListener.remove();
-                        innerEmployeesListener = db.collection("employees")
-                                .orderBy("fullname", Query.Direction.ASCENDING)
+                        // Now fetch the actual customer details for these IDs
+                        if (innerCustomersListener != null) innerCustomersListener.remove();
+                        innerCustomersListener = db.collection("customers")
+                                .orderBy("name", Query.Direction.ASCENDING)
                                 .addSnapshotListener((value, error) -> {
                                     if (error != null) {
                                         loadingOverlay.setVisibility(View.GONE);
@@ -173,21 +160,21 @@ public class EmployeeManagementActivity extends AppCompatActivity {
                                     }
                                     if (value != null) {
                                         List<Task<Void>> tasks = new ArrayList<>();
-                                        List<Employee> tempList = new ArrayList<>();
+                                        List<Customer> tempList = new ArrayList<>();
 
                                         for (QueryDocumentSnapshot doc : value) {
-                                            if (activeEmployeeIds.contains(doc.getId())) {
-                                                Employee employee = doc.toObject(Employee.class);
-                                                employee.setUid(doc.getId());
-                                                tempList.add(employee);
-                                                tasks.add(fetchExtraData(employee));
+                                            if (activeCustomerIds.contains(doc.getId())) {
+                                                Customer customer = doc.toObject(Customer.class);
+                                                customer.setUid(doc.getId());
+                                                tempList.add(customer);
+                                                tasks.add(fetchExtraData(customer));
                                             }
                                         }
 
                                         Tasks.whenAllComplete(tasks).addOnCompleteListener(t -> {
                                             loadingOverlay.setVisibility(View.GONE);
-                                            employeeList.clear();
-                                            employeeList.addAll(tempList);
+                                            customerList.clear();
+                                            customerList.addAll(tempList);
                                             filter(etSearch.getText().toString());
                                         });
                                     }
@@ -196,36 +183,15 @@ public class EmployeeManagementActivity extends AppCompatActivity {
                 });
     }
 
-    private Task<Void> fetchExtraData(Employee employee) {
-        String uid = employee.getUid();
-        
-        // Fetch rating
-        Task<com.google.firebase.firestore.QuerySnapshot> ratingTask = db.collection("hairstylist_ratings")
-                .whereEqualTo("employeeId", uid).get();
-        
-        // Fetch profile pic if it might be in separate collection
+    private Task<Void> fetchExtraData(Customer customer) {
+        String uid = customer.getUid();
         Task<DocumentSnapshot> picTask = db.collection("profile_pics").document(uid).get();
 
-        return Tasks.whenAllComplete(ratingTask, picTask).continueWith(task -> {
-            if (ratingTask.isSuccessful()) {
-                List<DocumentSnapshot> ratings = ratingTask.getResult().getDocuments();
-                if (!ratings.isEmpty()) {
-                    double sum = 0;
-                    for (DocumentSnapshot rDoc : ratings) {
-                        Double r = rDoc.getDouble("rating");
-                        if (r != null) sum += r;
-                    }
-                    employee.setOverallRating(sum / ratings.size());
-                } else {
-                    employee.setOverallRating(0.0);
-                }
-            }
-            
+        return picTask.continueWith(task -> {
             if (picTask.isSuccessful() && picTask.getResult().exists()) {
                 String url = picTask.getResult().getString("url");
-                if (url != null) employee.setProfilePicUrl(url);
+                if (url != null) customer.setProfilePicUrl(url);
             }
-            
             return null;
         });
     }
@@ -234,14 +200,14 @@ public class EmployeeManagementActivity extends AppCompatActivity {
         filteredList.clear();
         String query = text.toLowerCase().trim();
         if (query.isEmpty()) {
-            filteredList.addAll(employeeList);
+            filteredList.addAll(customerList);
         } else {
-            for (Employee e : employeeList) {
-                if (e.getFullname().toLowerCase().contains(query) ||
-                    (e.getShortname() != null && e.getShortname().toLowerCase().contains(query)) ||
-                    (e.getUid() != null && e.getUid().toLowerCase().contains(query)) ||
-                    (e.getPhone() != null && e.getPhone().replace(" ", "").replace("-", "").contains(query.replace(" ", "").replace("-", "")))) {
-                    filteredList.add(e);
+            for (Customer c : customerList) {
+                if (c.getName().toLowerCase().contains(query) ||
+                    (c.getUsername() != null && c.getUsername().toLowerCase().contains(query)) ||
+                    (c.getUid() != null && c.getUid().toLowerCase().contains(query)) ||
+                    (c.getPhone() != null && c.getPhone().replace(" ", "").replace("-", "").contains(query.replace(" ", "").replace("-", "")))) {
+                    filteredList.add(c);
                 }
             }
         }
@@ -250,11 +216,11 @@ public class EmployeeManagementActivity extends AppCompatActivity {
     }
 
     private void updateUIState() {
-        tvEmployeeCount.setText("Showing " + filteredList.size() + " employees");
+        tvCustomerCount.setText("Showing " + filteredList.size() + " customers");
         llEmptyState.setVisibility(filteredList.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
-    // --- Image Preview Logic (Ported from ColleaguesActivity) ---
+    // --- Image Preview Logic ---
 
     private void setupImagePreview() {
         layoutImagePreview = findViewById(R.id.layout_image_preview);
@@ -404,91 +370,13 @@ public class EmployeeManagementActivity extends AppCompatActivity {
         findViewById(R.id.tv_preview_title).animate().alpha(targetAlpha).setDuration(300).withEndAction(() -> findViewById(R.id.tv_preview_title).setVisibility(targetVisibility)).start();
     }
 
-    // --- Add Employee Logic ---
-
-    private void setupAddEmployeeOverlay() {
-        layoutAddEmployee = findViewById(R.id.layout_add_employee);
-        mcvAddDialog = findViewById(R.id.mcv_add_dialog);
-        etNewEmpEmailPrefix = findViewById(R.id.et_new_emp_email_prefix);
-        btnAddCancel = findViewById(R.id.btn_add_cancel);
-        btnAddConfirm = findViewById(R.id.btn_add_confirm);
-
-        if (btnAddCancel != null) btnAddCancel.setOnClickListener(v -> hideAddEmployeeOverlay());
-        if (btnAddConfirm != null) btnAddConfirm.setOnClickListener(v -> createEmployeeAccount());
-        
-        if (layoutAddEmployee != null) layoutAddEmployee.setOnClickListener(v -> hideAddEmployeeOverlay());
-        if (mcvAddDialog != null) mcvAddDialog.setOnClickListener(v -> {});
-    }
-
-    private void showAddEmployeeOverlay() {
-        if (layoutAddEmployee == null) return;
-        etNewEmpEmailPrefix.setText("");
-        layoutAddEmployee.setVisibility(View.VISIBLE);
-        layoutAddEmployee.setAlpha(0f);
-        layoutAddEmployee.animate().alpha(1f).setDuration(200).start();
-        mcvAddDialog.setScaleX(0.7f); mcvAddDialog.setScaleY(0.7f);
-        mcvAddDialog.animate().scaleX(1f).scaleY(1f).setDuration(300).withEndAction(() -> {
-            etNewEmpEmailPrefix.requestFocus();
-            android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
-            if (imm != null) imm.showSoftInput(etNewEmpEmailPrefix, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
-        }).start();
-    }
-
-    private void hideAddEmployeeOverlay() {
-        if (layoutAddEmployee == null) return;
-        hideKeyboard();
-        layoutAddEmployee.animate().alpha(0f).setDuration(200).withEndAction(() -> layoutAddEmployee.setVisibility(View.GONE)).start();
-    }
-
-    private void hideKeyboard() {
-        View view = this.getCurrentFocus();
-        if (view != null) {
-            android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
-            if (imm != null) imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-        }
-    }
-
-    private void createEmployeeAccount() {
-        String prefix = etNewEmpEmailPrefix.getText().toString().trim();
-        if (prefix.isEmpty()) {
-            etNewEmpEmailPrefix.setError("Email prefix required");
-            return;
-        }
-
-        String email = prefix + "@fade.emp";
-        String password = "12345678Aa";
-
-        loadingOverlay.setVisibility(View.VISIBLE);
-        hideAddEmployeeOverlay();
-
-        // Use a secondary FirebaseApp to create the user without signing out the current admin
-        FirebaseOptions options = FirebaseApp.getInstance().getOptions();
-        FirebaseApp secondaryApp;
-        try {
-            secondaryApp = FirebaseApp.initializeApp(this, options, "SecondaryApp");
-        } catch (IllegalStateException e) {
-            secondaryApp = FirebaseApp.getInstance("SecondaryApp");
-        }
-
-        FirebaseAuth secondaryAuth = FirebaseAuth.getInstance(secondaryApp);
-        secondaryAuth.createUserWithEmailAndPassword(email, password)
-                .addOnSuccessListener(authResult -> {
-                    secondaryAuth.signOut();
-                    loadingOverlay.setVisibility(View.GONE);
-                    Toast.makeText(this, "Employee " + email + " registered successfully!", Toast.LENGTH_LONG).show();
-                })
-                .addOnFailureListener(e -> {
-                    loadingOverlay.setVisibility(View.GONE);
-                    Toast.makeText(this, "Registration failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-    }
+    // --- Add Customer Logic ---
 
     private void setupBackPressed() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
                 if (layoutImagePreview != null && layoutImagePreview.getVisibility() == View.VISIBLE) hideImagePreview();
-                else if (layoutAddEmployee != null && layoutAddEmployee.getVisibility() == View.VISIBLE) hideAddEmployeeOverlay();
                 else finish();
             }
         });
@@ -496,28 +384,28 @@ public class EmployeeManagementActivity extends AppCompatActivity {
 
     // --- CRUD Operations ---
 
-    private void showEditEmployeeDialog(Employee employee) {
+    private void showEditCustomerDialog(Customer customer) {
         android.content.Intent intent = new android.content.Intent(this, ProfileEditActivity.class);
-        intent.putExtra("ADMIN_TARGET_USER_ID", employee.getUid());
+        intent.putExtra("ADMIN_TARGET_USER_ID", customer.getUid());
         startActivity(intent);
     }
 
-    private void confirmDeleteEmployee(Employee employee) {
-        new MaterialAlertDialogBuilder(this).setTitle("Delete Employee").setMessage("Delete " + employee.getFullname() + "?")
-                .setPositiveButton("Delete", (d, w) -> deleteEmployee(employee)).setNegativeButton("Cancel", null).show();
+    private void confirmDeleteCustomer(Customer customer) {
+        new MaterialAlertDialogBuilder(this).setTitle("Delete Customer").setMessage("Delete " + customer.getName() + "?")
+                .setPositiveButton("Delete", (d, w) -> deleteCustomer(customer)).setNegativeButton("Cancel", null).show();
     }
 
-    private void deleteEmployee(Employee employee) {
+    private void deleteCustomer(Customer customer) {
         loadingOverlay.setVisibility(View.VISIBLE);
-        db.collection("employees").document(employee.getUid()).delete()
-                .addOnSuccessListener(aVoid -> { loadingOverlay.setVisibility(View.GONE); Toast.makeText(this, "Employee deleted", Toast.LENGTH_SHORT).show(); })
+        db.collection("customers").document(customer.getUid()).delete()
+                .addOnSuccessListener(aVoid -> { loadingOverlay.setVisibility(View.GONE); Toast.makeText(this, "Customer deleted", Toast.LENGTH_SHORT).show(); })
                 .addOnFailureListener(e -> { loadingOverlay.setVisibility(View.GONE); Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show(); });
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (employeesListener != null) employeesListener.remove();
-        if (innerEmployeesListener != null) innerEmployeesListener.remove();
+        if (customersListener != null) customersListener.remove();
+        if (innerCustomersListener != null) innerCustomersListener.remove();
     }
 }

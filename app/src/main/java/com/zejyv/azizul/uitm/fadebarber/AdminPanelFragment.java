@@ -30,6 +30,10 @@ public class AdminPanelFragment extends Fragment {
         view.findViewById(R.id.card_admin_mgmt).setOnClickListener(v -> {
             startActivity(new Intent(getContext(), AdminManagementActivity.class));
         });
+
+        view.findViewById(R.id.card_customer_mgmt).setOnClickListener(v -> {
+            startActivity(new Intent(getContext(), CustomerManagementActivity.class));
+        });
         
         return view;
     }

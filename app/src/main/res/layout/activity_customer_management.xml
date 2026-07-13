@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/back_primary_color">
+
+    <!-- Top Bar -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/mcv_top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="0dp"
+        app:cardMaxElevation="0dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <FrameLayout
+            android:id="@+id/fl_top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:background="@drawable/bg_top_bar">
+
+            <ImageView
+                android:id="@+id/iv_back_mgmt"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center_vertical|start"
+                android:layout_marginStart="5dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="Back"
+                android:focusable="true"
+                android:padding="12dp"
+                android:src="@drawable/ic_back"
+                app:tint="@color/white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical|start"
+                android:layout_marginStart="63dp"
+                android:text="Customer Management"
+                android:textColor="@color/white"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Search Section -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/mcv_search"
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:cardBackgroundColor="@color/white"
+        app:cardCornerRadius="32.5dp"
+        app:cardElevation="2dp"
+        app:layout_constraintTop_toBottomOf="@id/mcv_top_bar">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="20dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_search"
+                app:tint="@color/primary_color" />
+
+            <EditText
+                android:id="@+id/et_search_customer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginStart="12dp"
+                android:background="@android:color/transparent"
+                android:hint="Search by name, ID or phone..."
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:textSize="16sp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- List Header Info -->
+    <LinearLayout
+        android:id="@+id/ll_list_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/mcv_search">
+
+        <TextView
+            android:id="@+id/tv_customer_count"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Showing 0 customers"
+            android:textColor="@color/grey_grey"
+            android:textSize="12sp"
+            android:textStyle="italic" />
+    </LinearLayout>
+
+    <!-- Customers List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_customers"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:padding="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ll_list_info"
+        tools:listitem="@layout/item_customer_management" />
+
+    <!-- Empty State -->
+    <LinearLayout
+        android:id="@+id/ll_empty_state"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/mcv_search">
+
+        <ImageView
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:src="@drawable/ic_profile"
+            app:tint="@color/trans_primary_color" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="No customers found"
+            android:textColor="@color/grey_grey"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <!-- Profile Image Preview Overlay -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_image_preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#B3000000"
+        android:clickable="true"
+        android:elevation="50dp"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/iv_full_preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="matrix" />
+
+        <View
+            android:id="@+id/v_preview_top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:background="#80000000"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/btn_close_preview"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginTop="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_back"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/white" />
+
+        <TextView
+            android:id="@+id/tv_preview_title"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginStart="10dp"
+            android:gravity="center"
+            android:text="Profile Picture"
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@id/btn_close_preview"
+            app:layout_constraintStart_toEndOf="@id/btn_close_preview"
+            app:layout_constraintTop_toTopOf="@id/btn_close_preview" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Loading Overlay -->
+    <include
+        android:id="@+id/loading_overlay"
+        layout="@layout/layout_loading_overlay"
+        android:visibility="gone" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

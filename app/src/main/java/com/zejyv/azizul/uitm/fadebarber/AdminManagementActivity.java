@@ -212,12 +212,15 @@ public class AdminManagementActivity extends AppCompatActivity {
 
     private void filter(String text) {
         filteredList.clear();
-        if (text.isEmpty()) {
+        String query = text.toLowerCase().trim();
+        if (query.isEmpty()) {
             filteredList.addAll(adminList);
         } else {
             for (Admin a : adminList) {
-                if (a.getFullname().toLowerCase().contains(text.toLowerCase()) ||
-                    (a.getShortname() != null && a.getShortname().toLowerCase().contains(text.toLowerCase()))) {
+                if (a.getFullname().toLowerCase().contains(query) ||
+                    (a.getShortname() != null && a.getShortname().toLowerCase().contains(query)) ||
+                    (a.getUid() != null && a.getUid().toLowerCase().contains(query)) ||
+                    (a.getPhone() != null && a.getPhone().replace(" ", "").replace("-", "").contains(query.replace(" ", "").replace("-", "")))) {
                     filteredList.add(a);
                 }
             }
