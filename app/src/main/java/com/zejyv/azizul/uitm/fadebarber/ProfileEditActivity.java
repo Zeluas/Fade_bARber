@@ -131,6 +131,10 @@ public class ProfileEditActivity extends AppCompatActivity {
         }
 
         isFirstTime = getIntent().getBooleanExtra("IS_FIRST_TIME", false);
+        String adminTargetUserId = getIntent().getStringExtra("ADMIN_TARGET_USER_ID");
+        if (adminTargetUserId != null) {
+            userId = adminTargetUserId;
+        }
 
         initializeViews();
         checkUserTypeAndLoadData();
@@ -200,7 +204,8 @@ public class ProfileEditActivity extends AppCompatActivity {
         if (btnStatusOk != null) {
             btnStatusOk.setOnClickListener(v -> {
                 hideStatusOverlay();
-                if (tvStatusTitle.getText().toString().contains("Successful")) {
+                String title = tvStatusTitle.getText().toString();
+                if (title.contains("Successful") || title.contains("Deleted")) {
                     finish();
                 }
             });
@@ -224,7 +229,12 @@ public class ProfileEditActivity extends AppCompatActivity {
             btnDeleteConfirmAction.setOnClickListener(v -> {
                 if (cbDeleteConfirm.isChecked()) {
                     hideDeleteConfirmation();
-                    showReauthDelete();
+                    if (getIntent().hasExtra("ADMIN_TARGET_USER_ID")) {
+                        // Admin editing other: skip re-auth password
+                        performAccountDeletion();
+                    } else {
+                        showReauthDelete();
+                    }
                 } else {
                     Toast.makeText(this, "Please confirm by checking the box first.", Toast.LENGTH_SHORT).show();
                 }
@@ -308,28 +318,57 @@ public class ProfileEditActivity extends AppCompatActivity {
             );
 
             String role = prefs.getString("role", "customer");
-            isEmployee = "employee".equals(role);
-            isAdmin = "admin".equals(role);
-
-            if (btnDeleteAccount != null) {
-                btnDeleteAccount.setVisibility((isEmployee || isAdmin) ? View.GONE : View.VISIBLE);
-            }
-
-            if (isEmployee) {
-                mcvSpecialty.setVisibility(View.VISIBLE);
-                loadEmployeeData();
-            } else if (isAdmin) {
-                mcvSpecialty.setVisibility(View.GONE);
-                loadAdminData();
+            
+            // If admin is editing someone else, determine their role from the collection they are in
+            if (getIntent().hasExtra("ADMIN_TARGET_USER_ID")) {
+                loadingOverlay.setVisibility(View.VISIBLE);
+                db.collection("users").document(userId).get().addOnSuccessListener(userDoc -> {
+                    String targetRole = userDoc.getString("role");
+                    isEmployee = "employee".equals(targetRole);
+                    isAdmin = "admin".equals(targetRole);
+                    setupRoleBasedUI();
+                });
             } else {
-                mcvSpecialty.setVisibility(View.GONE);
-                loadCustomerData();
+                isEmployee = "employee".equals(role);
+                isAdmin = "admin".equals(role);
+                setupRoleBasedUI();
             }
 
             // Always fetch latest from Firestore instead of using cached URL
             fetchLatestProfilePic();
         } catch (GeneralSecurityException | IOException e) {
             e.printStackTrace();
+            loadCustomerData();
+        }
+    }
+
+    private void setupRoleBasedUI() {
+        boolean isAdminEditingOther = getIntent().hasExtra("ADMIN_TARGET_USER_ID");
+
+        if (btnDeleteAccount != null) {
+            // Show delete button for customers, or if admin is editing someone else
+            btnDeleteAccount.setVisibility((isAdminEditingOther || (!isEmployee && !isAdmin)) ? View.VISIBLE : View.GONE);
+        }
+
+        if (isAdminEditingOther) {
+            // Admin editing someone: Email is read-only, Passwords hidden
+            etEmail.setEnabled(false);
+            etEmail.setAlpha(0.6f);
+            
+            View mcvPassword = (View) etPassword.getParent().getParent();
+            View mcvConfirm = (View) etConfirmPassword.getParent().getParent();
+            if (mcvPassword != null) mcvPassword.setVisibility(View.GONE);
+            if (mcvConfirm != null) mcvConfirm.setVisibility(View.GONE);
+        }
+
+        if (isEmployee) {
+            mcvSpecialty.setVisibility(View.VISIBLE);
+            loadEmployeeData();
+        } else if (isAdmin) {
+            mcvSpecialty.setVisibility(View.GONE);
+            loadAdminData();
+        } else {
+            mcvSpecialty.setVisibility(View.GONE);
             loadCustomerData();
         }
     }
@@ -342,13 +381,18 @@ public class ProfileEditActivity extends AppCompatActivity {
                 initialFullname = doc.getString("fullname");
                 initialUsername = doc.getString("shortname");
                 initialPhone = doc.getString("phone");
-                initialEmail = mAuth.getCurrentUser().getEmail();
-
+                
                 etFullname.setText(initialFullname);
                 etUsername.setText(initialUsername);
                 etPhone.setText(initialPhone);
-                etEmail.setText(initialEmail);
             }
+            
+            // Always fetch email from users collection
+            db.collection("users").document(userId).get().addOnSuccessListener(userDoc -> {
+                initialEmail = userDoc.getString("email");
+                etEmail.setText(initialEmail);
+            });
+            
             fetchLatestProfilePic();
         }).addOnFailureListener(e -> loadingOverlay.setVisibility(View.GONE));
     }
@@ -361,13 +405,17 @@ public class ProfileEditActivity extends AppCompatActivity {
                 initialFullname = doc.getString("name");
                 initialUsername = doc.getString("username");
                 initialPhone = doc.getString("phone");
-                initialEmail = mAuth.getCurrentUser().getEmail();
-
+                
                 etFullname.setText(initialFullname);
                 etUsername.setText(initialUsername);
                 etPhone.setText(initialPhone);
-                etEmail.setText(initialEmail);
             }
+            
+            db.collection("users").document(userId).get().addOnSuccessListener(userDoc -> {
+                initialEmail = userDoc.getString("email");
+                etEmail.setText(initialEmail);
+            });
+            
             fetchLatestProfilePic();
         }).addOnFailureListener(e -> loadingOverlay.setVisibility(View.GONE));
     }
@@ -381,14 +429,18 @@ public class ProfileEditActivity extends AppCompatActivity {
                 initialUsername = doc.getString("shortname");
                 initialSpecialty = doc.getString("specialty");
                 initialPhone = doc.getString("phone");
-                initialEmail = mAuth.getCurrentUser().getEmail();
-
+                
                 etFullname.setText(initialFullname);
                 etUsername.setText(initialUsername);
                 etSpecialty.setText(initialSpecialty);
                 etPhone.setText(initialPhone);
-                etEmail.setText(initialEmail);
             }
+            
+            db.collection("users").document(userId).get().addOnSuccessListener(userDoc -> {
+                initialEmail = userDoc.getString("email");
+                etEmail.setText(initialEmail);
+            });
+            
             fetchLatestProfilePic();
         }).addOnFailureListener(e -> loadingOverlay.setVisibility(View.GONE));
     }
@@ -559,16 +611,23 @@ public class ProfileEditActivity extends AppCompatActivity {
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString();
 
-        // Sensitive changes detection (Email or Password)
-        FirebaseUser fUser = mAuth.getCurrentUser();
-        boolean emailChanged = fUser != null && !email.equals(fUser.getEmail());
-        boolean passwordChanged = !password.isEmpty();
+        boolean isAdminEditingOther = getIntent().hasExtra("ADMIN_TARGET_USER_ID");
 
-        if (emailChanged || passwordChanged) {
-            showReauthOverlay();
-        } else {
-            // Only profile info changes, no re-auth needed
+        if (isAdminEditingOther) {
+            // Admin editing someone else: just update Firestore profile info
+            // Email and password are not allowed to be changed here for employees
             performProfileUpdate();
+        } else {
+            // Normal user editing self: Sensitive changes detection (Email or Password)
+            FirebaseUser fUser = mAuth.getCurrentUser();
+            boolean emailChanged = fUser != null && !email.equals(fUser.getEmail());
+            boolean passwordChanged = !password.isEmpty();
+
+            if (emailChanged || passwordChanged) {
+                showReauthOverlay();
+            } else {
+                performProfileUpdate();
+            }
         }
     }
 
@@ -758,8 +817,10 @@ public class ProfileEditActivity extends AppCompatActivity {
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString();
 
+        boolean isAdminEditingOther = getIntent().hasExtra("ADMIN_TARGET_USER_ID");
+
         FirebaseUser fUser = mAuth.getCurrentUser();
-        boolean emailChanged = fUser != null && !email.equals(fUser.getEmail());
+        boolean emailChanged = !isAdminEditingOther && fUser != null && !email.equals(fUser.getEmail());
 
         Map<String, Object> updates = new HashMap<>();
         String collection;
@@ -788,7 +849,10 @@ public class ProfileEditActivity extends AppCompatActivity {
                 userUpdate.put("email", email);
                 db.collection("users").document(userId).update(userUpdate);
 
-                saveUpdatesToLocalPrefs(name, user, email, imageUrl);
+                // Only update local prefs if we are editing our OWN profile
+                if (!getIntent().hasExtra("ADMIN_TARGET_USER_ID")) {
+                    saveUpdatesToLocalPrefs(name, user, email, imageUrl);
+                }
 
                 if (emailChanged || !password.isEmpty()) {
                     finalizeAuthUpdates(email, password);
@@ -871,6 +935,8 @@ public class ProfileEditActivity extends AppCompatActivity {
     }
 
     private void saveUpdatesToLocalPrefs(String name, String user, String email, String imageUrl) {
+        if (getIntent().hasExtra("ADMIN_TARGET_USER_ID")) return;
+
         try {
             MasterKey masterKey = new MasterKey.Builder(this)
                     .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -989,15 +1055,17 @@ public class ProfileEditActivity extends AppCompatActivity {
     private void performAccountDeletion() {
         loadingOverlay.setVisibility(View.VISIBLE);
 
+        boolean isAdminDeletingOther = getIntent().hasExtra("ADMIN_TARGET_USER_ID");
+
         // 1. Update Firestore 'users' collection
         Map<String, Object> userUpdate = new HashMap<>();
-        userUpdate.put("email", "deleted");
+        userUpdate.put("email", "deleted_" + userId); // unique identifier for deleted
         userUpdate.put("role", "deleted");
 
         db.collection("users").document(userId).update(userUpdate)
                 .addOnSuccessListener(aVoid1 -> {
-                    // 1b. Cancel all pending bookings for this user
-                    cancelUserBookings();
+                    // 1b. Cancel all pending bookings
+                    cancelBookings();
                 })
                 .addOnFailureListener(e -> {
                     loadingOverlay.setVisibility(View.GONE);
@@ -1005,9 +1073,10 @@ public class ProfileEditActivity extends AppCompatActivity {
                 });
     }
 
-    private void cancelUserBookings() {
+    private void cancelBookings() {
+        String field = isEmployee ? "employeeId" : "customerId";
         db.collection("bookings")
-                .whereEqualTo("customerId", userId)
+                .whereEqualTo(field, userId)
                 .whereEqualTo("status", "Pending")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
@@ -1023,27 +1092,31 @@ public class ProfileEditActivity extends AppCompatActivity {
 
                     batch.commit().addOnCompleteListener(task -> deleteProfilePicAndAuth());
                 })
-                .addOnFailureListener(e -> {
-                    // Proceed anyway to ensure account deletion isn't blocked by secondary cleanup failure
-                    deleteProfilePicAndAuth();
-                });
+                .addOnFailureListener(e -> deleteProfilePicAndAuth());
     }
 
     private void deleteProfilePicAndAuth() {
         // 2. Delete profile pic document
         db.collection("profile_pics").document(userId).delete()
                 .addOnCompleteListener(task -> {
-                    // 3. Delete Firebase Auth User
-                    FirebaseUser user = mAuth.getCurrentUser();
-                    if (user != null) {
-                        user.delete().addOnSuccessListener(aVoid2 -> {
-                            forceLogoutForDeletion();
-                        }).addOnFailureListener(e -> {
-                            loadingOverlay.setVisibility(View.GONE);
-                            showStatusOverlay(false, "Deletion Error", "Account updated in DB but Auth deletion failed: " + e.getMessage());
-                        });
+                    if (getIntent().hasExtra("ADMIN_TARGET_USER_ID")) {
+                        // Admin deleting someone else: We cannot delete their Auth account client-side
+                        // without signing in as them. We assume the system/cloud functions will handle it
+                        // or that the Firestore 'deleted' status is enough for the admin panel.
+                        loadingOverlay.setVisibility(View.GONE);
+                        showStatusOverlay(true, "Employee Deleted", "Records updated. Auth account must be removed manually or via system.");
                     } else {
-                        forceLogoutForDeletion();
+                        // 3. Delete current user Auth
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        if (user != null) {
+                            user.delete().addOnSuccessListener(aVoid2 -> forceLogoutForDeletion())
+                                    .addOnFailureListener(e -> {
+                                        loadingOverlay.setVisibility(View.GONE);
+                                        showStatusOverlay(false, "Deletion Error", "Auth deletion failed: " + e.getMessage());
+                                    });
+                        } else {
+                            forceLogoutForDeletion();
+                        }
                     }
                 });
     }

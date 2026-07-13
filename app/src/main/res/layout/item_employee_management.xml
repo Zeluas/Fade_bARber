@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="8dp"
+    app:cardBackgroundColor="@color/white"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="4dp"
+    app:strokeColor="@color/primary_color"
+    app:strokeWidth="1dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:id="@+id/ll_uid_rating"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="7dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/tv_employee_uid"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:textColor="@color/grey_grey"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                tools:text="UID: 123456" />
+
+            <LinearLayout
+                android:id="@+id/ll_rating_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@android:drawable/btn_star_big_on"
+                    app:tint="@color/primary_color" />
+
+                <TextView
+                    android:id="@+id/tv_employee_rating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:textColor="@color/black"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    tools:text="5.0" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/iv_employee_pic"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:background="@color/back_primary_color"
+            android:scaleType="centerCrop"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/ll_uid_rating"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.FadeBARBer.Rounded"
+            app:strokeColor="@color/black"
+            app:strokeWidth="2dp"
+            tools:src="@drawable/ic_profile" />
+
+        <!-- Info Container -->
+        <LinearLayout
+            android:id="@+id/ll_info_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="@id/iv_employee_pic"
+            app:layout_constraintEnd_toStartOf="@+id/ll_edit_actions"
+            app:layout_constraintStart_toEndOf="@id/iv_employee_pic"
+            app:layout_constraintTop_toTopOf="@id/iv_employee_pic">
+
+            <TextView
+                android:id="@+id/tv_employee_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_pill_primary"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                tools:text="Full Name Here" />
+
+            <TextView
+                android:id="@+id/tv_employee_shortname"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/primary_color"
+                android:textSize="13sp"
+                android:textStyle="bold|italic"
+                tools:text="shortname" />
+
+            <LinearLayout
+                android:id="@+id/ll_specialty_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_hair"
+                    app:tint="@color/primary_color" />
+
+                <TextView
+                    android:id="@+id/tv_employee_specialty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textColor="@color/black"
+                    android:textSize="12sp"
+                    tools:text="Master Barber" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/ll_phone_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_phone"
+                    app:tint="@color/primary_color" />
+
+                <TextView
+                    android:id="@+id/tv_employee_phone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textColor="@color/grey_grey"
+                    android:textSize="11sp"
+                    tools:text="+60 12-3456 789" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Edit Profile Action Group -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/ll_edit_actions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardBackgroundColor="@color/info_blue_icon"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp"
+            app:layout_constraintBottom_toBottomOf="@id/iv_employee_pic"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/iv_employee_pic">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="8dp">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_pencil"
+                    app:tint="@color/white" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="EDIT"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

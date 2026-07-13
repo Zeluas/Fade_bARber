@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RatingBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,6 +33,7 @@ import androidx.transition.TransitionManager;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.card.MaterialCardView;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
@@ -82,10 +84,14 @@ public class AdminHomeFragment extends Fragment {
     private RecyclerView rvTeamPerformance;
     private BarberAdapter barberAdapter;
     private List<BarberPerformance> barberList = new ArrayList<>();
+    private List<String> activeEmployeeIds = new ArrayList<>();
     private TextView tvNoTeamStats;
 
     // Customer Sentiment UI
     private TextView tvOverallRating, tvSentimentMsg;
+    private TextView tvAdminTotalReviewsCount, tvAdminNoReviewsPlaceholder;
+    private LinearLayout llAdminRecentReviewsList;
+    private boolean isFirstTeamLoad = true;
 
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
@@ -171,11 +177,18 @@ public class AdminHomeFragment extends Fragment {
 
         tvOverallRating = view.findViewById(R.id.tv_admin_overall_rating);
         tvSentimentMsg = view.findViewById(R.id.tv_admin_sentiment_msg);
+        tvAdminTotalReviewsCount = view.findViewById(R.id.tv_admin_total_reviews_count);
+        tvAdminNoReviewsPlaceholder = view.findViewById(R.id.tv_admin_no_reviews_placeholder);
+        llAdminRecentReviewsList = view.findViewById(R.id.ll_admin_recent_reviews_list);
 
         // Management Buttons
-        view.findViewById(R.id.btn_admin_manage_staff).setOnClickListener(v -> Toast.makeText(getContext(), "Staff Management Activity planned", Toast.LENGTH_SHORT).show());
+        view.findViewById(R.id.btn_admin_manage_staff).setOnClickListener(v -> {
+            startActivity(new android.content.Intent(getContext(), EmployeeManagementActivity.class));
+        });
         view.findViewById(R.id.btn_admin_manage_services).setOnClickListener(v -> Toast.makeText(getContext(), "Service Management Activity planned", Toast.LENGTH_SHORT).show());
-        view.findViewById(R.id.btn_admin_reports).setOnClickListener(v -> Toast.makeText(getContext(), "Analytics & Reports Activity planned", Toast.LENGTH_SHORT).show());
+        view.findViewById(R.id.btn_admin_reports).setOnClickListener(v -> {
+            startActivity(new android.content.Intent(getContext(), BusinessRevenueActivity.class));
+        });
         view.findViewById(R.id.btn_admin_announcements).setOnClickListener(v -> Toast.makeText(getContext(), "Ads & Announcements Activity planned", Toast.LENGTH_SHORT).show());
     }
 
@@ -260,6 +273,19 @@ public class AdminHomeFragment extends Fragment {
             tvLabelTopStyleMonth.setText("Top Hairstyle (" + monthName + ")");
         }
 
+        // 0. Listen for Active Employees
+        listeners.add(db.collection("users")
+                .whereEqualTo("role", "employee")
+                .addSnapshotListener((userSnapshot, userError) -> {
+                    if (userError != null || userSnapshot == null) return;
+                    activeEmployeeIds.clear();
+                    for (QueryDocumentSnapshot doc : userSnapshot) {
+                        activeEmployeeIds.add(doc.getId());
+                    }
+                    // Trigger refresh if we have bookings snapshot already
+                    // This is handled by fetchTeamPerformance being called from bookings listener
+                }));
+
         // 1. Listen for Today's & Monthly Revenue
         listeners.add(db.collection("session_payments")
                 .addSnapshotListener((value, error) -> {
@@ -297,16 +323,22 @@ public class AdminHomeFragment extends Fragment {
                         }
 
                         if (todayDateStr.equals(date)) {
-                            if ("Starting".equals(status)) active++;
-                            else if ("Pending".equals(status)) pending++;
-                            else if ("Cancelled".equals(status)) cancelled++;
-                            else if ("Completed".equals(status)) completed++;
+                            if ("Completed".equalsIgnoreCase(status)) completed++;
+                            else if ("Pending".equalsIgnoreCase(status)) pending++;
+                            else if ("Cancelled".equalsIgnoreCase(status)) cancelled++;
+                            else active++; // Covers Starting, Paying, Rating, etc.
                             
-                            if (style != null && !style.isEmpty()) stylesToday.put(style, stylesToday.getOrDefault(style, 0) + 1);
+                            // Top Style Today: every status except Cancelled
+                            if (!"Cancelled".equalsIgnoreCase(status)) {
+                                if (style != null && !style.isEmpty()) stylesToday.put(style, stylesToday.getOrDefault(style, 0) + 1);
+                            }
                         }
                         
                         if (date != null && date.contains(monthSuffix)) {
-                            if (style != null && !style.isEmpty()) stylesMonth.put(style, stylesMonth.getOrDefault(style, 0) + 1);
+                            // Top Style Month: only Completed
+                            if ("Completed".equalsIgnoreCase(status)) {
+                                if (style != null && !style.isEmpty()) stylesMonth.put(style, stylesMonth.getOrDefault(style, 0) + 1);
+                            }
                         }
                     }
 
@@ -325,12 +357,12 @@ public class AdminHomeFragment extends Fragment {
                             updateTopStyle(tvTopStyleToday, ivTopStyleTodayPreview, stylesToday, styleNameToId);
                             updateTopStyle(tvTopStyleMonth, ivTopStyleMonthPreview, stylesMonth, styleNameToId);
                             updateLoadIndicator(finalActive, finalPending);
+
+                            // Update Team Performance in real-time
+                            fetchTeamPerformance(todayDateStr, monthSuffix, value);
                         });
                     }
                 }));
-
-        // 3. Team Performance & Ratings
-        fetchTeamPerformance(todayDateStr, monthSuffix);
     }
 
     private void fetchDetailedRevenue(String today, String month) {
@@ -450,13 +482,14 @@ public class AdminHomeFragment extends Fragment {
         }, Executors.newSingleThreadExecutor());
     }
 
-    private void fetchTeamPerformance(String today, String month) {
+    private void fetchTeamPerformance(String today, String month, com.google.firebase.firestore.QuerySnapshot realtimeBookings) {
         db.collection("employees").get().addOnSuccessListener(employees -> {
-            db.collection("bookings").get().addOnSuccessListener(allBookings -> {
-                db.collection("session_payments").get().addOnSuccessListener(payments -> {
-                    db.collection("hairstylist_ratings").get().addOnSuccessListener(ratings -> {
-
+            db.collection("session_payments").get().addOnSuccessListener(payments -> {
+                db.collection("hairstylist_ratings").get().addOnSuccessListener(ratings -> {
+                    db.collection("session_timers").get().addOnSuccessListener(timers -> {
+                        if (!isAdded()) return;
                         barberList.clear();
+
                         if (employees.isEmpty()) {
                             tvNoTeamStats.setVisibility(View.VISIBLE);
                             barberAdapter.notifyDataSetChanged();
@@ -478,33 +511,51 @@ public class AdminHomeFragment extends Fragment {
                             }
                         }
 
+                        Map<String, Long> sessionDurations = new HashMap<>();
+                        for (QueryDocumentSnapshot t : timers) {
+                            com.google.firebase.Timestamp start = t.getTimestamp("startTime");
+                            com.google.firebase.Timestamp end = t.getTimestamp("endTime");
+                            Long paused = t.getLong("totalPausedMillis");
+                            if (start != null && end != null) {
+                                long duration = end.toDate().getTime() - start.toDate().getTime() - (paused != null ? paused : 0);
+                                sessionDurations.put(t.getId(), duration);
+                            }
+                        }
+
+                        List<QueryDocumentSnapshot> allRatings = new ArrayList<>();
+                        for (QueryDocumentSnapshot r : ratings) allRatings.add(r);
+
                         double totalShopRating = 0;
                         int ratingCount = 0;
 
                         for (QueryDocumentSnapshot empDoc : employees) {
                             String eId = empDoc.getId();
+                            
+                            // ACTIVE ROLE CHECK
+                            if (!activeEmployeeIds.contains(eId)) continue;
+
                             String name = empDoc.getString("fullname");
 
                             int compToday = 0, activeToday = 0, pendToday = 0, cancToday = 0;
                             int totalToday = 0, countMonth = 0;
                             double revToday = 0;
 
-                            for (QueryDocumentSnapshot b : allBookings) {
+                            for (QueryDocumentSnapshot b : realtimeBookings) {
                                 if (eId.equals(b.getString("employeeId"))) {
                                     String date = b.getString("date");
                                     String status = b.getString("status");
 
                                     if (today.equals(date)) {
                                         totalToday++;
-                                        if ("Completed".equals(status)) {
+                                        if ("Completed".equalsIgnoreCase(status)) {
                                             compToday++;
                                             revToday += bookingPayments.getOrDefault(b.getId(), 0.0);
-                                        } else if ("Starting".equals(status)) activeToday++;
-                                        else if ("Pending".equals(status)) pendToday++;
-                                        else if ("Cancelled".equals(status)) cancToday++;
+                                        } else if ("Pending".equalsIgnoreCase(status)) pendToday++;
+                                        else if ("Cancelled".equalsIgnoreCase(status)) cancToday++;
+                                        else activeToday++; // Covers Starting, Paying, Rating
                                     }
 
-                                    if (date != null && date.contains(month) && "Completed".equals(status)) {
+                                    if (date != null && date.contains(month) && "Completed".equalsIgnoreCase(status)) {
                                         countMonth++;
                                     }
                                 }
@@ -520,16 +571,59 @@ public class AdminHomeFragment extends Fragment {
                                 ratingCount += rList.size();
                             }
 
-                            barberList.add(new BarberPerformance(name, eId, avgRating, compToday, activeToday, pendToday, cancToday, totalToday, countMonth, revToday));
+                            BarberPerformance barber = new BarberPerformance(name, eId, avgRating, compToday, activeToday, pendToday, cancToday, totalToday, countMonth, revToday);
+                            
+                            // Collect booked times for this barber today and calc service time
+                            for (QueryDocumentSnapshot b : realtimeBookings) {
+                                if (eId.equals(b.getString("employeeId")) && today.equals(b.getString("date"))) {
+                                    String status = b.getString("status");
+                                    if (!"Cancelled".equalsIgnoreCase(status)) {
+                                        String time = b.getString("time");
+                                        if (time != null) barber.slotStatuses.put(time, status);
+                                    }
+                                    
+                                    if ("Completed".equalsIgnoreCase(status)) {
+                                        Long duration = sessionDurations.get(b.getId());
+                                        if (duration != null && duration > 0) {
+                                            barber.totalServiceTimeMs += duration;
+                                            barber.completedWithTime++;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            barberList.add(barber);
                         }
 
                         if (ratingCount > 0) {
                             double shopAvg = totalShopRating / ratingCount;
                             tvOverallRating.setText(String.format(Locale.getDefault(), "%.1f", shopAvg));
-                            updateSentimentMessage(shopAvg);
+                            generateAiSentimentSummary(shopAvg, ratingCount, allRatings);
                         }
+
+                        if (!allRatings.isEmpty()) {
+                            Collections.sort(allRatings, (r1, r2) -> {
+                                Timestamp t1 = r1.getTimestamp("timestamp");
+                                Timestamp t2 = r2.getTimestamp("timestamp");
+                                if (t1 == null || t2 == null) return 0;
+                                return t2.compareTo(t1);
+                            });
+
+                            int limit = Math.min(allRatings.size(), 5);
+                            updateReviewsUI(allRatings.subList(0, limit));
+                            tvAdminTotalReviewsCount.setText("Based on " + allRatings.size() + " reviews");
+                            tvAdminNoReviewsPlaceholder.setVisibility(View.GONE);
+                        } else {
+                            tvAdminTotalReviewsCount.setText("Based on 0 reviews");
+                            tvAdminNoReviewsPlaceholder.setVisibility(View.VISIBLE);
+                            if (llAdminRecentReviewsList != null) llAdminRecentReviewsList.removeAllViews();
+                        }
+                        
                         barberAdapter.notifyDataSetChanged();
-                        runLayoutAnimation(rvTeamPerformance);
+                        if (isFirstTeamLoad && !barberList.isEmpty()) {
+                            runLayoutAnimation(rvTeamPerformance);
+                            isFirstTeamLoad = false;
+                        }
                     });
                 });
             });
@@ -547,12 +641,33 @@ public class AdminHomeFragment extends Fragment {
         String name, id;
         double rating, revenueToday;
         int completed, active, pending, cancelled, totalToday, completedMonth;
+        long totalServiceTimeMs = 0;
+        int completedWithTime = 0;
         boolean isExpanded = false;
+        String selectedAmPm = "PM"; // Default to PM
+        Map<String, String> slotStatuses = new HashMap<>(); // time -> status
 
         BarberPerformance(String name, String id, double rating, int completed, int active, int pending, int cancelled, int totalToday, int completedMonth, double revenueToday) {
             this.name = name; this.id = id; this.rating = rating;
             this.completed = completed; this.active = active; this.pending = pending; this.cancelled = cancelled;
             this.totalToday = totalToday; this.completedMonth = completedMonth; this.revenueToday = revenueToday;
+        }
+
+        String getAvgServiceTime() {
+            if (completedWithTime == 0) return "0s";
+            long avgMs = totalServiceTimeMs / completedWithTime;
+            long seconds = avgMs / 1000;
+            long hours = seconds / 3600;
+            long minutes = (seconds % 3600) / 60;
+            long secs = seconds % 60;
+
+            if (hours > 0) {
+                return String.format(Locale.getDefault(), "%dh %dm %ds", hours, minutes, secs);
+            } else if (minutes > 0) {
+                return String.format(Locale.getDefault(), "%dm %ds", minutes, secs);
+            } else {
+                return String.format(Locale.getDefault(), "%ds", secs);
+            }
         }
     }
 
@@ -577,7 +692,27 @@ public class AdminHomeFragment extends Fragment {
             holder.tvCanc.setText(String.valueOf(b.cancelled));
             holder.tvCounter.setText(b.completed + "/" + b.totalToday);
             holder.tvRevTodayCard.setText(String.format(Locale.US, "RM %.2f", b.revenueToday));
-            holder.tvAvgTime.setText("0 min");
+            holder.tvAvgTime.setText(b.getAvgServiceTime());
+
+            // --- Status Action Logic ---
+            updateBarberStatus(holder, b);
+
+            // --- Available Slots Logic ---
+            updateSlotToggles(holder, b);
+            updateHourGrid(holder, b);
+
+            holder.btnAm.setOnClickListener(v -> {
+                b.selectedAmPm = "AM";
+                updateSlotToggles(holder, b);
+                updateHourGrid(holder, b);
+            });
+
+            holder.btnPm.setOnClickListener(v -> {
+                b.selectedAmPm = "PM";
+                updateSlotToggles(holder, b);
+                updateHourGrid(holder, b);
+            });
+            // -----------------------------
 
             // Hide divider for the last item
             holder.vDivider.setVisibility(position == barberList.size() - 1 ? View.GONE : View.VISIBLE);
@@ -649,14 +784,179 @@ public class AdminHomeFragment extends Fragment {
             });
         }
 
+        private void updateSlotToggles(ViewHolder holder, BarberPerformance b) {
+            boolean isAm = "AM".equals(b.selectedAmPm);
+            int primary = ContextCompat.getColor(requireContext(), R.color.primary_color);
+            int white = ContextCompat.getColor(requireContext(), R.color.white);
+            int black = ContextCompat.getColor(requireContext(), R.color.black);
+            int strokeWidth = (int) (1 * requireContext().getResources().getDisplayMetrics().density);
+
+            // AM Button styling
+            if (isAm) {
+                holder.btnAm.setBackgroundTintList(android.content.res.ColorStateList.valueOf(white));
+                holder.btnAm.setTextColor(primary);
+                holder.btnAm.setStrokeColor(android.content.res.ColorStateList.valueOf(black));
+                holder.btnAm.setStrokeWidth(strokeWidth);
+            } else {
+                holder.btnAm.setBackgroundTintList(android.content.res.ColorStateList.valueOf(primary));
+                holder.btnAm.setTextColor(white);
+                holder.btnAm.setStrokeColor(android.content.res.ColorStateList.valueOf(white));
+                holder.btnAm.setStrokeWidth(strokeWidth);
+            }
+
+            // PM Button styling
+            if (!isAm) {
+                holder.btnPm.setBackgroundTintList(android.content.res.ColorStateList.valueOf(white));
+                holder.btnPm.setTextColor(primary);
+                holder.btnPm.setStrokeColor(android.content.res.ColorStateList.valueOf(black));
+                holder.btnPm.setStrokeWidth(strokeWidth);
+            } else {
+                holder.btnPm.setBackgroundTintList(android.content.res.ColorStateList.valueOf(primary));
+                holder.btnPm.setTextColor(white);
+                holder.btnPm.setStrokeColor(android.content.res.ColorStateList.valueOf(white));
+                holder.btnPm.setStrokeWidth(strokeWidth);
+            }
+        }
+
+        private void updateBarberStatus(ViewHolder holder, BarberPerformance b) {
+            long now = NetworkTimeManager.getInstance().getCurrentTime();
+            Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+            cal.setTimeInMillis(now);
+            int hour = cal.get(Calendar.HOUR_OF_DAY);
+
+            String actionText;
+            int bgColorRes;
+
+            boolean isShopBreak = (hour == 14 || hour == 19);
+            
+            // Check if any booking is currently "Starting" (Active)
+            boolean hasActiveBooking = false;
+            for (String status : b.slotStatuses.values()) {
+                if ("Starting".equalsIgnoreCase(status)) {
+                    hasActiveBooking = true;
+                    break;
+                }
+            }
+
+            // Priority: Active > On Break > Idle
+            if (hasActiveBooking) {
+                actionText = "Active";
+                bgColorRes = R.color.primary_color;
+            } else if (isShopBreak) {
+                actionText = "On Break";
+                bgColorRes = R.color.alert_yellow_icon;
+            } else {
+                actionText = "Idle";
+                bgColorRes = R.color.info_blue_icon;
+            }
+
+            holder.tvStatus.setText(actionText);
+            
+            // Set card background for rounded status badge
+            if (holder.mcvStatus != null) {
+                holder.mcvStatus.setCardBackgroundColor(ContextCompat.getColor(requireContext(), bgColorRes));
+            } else {
+                // Fallback if MCV not yet inflated or handled
+                android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+                gd.setColor(ContextCompat.getColor(requireContext(), bgColorRes));
+                gd.setCornerRadius(4 * getResources().getDisplayMetrics().density);
+                holder.tvStatus.setBackground(gd);
+            }
+        }
+
+        private void updateHourGrid(ViewHolder holder, BarberPerformance b) {
+            long now = NetworkTimeManager.getInstance().getCurrentTime();
+            Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+            cal.setTimeInMillis(now);
+            
+            // Leeway logic matching BookingActivity
+            Calendar cutoffCal = (Calendar) cal.clone();
+            if (cutoffCal.get(Calendar.MINUTE) > 10) {
+                cutoffCal.add(Calendar.HOUR_OF_DAY, 1);
+            }
+            cutoffCal.set(Calendar.MINUTE, 0);
+            cutoffCal.set(Calendar.SECOND, 0);
+            cutoffCal.set(Calendar.MILLISECOND, 0);
+
+            for (int i = 0; i < 12; i++) {
+                int hour = i + 1;
+                String timeStr = String.format(Locale.getDefault(), "%02d:00 %s", hour, b.selectedAmPm);
+                String bookingStatus = b.slotStatuses.get(timeStr);
+                boolean isBooked = bookingStatus != null;
+                boolean isClosed = !isWithinBusinessHours(hour, b.selectedAmPm);
+                
+                // Logic for "Wasted Time" / Past slots matching BookingActivity
+                Calendar slotCal = (Calendar) cal.clone();
+                slotCal.set(Calendar.HOUR, hour == 12 ? 0 : hour);
+                slotCal.set(Calendar.AM_PM, "AM".equals(b.selectedAmPm) ? Calendar.AM : Calendar.PM);
+                slotCal.set(Calendar.MINUTE, 0);
+                slotCal.set(Calendar.SECOND, 0);
+                slotCal.set(Calendar.MILLISECOND, 0);
+
+                boolean isPast = slotCal.before(cutoffCal);
+
+                com.google.android.material.button.MaterialButton btn = holder.hourButtons[i];
+                if (btn == null) continue;
+
+                if (isClosed) {
+                    btn.setEnabled(false);
+                    btn.setAlpha(0.2f);
+                    btn.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), android.R.color.transparent));
+                    btn.setTextColor(ContextCompat.getColor(requireContext(), R.color.grey_grey));
+                    btn.setStrokeColorResource(R.color.grey_grey);
+                    btn.setStrokeWidth((int) (1 * requireContext().getResources().getDisplayMetrics().density));
+                } else if (isBooked) {
+                    btn.setEnabled(true);
+                    btn.setAlpha(1.0f);
+                    int bgColor;
+                    if ("Pending".equalsIgnoreCase(bookingStatus)) {
+                        bgColor = R.color.alert_yellow_icon;
+                    } else if ("Completed".equalsIgnoreCase(bookingStatus)) {
+                        bgColor = R.color.primary_color;
+                    } else {
+                        // Starting, Paying, etc.
+                        bgColor = R.color.info_blue_icon;
+                    }
+                    btn.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), bgColor));
+                    btn.setTextColor(ContextCompat.getColor(requireContext(), R.color.white));
+                    btn.setStrokeWidth(0);
+                } else if (isPast) {
+                    // Wasted Time
+                    btn.setEnabled(true);
+                    btn.setAlpha(1.0f);
+                    btn.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.warning_red_icon));
+                    btn.setTextColor(ContextCompat.getColor(requireContext(), R.color.white));
+                    btn.setStrokeWidth(0);
+                } else {
+                    // Available
+                    btn.setEnabled(true);
+                    btn.setAlpha(1.0f);
+                    btn.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), android.R.color.transparent));
+                    btn.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_color));
+                    btn.setStrokeColorResource(R.color.primary_color);
+                    btn.setStrokeWidth((int) (1 * requireContext().getResources().getDisplayMetrics().density));
+                }
+            }
+        }
+
+        private boolean isWithinBusinessHours(int hour, String amPm) {
+            if ("AM".equals(amPm)) return hour == 10 || hour == 11;
+            else return hour != 2 && hour != 7; // 12, 1, 3, 4, 5, 6, 8, 9, 10, 11 are valid (2pm & 7pm are break)
+        }
+
         @Override
         public int getItemCount() { return barberList.size(); }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvName, tvRating, tvRevenue, tvComp, tvActive, tvPend, tvCanc, tvCounter, tvRevTodayCard, tvAvgTime;
+            TextView tvName, tvRating, tvRevenue, tvComp, tvActive, tvPend, tvCanc, tvCounter, tvRevTodayCard, tvAvgTime, tvStatus;
+            MaterialCardView mcvStatus;
             ImageView ivBarber, ivArrow;
             LinearLayout llHeader, llExpandable;
             View vDivider;
+            
+            // Slots UI
+            com.google.android.material.button.MaterialButton btnAm, btnPm;
+            com.google.android.material.button.MaterialButton[] hourButtons = new com.google.android.material.button.MaterialButton[12];
 
             ViewHolder(View v) {
                 super(v);
@@ -674,9 +974,83 @@ public class AdminHomeFragment extends Fragment {
                 tvCounter = v.findViewById(R.id.tv_barber_perf_booking_counter);
                 tvRevTodayCard = v.findViewById(R.id.tv_barber_perf_rev_today);
                 tvAvgTime = v.findViewById(R.id.tv_barber_perf_avg_time);
+                tvStatus = v.findViewById(R.id.tv_barber_performance_status);
+                mcvStatus = v.findViewById(R.id.mcv_barber_performance_status);
                 vDivider = v.findViewById(R.id.v_barber_perf_divider);
+
+                btnAm = v.findViewById(R.id.btn_barber_perf_am);
+                btnPm = v.findViewById(R.id.btn_barber_perf_pm);
+                
+                int[] ids = {
+                    R.id.btn_barber_perf_hour_1, R.id.btn_barber_perf_hour_2, R.id.btn_barber_perf_hour_3,
+                    R.id.btn_barber_perf_hour_4, R.id.btn_barber_perf_hour_5, R.id.btn_barber_perf_hour_6,
+                    R.id.btn_barber_perf_hour_7, R.id.btn_barber_perf_hour_8, R.id.btn_barber_perf_hour_9,
+                    R.id.btn_barber_perf_hour_10, R.id.btn_barber_perf_hour_11, R.id.btn_barber_perf_hour_12
+                };
+                for (int i = 0; i < 12; i++) hourButtons[i] = v.findViewById(ids[i]);
             }
         }
+    }
+
+    private void generateAiSentimentSummary(double avgRating, int totalCount, List<QueryDocumentSnapshot> recentReviews) {
+        if (getContext() == null || tvSentimentMsg == null) return;
+
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("admin_sentiment_prefs", android.content.Context.MODE_PRIVATE);
+        String cachedDate = prefs.getString("last_refresh_date", "");
+        String cachedSummary = prefs.getString("cached_summary", "");
+
+        Calendar klCal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+        klCal.setTimeInMillis(NetworkTimeManager.getInstance().getCurrentTime());
+        SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        sdfDate.setTimeZone(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+        String todayDate = sdfDate.format(klCal.getTime());
+
+        if (todayDate.equals(cachedDate) && !cachedSummary.isEmpty()) {
+            tvSentimentMsg.setText(cachedSummary);
+            return;
+        }
+
+        String apiKey = BuildConfig.GEMINI_API_KEY;
+        if (apiKey == null || apiKey.isEmpty() || apiKey.equals("PASTE_YOUR_API_KEY_HERE")) {
+            updateSentimentMessage(avgRating);
+            return;
+        }
+
+        GenerativeModel gm = new GenerativeModel("gemini-3.1-flash-lite", apiKey);
+        GenerativeModelFutures model = GenerativeModelFutures.from(gm);
+
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append("Generate a short, professional business summary (max 30 words) for a barber shop admin based on customer feedback. ");
+        promptBuilder.append("Overall shop rating is ").append(String.format(Locale.getDefault(), "%.1f", avgRating)).append("/5.0 from ").append(totalCount).append(" reviews. ");
+        promptBuilder.append("Recent comments: ");
+        int limit = Math.min(recentReviews.size(), 10);
+        for (int i = 0; i < limit; i++) {
+            String comment = recentReviews.get(i).getString("comment");
+            if (comment != null && !comment.isEmpty()) promptBuilder.append("'").append(comment).append("', ");
+        }
+        promptBuilder.append("Summarize the general mood and highlight one key strength or area of concern. No emojis.");
+
+        Content content = new Content.Builder().addText(promptBuilder.toString()).build();
+        Futures.addCallback(model.generateContent(content), new FutureCallback<GenerateContentResponse>() {
+            @Override
+            public void onSuccess(@NonNull GenerateContentResponse result) {
+                String text = result.getText();
+                if (text != null && isAdded()) {
+                    handler.post(() -> {
+                        String trimmed = text.trim();
+                        tvSentimentMsg.setText(trimmed);
+                        prefs.edit()
+                                .putString("last_refresh_date", todayDate)
+                                .putString("cached_summary", trimmed)
+                                .apply();
+                    });
+                }
+            }
+            @Override
+            public void onFailure(@NonNull Throwable t) {
+                handler.post(() -> updateSentimentMessage(avgRating));
+            }
+        }, Executors.newSingleThreadExecutor());
     }
 
     private void updateSentimentMessage(double avg) {
@@ -686,6 +1060,89 @@ public class AdminHomeFragment extends Fragment {
         else if (avg >= 2.5) msg = "Room for improvement in service quality.";
         else msg = "Attention needed: Customer satisfaction is low.";
         tvSentimentMsg.setText(msg);
+    }
+
+    private void updateReviewsUI(List<QueryDocumentSnapshot> reviews) {
+        if (llAdminRecentReviewsList == null || !isAdded()) return;
+        llAdminRecentReviewsList.removeAllViews();
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        for (int i = 0; i < reviews.size(); i++) {
+            QueryDocumentSnapshot doc = reviews.get(i);
+            View itemView = inflater.inflate(R.layout.item_review_employee, llAdminRecentReviewsList, false);
+
+            TextView tvName = itemView.findViewById(R.id.tv_reviewer_name);
+            TextView tvComment = itemView.findViewById(R.id.tv_review_comment);
+            TextView tvDate = itemView.findViewById(R.id.tv_review_date);
+            TextView tvTime = itemView.findViewById(R.id.tv_review_time);
+            TextView tvBookingId = itemView.findViewById(R.id.tv_review_booking_id);
+            RatingBar rbStars = itemView.findViewById(R.id.rb_review_stars);
+            ImageView ivReviewer = itemView.findViewById(R.id.iv_reviewer_profile);
+            
+            // Barber Name Badge
+            View mcvBarberBadge = itemView.findViewById(R.id.mcv_review_barber_badge);
+            TextView tvBarberName = itemView.findViewById(R.id.tv_review_barber_name);
+
+            Double rating = doc.getDouble("rating");
+            if (rating != null) rbStars.setRating(rating.floatValue());
+            
+            tvComment.setText(doc.getString("comment"));
+            
+            String bId = doc.getString("bookingId");
+            if (bId != null) {
+                tvBookingId.setText("#" + bId);
+                db.collection("bookings").document(bId).get().addOnSuccessListener(bookingDoc -> {
+                    if (bookingDoc.exists() && isAdded()) {
+                        tvTime.setText(bookingDoc.getString("time"));
+                        String date = bookingDoc.getString("date");
+                        if (date != null) tvDate.setText(date);
+                    }
+                });
+            }
+
+            // Fetch Barber Name
+            String employeeId = doc.getString("employeeId");
+            if (employeeId != null && tvBarberName != null) {
+                mcvBarberBadge.setVisibility(View.VISIBLE);
+                db.collection("employees").document(employeeId).get().addOnSuccessListener(empDoc -> {
+                    if (empDoc.exists() && isAdded()) {
+                        tvBarberName.setText(empDoc.getString("fullname"));
+                    }
+                });
+            }
+
+            Timestamp ts = doc.getTimestamp("timestamp");
+            if (ts != null) {
+                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yy", Locale.getDefault());
+                tvDate.setText(sdf.format(ts.toDate()));
+            }
+
+            String customerId = doc.getString("customerId");
+            if (customerId != null) {
+                db.collection("customers").document(customerId).get().addOnSuccessListener(userDoc -> {
+                    if (userDoc.exists() && isAdded()) {
+                        // Use "name" as standard across app
+                        tvName.setText(userDoc.getString("name"));
+                    }
+                });
+                db.collection("profile_pics").document(customerId).get().addOnSuccessListener(picDoc -> {
+                    if (picDoc.exists() && isAdded()) {
+                        String url = picDoc.getString("url");
+                        if (url != null && !url.isEmpty()) Glide.with(AdminHomeFragment.this).load(url).placeholder(R.drawable.ic_profile).into(ivReviewer);
+                    }
+                });
+            }
+
+            llAdminRecentReviewsList.addView(itemView);
+            
+            // Add a small divider if not the last item
+            if (i < reviews.size() - 1) {
+                View divider = new View(getContext());
+                divider.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
+                divider.setBackgroundColor(Color.parseColor("#EEEEEE"));
+                llAdminRecentReviewsList.addView(divider);
+            }
+        }
     }
 
     private void updateTimeStatus() {
@@ -710,35 +1167,62 @@ public class AdminHomeFragment extends Fragment {
         int minute = cal.get(Calendar.MINUTE);
         int totalMinutes = (hour * 60) + minute;
 
-        boolean isOpen = (hour >= 10 && hour < 13) || (hour >= 14 && hour < 24);
-        tvAdminShopStatus.setText(isOpen ? "OPEN" : "CLOSED");
-        tvAdminShopStatus.setTextColor(isOpen ? ContextCompat.getColor(requireContext(), R.color.primary_color) : Color.RED);
+        boolean isBreak = (hour == 14 || hour == 19);
+        boolean isOpen = ((hour >= 10 && hour < 14) || (hour >= 15 && hour < 19) || (hour >= 20 && hour < 24)) && !isBreak;
+        
+        if (isBreak) {
+            tvAdminShopStatus.setText("ON BREAK");
+            tvAdminShopStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.alert_yellow_icon));
+        } else {
+            tvAdminShopStatus.setText(isOpen ? "OPEN" : "CLOSED");
+            tvAdminShopStatus.setTextColor(isOpen ? ContextCompat.getColor(requireContext(), R.color.primary_color) : Color.RED);
+        }
 
         // Calculate Remaining Time & Color
         String remainingText = "";
-        int remainingColor = Color.WHITE;
+        int bgColorRes = R.color.info_blue_icon;
 
         if (totalMinutes < 600) { // Before 10:00 AM
             int diff = 600 - totalMinutes;
             remainingText = "Opens in " + formatDiff(diff);
-            if (diff <= 30) remainingColor = ContextCompat.getColor(requireContext(), R.color.info_blue_icon);
-        } else if (totalMinutes < 780) { // 10:00 AM - 1:00 PM (Open)
-            int diff = 780 - totalMinutes;
-            remainingText = "Closes in " + formatDiff(diff);
-            if (diff <= 15) remainingColor = ContextCompat.getColor(requireContext(), R.color.warning_red_icon);
-            else if (diff <= 60) remainingColor = ContextCompat.getColor(requireContext(), R.color.alert_yellow_icon);
-        } else if (totalMinutes < 840) { // 1:00 PM - 2:00 PM (Break)
+            if (diff <= 30) bgColorRes = R.color.info_blue_icon;
+        } else if (totalMinutes < 840) { // 10:00 AM - 2:00 PM (Open)
             int diff = 840 - totalMinutes;
+            remainingText = "Closes in " + formatDiff(diff);
+            if (diff <= 15) bgColorRes = R.color.warning_red_icon;
+            else if (diff <= 60) bgColorRes = R.color.alert_yellow_icon;
+            else bgColorRes = R.color.success_green_icon;
+        } else if (totalMinutes < 900) { // 2:00 PM - 3:00 PM (Break)
+            int diff = 900 - totalMinutes;
             remainingText = "Opens in " + formatDiff(diff);
-            if (diff <= 30) remainingColor = ContextCompat.getColor(requireContext(), R.color.info_blue_icon);
-        } else { // 2:00 PM - Midnight (Open)
+            if (diff <= 30) bgColorRes = R.color.info_blue_icon;
+        } else if (totalMinutes < 1140) { // 3:00 PM - 7:00 PM (Open)
+            int diff = 1140 - totalMinutes;
+            remainingText = "Closes in " + formatDiff(diff);
+            if (diff <= 15) bgColorRes = R.color.warning_red_icon;
+            else if (diff <= 60) bgColorRes = R.color.alert_yellow_icon;
+            else bgColorRes = R.color.success_green_icon;
+        } else if (totalMinutes < 1200) { // 7:00 PM - 8:00 PM (Break)
+            int diff = 1200 - totalMinutes;
+            remainingText = "Opens in " + formatDiff(diff);
+            if (diff <= 30) bgColorRes = R.color.info_blue_icon;
+        } else { // 8:00 PM - Midnight (Open)
             int diff = 1440 - totalMinutes;
             remainingText = "Closes in " + formatDiff(diff);
-            if (diff <= 15) remainingColor = ContextCompat.getColor(requireContext(), R.color.warning_red_icon);
-            else if (diff <= 60) remainingColor = ContextCompat.getColor(requireContext(), R.color.alert_yellow_icon);
+            if (diff <= 15) bgColorRes = R.color.warning_red_icon;
+            else if (diff <= 60) bgColorRes = R.color.alert_yellow_icon;
+            else bgColorRes = R.color.success_green_icon;
         }
         tvAdminRemainingTime.setText(remainingText);
-        tvAdminRemainingTime.setTextColor(remainingColor);
+        tvAdminRemainingTime.setTextColor(Color.WHITE);
+        
+        // Background with corner radius
+        android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+        gd.setColor(ContextCompat.getColor(requireContext(), bgColorRes));
+        gd.setCornerRadius(4 * getResources().getDisplayMetrics().density);
+        tvAdminRemainingTime.setBackground(gd);
+        int padding = (int) (6 * getResources().getDisplayMetrics().density);
+        tvAdminRemainingTime.setPadding(padding, padding/2, padding, padding/2);
 
         int bgRes;
         String timeName;

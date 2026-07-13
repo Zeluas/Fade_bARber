@@ -19,4 +19,7 @@
     <color name="alert_yellow_icon">#FFBD00</color>
     <color name="grey_grey">#686868</color>
     <color name="notification_icon_color">#FFFFFF</color>
+    <color name="rank_gold">#FFD700</color>
+    <color name="rank_silver">#C0C0C0</color>
+    <color name="rank_bronze">#CD7F32</color>
 </resources>

@@ -73,6 +73,7 @@ public class BookingActivity extends AppCompatActivity {
     private List<Employee> stylistList = new ArrayList<>();
     private View loadingOverlay;
     private ListenerRegistration employeesListener;
+    private ListenerRegistration innerEmployeesListener;
     
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
@@ -1162,6 +1163,7 @@ public class BookingActivity extends AppCompatActivity {
         if (bookedTimesListener != null) bookedTimesListener.remove();
         if (fullDatesListener != null) fullDatesListener.remove();
         if (employeesListener != null) employeesListener.remove();
+        if (innerEmployeesListener != null) innerEmployeesListener.remove();
     }
 
     /**
@@ -1197,7 +1199,7 @@ public class BookingActivity extends AppCompatActivity {
     }
 
     /**
-     * Fetches the list of employees from Firestore.
+     * Fetches the list of active employees from Firestore.
      */
     private void fetchStylists() {
         if (!isNetworkAvailable()) {
@@ -1210,47 +1212,77 @@ public class BookingActivity extends AppCompatActivity {
         
         if (employeesListener != null) employeesListener.remove();
         
-        employeesListener = db.collection("employees").addSnapshotListener((value, error) -> {
-            pbStylists.setVisibility(View.GONE);
-            if (error != null) {
-                Toast.makeText(this, "Failed to fetch stylists. Please check your network.", Toast.LENGTH_SHORT).show();
-                tvNoStylists.setVisibility(View.VISIBLE);
-                tvNoStylists.setText("Error loading stylists.");
-                return;
-            }
-            
-            if (value != null) {
-                stylistList.clear();
-                int targetPosition = -1;
-                for (QueryDocumentSnapshot document : value) {
-                    Employee employee = document.toObject(Employee.class);
-                    stylistList.add(employee);
-
-                    // If in edit mode and this is the original employee, select them
-                    if (isEditMode && employee.getUid() != null && employee.getUid().equals(originalEmployeeId)) {
-                        selectedEmployee = employee;
-                        targetPosition = stylistList.size() - 1;
+        // Stage 1: Fetch users who are active employees
+        employeesListener = db.collection("users")
+                .whereEqualTo("role", "employee")
+                .addSnapshotListener((userSnapshot, userError) -> {
+                    if (userError != null) {
+                        pbStylists.setVisibility(View.GONE);
+                        Toast.makeText(this, "Failed to fetch users.", Toast.LENGTH_SHORT).show();
+                        return;
                     }
-                }
-                stylistAdapter.notifyDataSetChanged();
 
-                // Correctly set the selection in the adapter
-                if (targetPosition != -1) {
-                    stylistAdapter.setSelectedIndex(targetPosition);
-                }
+                    if (userSnapshot != null) {
+                        List<String> activeEmployeeIds = new ArrayList<>();
+                        for (QueryDocumentSnapshot userDoc : userSnapshot) {
+                            activeEmployeeIds.add(userDoc.getId());
+                        }
 
-                // If we selected an employee (pre-selection in edit mode), fetch their booked times
-                if (selectedEmployee != null) {
-                    fetchBookedTimes();
-                }
+                        if (activeEmployeeIds.isEmpty()) {
+                            pbStylists.setVisibility(View.GONE);
+                            stylistList.clear();
+                            stylistAdapter.notifyDataSetChanged();
+                            tvNoStylists.setVisibility(View.VISIBLE);
+                            return;
+                        }
 
-                if (stylistList.isEmpty()) {
-                    tvNoStylists.setVisibility(View.VISIBLE);
-                } else {
-                    tvNoStylists.setVisibility(View.GONE);
-                }
-            }
-        });
+                        // Stage 2: Fetch employee details for these active IDs
+                        if (innerEmployeesListener != null) innerEmployeesListener.remove();
+                        innerEmployeesListener = db.collection("employees").addSnapshotListener((value, error) -> {
+                            pbStylists.setVisibility(View.GONE);
+                            if (error != null) {
+                                Toast.makeText(this, "Failed to fetch stylists.", Toast.LENGTH_SHORT).show();
+                                tvNoStylists.setVisibility(View.VISIBLE);
+                                tvNoStylists.setText("Error loading stylists.");
+                                return;
+                            }
+                            
+                            if (value != null) {
+                                stylistList.clear();
+                                int targetPosition = -1;
+                                for (QueryDocumentSnapshot document : value) {
+                                    if (activeEmployeeIds.contains(document.getId())) {
+                                        Employee employee = document.toObject(Employee.class);
+                                        stylistList.add(employee);
+
+                                        // If in edit mode and this is the original employee, select them
+                                        if (isEditMode && employee.getUid() != null && employee.getUid().equals(originalEmployeeId)) {
+                                            selectedEmployee = employee;
+                                            targetPosition = stylistList.size() - 1;
+                                        }
+                                    }
+                                }
+                                stylistAdapter.notifyDataSetChanged();
+
+                                // Correctly set the selection in the adapter
+                                if (targetPosition != -1) {
+                                    stylistAdapter.setSelectedIndex(targetPosition);
+                                }
+
+                                // If we selected an employee (pre-selection in edit mode), fetch their booked times
+                                if (selectedEmployee != null) {
+                                    fetchBookedTimes();
+                                }
+
+                                if (stylistList.isEmpty()) {
+                                    tvNoStylists.setVisibility(View.VISIBLE);
+                                } else {
+                                    tvNoStylists.setVisibility(View.GONE);
+                                }
+                            }
+                        });
+                    }
+                });
     }
 
     private void updateHairstylePreview(String name, String desc, String key) {

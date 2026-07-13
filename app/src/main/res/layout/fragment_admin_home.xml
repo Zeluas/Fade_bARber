@@ -654,6 +654,14 @@
                         </LinearLayout>
 
                         <TextView
+                            android:id="@+id/tv_admin_total_reviews_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Based on 0 reviews"
+                            android:textColor="@color/grey_grey"
+                            android:textSize="12sp" />
+
+                        <TextView
                             android:id="@+id/tv_admin_sentiment_msg"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -663,6 +671,46 @@
                             android:textColor="@color/black"
                             android:textSize="14sp"
                             android:textStyle="bold|italic" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="16dp"
+                        android:paddingBottom="16dp">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginBottom="16dp"
+                            android:background="#EEEEEE" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="12dp"
+                            android:text="Recent Feedback"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:id="@+id/ll_admin_recent_reviews_list"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+
+                        <TextView
+                            android:id="@+id/tv_admin_no_reviews_placeholder"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:padding="16dp"
+                            android:text="No reviews yet."
+                            android:textColor="@color/grey_grey"
+                            android:textSize="13sp"
+                            android:textStyle="italic" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

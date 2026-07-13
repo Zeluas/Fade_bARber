@@ -282,4 +282,6 @@
     <string name="label_sort">Sort:</string>
     <string name="sort_amount">Amount</string>
     <string name="label_date">Date:</string>
+    <string name="fade_emp_domain">\@fade.emp</string>
+    <string name="fade_adm_domain">\@fade.adm</string>
 </resources>

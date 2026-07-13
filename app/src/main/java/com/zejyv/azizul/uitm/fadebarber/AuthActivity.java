@@ -368,6 +368,12 @@ public class AuthActivity extends AppCompatActivity {
                                                 if (userTask.isSuccessful() && userTask.getResult().exists()) {
                                                     String role = userTask.getResult().getString("role");
                                                     
+                                                    // Security Check: If the role indicates deletion/deactivation, force logout
+                                                    if (role != null && role.contains("deleted")) {
+                                                        handleAutoLoginFailure(savedEmail, new Exception("Account deactivated"));
+                                                        return;
+                                                    }
+
                                                     // Ensure role is updated in local prefs for consistent redirection logic
                                                     if (encryptedPrefs != null) encryptedPrefs.edit().putString("role", role).apply();
 
@@ -604,6 +610,14 @@ public class AuthActivity extends AppCompatActivity {
                                                                     // Existing User: Verify role and email for extra measure
                                                                     String r = userTask.getResult().getString("role");
                                                                     String registeredEmail = userTask.getResult().getString("email");
+
+                                                                    // Block login if account is marked as deleted
+                                                                    if (r != null && r.contains("deleted")) {
+                                                                        showButtonLoading(false);
+                                                                        mAuth.signOut();
+                                                                        showErrorBanner("Access denied: Account has been deactivated.");
+                                                                        return;
+                                                                    }
 
                                                                     if ("employee".equals(r) && email.equals(registeredEmail)) {
                                                                         // Fetch employee profile

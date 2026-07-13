@@ -94,6 +94,7 @@ public class HomeFragment extends Fragment {
     private StylistAdapter stylistAdapter;
     private List<Employee> stylistList = new ArrayList<>();
     private ListenerRegistration employeesListener;
+    private ListenerRegistration innerEmployeesListener;
 
     // Recent Cut History UI
     private RecyclerView rvCutHistory;
@@ -309,32 +310,61 @@ public class HomeFragment extends Fragment {
         
         if (employeesListener != null) employeesListener.remove();
         
-        employeesListener = db.collection("employees").addSnapshotListener((value, error) -> {
-            if (pbStylists != null) pbStylists.setVisibility(View.GONE);
-            if (error != null) {
-                if (tvNoStylists != null) {
-                    tvNoStylists.setVisibility(View.VISIBLE);
-                    tvNoStylists.setText("Error loading stylists.");
-                }
-                return;
-            }
-            
-            if (value != null) {
-                stylistList.clear();
-                for (QueryDocumentSnapshot document : value) {
-                    Employee employee = document.toObject(Employee.class);
-                    stylistList.add(employee);
-                }
-                if (stylistAdapter != null) {
-                    stylistAdapter.notifyDataSetChanged();
-                    rvStylists.post(() -> rvStylists.requestLayout());
-                }
+        // Stage 1: Fetch users who are active employees
+        employeesListener = db.collection("users")
+                .whereEqualTo("role", "employee")
+                .addSnapshotListener((userSnapshot, userError) -> {
+                    if (userError != null) {
+                        if (pbStylists != null) pbStylists.setVisibility(View.GONE);
+                        return;
+                    }
 
-                if (tvNoStylists != null) {
-                    tvNoStylists.setVisibility(stylistList.isEmpty() ? View.VISIBLE : View.GONE);
-                }
-            }
-        });
+                    if (userSnapshot != null) {
+                        List<String> activeEmployeeIds = new ArrayList<>();
+                        for (QueryDocumentSnapshot userDoc : userSnapshot) {
+                            activeEmployeeIds.add(userDoc.getId());
+                        }
+
+                        if (activeEmployeeIds.isEmpty()) {
+                            if (pbStylists != null) pbStylists.setVisibility(View.GONE);
+                            stylistList.clear();
+                            if (stylistAdapter != null) stylistAdapter.notifyDataSetChanged();
+                            if (tvNoStylists != null) tvNoStylists.setVisibility(View.VISIBLE);
+                            return;
+                        }
+
+                        // Stage 2: Fetch employee details for these active IDs
+                        if (innerEmployeesListener != null) innerEmployeesListener.remove();
+                        innerEmployeesListener = db.collection("employees").addSnapshotListener((value, error) -> {
+                            if (pbStylists != null) pbStylists.setVisibility(View.GONE);
+                            if (error != null) {
+                                if (tvNoStylists != null) {
+                                    tvNoStylists.setVisibility(View.VISIBLE);
+                                    tvNoStylists.setText("Error loading stylists.");
+                                }
+                                return;
+                            }
+                            
+                            if (value != null) {
+                                stylistList.clear();
+                                for (QueryDocumentSnapshot document : value) {
+                                    if (activeEmployeeIds.contains(document.getId())) {
+                                        Employee employee = document.toObject(Employee.class);
+                                        stylistList.add(employee);
+                                    }
+                                }
+                                if (stylistAdapter != null) {
+                                    stylistAdapter.notifyDataSetChanged();
+                                    rvStylists.post(() -> rvStylists.requestLayout());
+                                }
+
+                                if (tvNoStylists != null) {
+                                    tvNoStylists.setVisibility(stylistList.isEmpty() ? View.VISIBLE : View.GONE);
+                                }
+                            }
+                        });
+                    }
+                });
     }
 
     private void fetchCutHistory() {
@@ -1456,6 +1486,9 @@ public class HomeFragment extends Fragment {
         }
         if (employeesListener != null) {
             employeesListener.remove();
+        }
+        if (innerEmployeesListener != null) {
+            innerEmployeesListener.remove();
         }
     }
 
