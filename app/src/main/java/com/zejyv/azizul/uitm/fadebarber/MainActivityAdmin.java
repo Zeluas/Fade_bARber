@@ -65,6 +65,8 @@ public class MainActivityAdmin extends AppCompatActivity {
     private android.net.ConnectivityManager.NetworkCallback networkCallback;
 
     private ListenerRegistration notificationListener;
+    private ListenerRegistration offDayBadgeListener;
+    private int pendingOffDayCount = 0;
     private static final String CHANNEL_ID = "booking_notifications";
 
     // --- Profile Image Preview Components ---
@@ -108,6 +110,7 @@ public class MainActivityAdmin extends AppCompatActivity {
         FCMUtils.updateTokenInFirestore();
         startNotificationService();
         initializeViews();
+        setupBadge();
         setupNavigationSync();
         setupFab();
         setupExitDialog();
@@ -201,6 +204,44 @@ public class MainActivityAdmin extends AppCompatActivity {
 
         AdminPagerAdapter adapter = new AdminPagerAdapter(this);
         viewPager.setAdapter(adapter);
+    }
+
+    private void setupBadge() {
+        final com.google.android.material.badge.BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.navigation_admin_panel);
+        badge.setBackgroundColor(android.graphics.Color.parseColor("#D81B60"));
+        badge.setBadgeTextColor(android.graphics.Color.WHITE);
+
+        int offset = (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 4, getResources().getDisplayMetrics());
+        badge.setVerticalOffset(offset);
+        badge.setHorizontalOffset(offset);
+
+        if (offDayBadgeListener != null) offDayBadgeListener.remove();
+        offDayBadgeListener = com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("off_day_requests")
+                .whereEqualTo("status", "PENDING")
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) return;
+                    if (value != null) {
+                        pendingOffDayCount = value.size();
+                        if (pendingOffDayCount > 0) {
+                            badge.setVisible(true);
+                            badge.setNumber(pendingOffDayCount);
+                        } else {
+                            badge.setVisible(false);
+                        }
+                        refreshFragmentBadges();
+                    }
+                });
+    }
+
+    public int getPendingOffDayCount() {
+        return pendingOffDayCount;
+    }
+
+    private void refreshFragmentBadges() {
+        androidx.fragment.app.Fragment fragment = getSupportFragmentManager().findFragmentByTag("f" + viewPager.getCurrentItem());
+        if (fragment instanceof AdminPanelFragment) {
+            ((AdminPanelFragment) fragment).updateOffDayBadge(pendingOffDayCount);
+        }
     }
 
     private void setupNavigationSync() {
@@ -858,6 +899,7 @@ public class MainActivityAdmin extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        if (offDayBadgeListener != null) offDayBadgeListener.remove();
         super.onDestroy();
         if (networkCallback != null) {
             android.net.ConnectivityManager connectivityManager = (android.net.ConnectivityManager) getSystemService(android.content.Context.CONNECTIVITY_SERVICE);

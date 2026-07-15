@@ -86,10 +86,29 @@ public class ActivityListFragment extends Fragment {
 
                         int index = 0;
                         for (QueryDocumentSnapshot doc : docs) {
-                            addNotificationCard(doc, index++);
+                            if (!handleAutoRead(doc)) {
+                                addNotificationCard(doc, index++);
+                            }
                         }
                     }
                 });
+    }
+
+    private boolean handleAutoRead(QueryDocumentSnapshot doc) {
+        Timestamp ts = doc.getTimestamp("timestamp");
+        if (ts == null) return false;
+
+        long diffInMillis = new Date().getTime() - ts.toDate().getTime();
+        long diffInDays = TimeUnit.MILLISECONDS.toDays(diffInMillis);
+
+        if (diffInDays >= 15) {
+            doc.getReference().update(
+                    "isRead", true,
+                    "lastReadTimestamp", Timestamp.now()
+            );
+            return true;
+        }
+        return false;
     }
 
     private void addNotificationCard(QueryDocumentSnapshot doc, int index) {
@@ -122,7 +141,7 @@ public class ActivityListFragment extends Fragment {
             tvDuration.setText(getTimeAgo(ts.toDate()));
         }
 
-        if ("NOSHOW".equals(type) || "CANCELLATION".equals(type) || "PROFILE_ERROR".equals(type) || "AUTO_CANCELLATION".equals(type) || "CANCELLATION_LOCK".equals(type)) {
+        if ("NOSHOW".equals(type) || "CANCELLATION".equals(type) || "PROFILE_ERROR".equals(type) || "AUTO_CANCELLATION".equals(type) || "CANCELLATION_LOCK".equals(type) || "OFF_DAY_CANCELLATION".equals(type)) {
             ivBg.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.warning_red));
             ivIcon.setImageResource(R.drawable.ic_warning_circle);
             ivIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.warning_red_icon));

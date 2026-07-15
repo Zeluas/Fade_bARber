@@ -10,6 +10,8 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 public class AdminPanelFragment extends Fragment {
+    private android.widget.TextView tvOffDayBadge;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -38,7 +40,26 @@ public class AdminPanelFragment extends Fragment {
         view.findViewById(R.id.card_customer_mgmt).setOnClickListener(v -> {
             startActivity(new Intent(getContext(), CustomerManagementActivity.class));
         });
-        
+
+        tvOffDayBadge = view.findViewById(R.id.tv_admin_off_day_badge);
+        syncInitialBadges();
+
         return view;
+    }
+
+    private void syncInitialBadges() {
+        if (getActivity() instanceof MainActivityAdmin) {
+            updateOffDayBadge(((MainActivityAdmin) getActivity()).getPendingOffDayCount());
+        }
+    }
+
+    public void updateOffDayBadge(int count) {
+        if (tvOffDayBadge == null) return;
+        if (count > 0) {
+            tvOffDayBadge.setVisibility(View.VISIBLE);
+            tvOffDayBadge.setText(String.valueOf(count));
+        } else {
+            tvOffDayBadge.setVisibility(View.GONE);
+        }
     }
 }

@@ -15,6 +15,9 @@ public class NotificationDetailActivity extends AppCompatActivity {
     private View layoutCallHairstylist, mcvCallDialog;
     private TextView tvHairstylistPhone;
     private String rawPhone = "";
+    private String currentUserRole = "customer";
+    private com.google.android.material.textfield.TextInputLayout tilEmployeeReason;
+    private com.google.android.material.textfield.TextInputEditText etEmployeeReason;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,13 +41,18 @@ public class NotificationDetailActivity extends AppCompatActivity {
         tvTitle.setText(title);
         tvMessage.setText(message);
 
+        tilEmployeeReason = findViewById(R.id.til_employee_reason);
+        etEmployeeReason = findViewById(R.id.et_employee_reason);
+
+        fetchUserRole();
+
         if (timestampMillis != 0) {
             SimpleDateFormat sdf = new SimpleDateFormat("dd MMMM yyyy, hh:mm a", Locale.getDefault());
             tvDate.setText(sdf.format(new java.util.Date(timestampMillis)));
         }
 
         if (bookingId != null) {
-            if ("NOSHOW".equals(type) || "CANCELLATION".equals(type)) {
+            if ("NOSHOW".equals(type) || "CANCELLATION".equals(type) || "AUTO_CANCELLATION".equals(type) || "OFF_DAY_CANCELLATION".equals(type)) {
                 showExtraBookingDetails(bookingId, type);
             } else if ("UPDATE".equals(type)) {
                 showUpdateDetails(docId, bookingId);
@@ -118,8 +126,32 @@ public class NotificationDetailActivity extends AppCompatActivity {
 
     private String formatPhoneNumber(String raw) {
         if (raw == null || raw.isEmpty()) return "-";
-        if (raw.startsWith("0")) return "+60 " + raw.substring(1, 3) + "-" + raw.substring(3, 7) + " " + raw.substring(7);
-        return raw;
+
+        String digits = raw;
+        if (raw.startsWith("0")) {
+            digits = raw.substring(1);
+        } else if (raw.startsWith("+60")) {
+            digits = raw.substring(3);
+        } else if (raw.startsWith("60")) {
+            digits = raw.substring(2);
+        }
+
+        if (digits.length() >= 6) {
+            StringBuilder sb = new StringBuilder("+60 ");
+            sb.append(digits.substring(0, 2));
+            sb.append("-");
+            sb.append(digits.substring(2, 6));
+
+            String remaining = digits.substring(6);
+            for (int i = 0; i < remaining.length(); i++) {
+                if (i > 0 && i % 4 == 0) sb.append(" ");
+                if (i == 0) sb.append(" ");
+                sb.append(remaining.charAt(i));
+            }
+            return sb.toString();
+        } else {
+            return "+60 " + digits;
+        }
     }
 
     private void setupCallButton(String senderId, String type) {
@@ -132,7 +164,7 @@ public class NotificationDetailActivity extends AppCompatActivity {
             .addOnSuccessListener(doc -> {
                 if (doc.exists()) {
                     // It's an employee, show call button for these types (for customer)
-                    if ("UPDATE".equals(type) || "CANCELLATION_LOCK".equals(type) || "AUTO_CANCELLATION".equals(type) || "NOSHOW".equals(type)) {
+                    if ("UPDATE".equals(type) || "CANCELLATION_LOCK".equals(type) || "AUTO_CANCELLATION".equals(type) || "NOSHOW".equals(type) || "OFF_DAY_CANCELLATION".equals(type)) {
                         btnCall.setVisibility(View.VISIBLE);
                         btnCall.setText("Call Hairstylist");
                         String phone = doc.getString("phone");
@@ -144,8 +176,19 @@ public class NotificationDetailActivity extends AppCompatActivity {
                     // Check if it's a customer
                     FirebaseFirestore.getInstance().collection("customers").document(senderId).get()
                         .addOnSuccessListener(custDoc -> {
-                            // If sender is customer, we don't show call button for employee (as requested previously)
-                            btnCall.setVisibility(View.GONE);
+                            if (custDoc.exists() && "employee".equals(currentUserRole)) {
+                                // Sender is customer, receiver is employee. Show "Call Customer" for cancellations
+                                if ("CANCELLATION".equals(type)) {
+                                    btnCall.setVisibility(View.VISIBLE);
+                                    btnCall.setText("Call Customer");
+                                    String phone = custDoc.getString("phone");
+                                    btnCall.setOnClickListener(v -> showCallDialog(phone, "Call Customer"));
+                                } else {
+                                    btnCall.setVisibility(View.GONE);
+                                }
+                            } else {
+                                btnCall.setVisibility(View.GONE);
+                            }
                         });
                 }
             });
@@ -158,6 +201,16 @@ public class NotificationDetailActivity extends AppCompatActivity {
         FirebaseFirestore.getInstance().collection("notifications").document(docId).get()
             .addOnSuccessListener(doc -> {
                 if (doc.exists()) {
+                    String reason = doc.getString("reason");
+                    if (reason != null && !reason.isEmpty() && etEmployeeReason != null && tilEmployeeReason != null) {
+                        etEmployeeReason.setText(reason);
+                        if ("employee".equals(currentUserRole)) {
+                            tilEmployeeReason.setVisibility(View.VISIBLE);
+                        } else {
+                            tilEmployeeReason.setVisibility(View.GONE);
+                        }
+                    }
+
                     populateMiniCard(findViewById(R.id.layout_before_update),
                         doc.getString("oldEmployeeId"),
                         doc.getString("oldDate"),
@@ -268,8 +321,10 @@ public class NotificationDetailActivity extends AppCompatActivity {
 
     private void loadHairstyleImage(String name, String id, ImageView iv) {
         if (name == null || iv == null) {
-            iv.setPadding(6, 6, 6, 6);
-            iv.setImageResource(R.drawable.ic_hair);
+            if (iv != null) {
+                iv.setPadding(6, 6, 6, 6);
+                iv.setImageResource(R.drawable.ic_hair);
+            }
             return;
         }
         try {
@@ -308,5 +363,25 @@ public class NotificationDetailActivity extends AppCompatActivity {
         // Fallback if no specific image found
         iv.setPadding(6, 6, 6, 6);
         iv.setImageResource(R.drawable.ic_hair);
+    }
+
+    private void fetchUserRole() {
+        try {
+            androidx.security.crypto.MasterKey masterKey = new androidx.security.crypto.MasterKey.Builder(this)
+                    .setKeyScheme(androidx.security.crypto.MasterKey.KeyScheme.AES256_GCM)
+                    .build();
+
+            android.content.SharedPreferences prefs = androidx.security.crypto.EncryptedSharedPreferences.create(
+                    this,
+                    "secret_shared_prefs",
+                    masterKey,
+                    androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+
+            currentUserRole = prefs.getString("role", "customer");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

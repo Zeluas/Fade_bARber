@@ -38,9 +38,33 @@ public class ActivityFragment extends Fragment {
         initializeViews(view);
         setupViewPager();
         setupTabs();
+        setupBackButton(view);
         populateTabLabels();
 
         return view;
+    }
+
+    private void setupBackButton(View view) {
+        boolean showBack = getArguments() != null && getArguments().getBoolean("SHOW_BACK", false);
+        View internalTopBar = view.findViewById(R.id.mcv_top_bar_activity);
+        
+        if (showBack && internalTopBar != null) {
+            internalTopBar.setVisibility(View.GONE);
+            return;
+        }
+
+        View ivBack = view.findViewById(R.id.iv_back_activity);
+        if (ivBack != null) {
+            ivBack.setVisibility(View.GONE); // Always gone for customer
+            
+            TextView tvTitle = view.findViewById(R.id.tv_title_activity);
+            if (tvTitle != null) {
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) tvTitle.getLayoutParams();
+                int marginStart = (int) (12 * getResources().getDisplayMetrics().density);
+                lp.setMargins(marginStart, lp.topMargin, lp.rightMargin, lp.bottomMargin);
+                tvTitle.setLayoutParams(lp);
+            }
+        }
     }
 
     /**

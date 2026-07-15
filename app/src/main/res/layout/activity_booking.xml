@@ -541,6 +541,34 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_edit_reason"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:layout_marginHorizontal="4dp"
+                android:hint="Reason for update (Optional)"
+                android:visibility="gone"
+                app:boxBackgroundColor="@color/white"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusTopStart="12dp"
+                tools:visibility="visible">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_edit_reason"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="top"
+                    android:imeOptions="actionDone"
+                    android:inputType="text|textCapSentences|textMultiLine"
+                    android:maxLines="4"
+                    android:minLines="3"
+                    android:scrollbars="vertical" />
+            </com.google.android.material.textfield.TextInputLayout>
+
             <!-- Final Buttons Row -->
             <LinearLayout
                 android:id="@+id/ll_booking_actions"

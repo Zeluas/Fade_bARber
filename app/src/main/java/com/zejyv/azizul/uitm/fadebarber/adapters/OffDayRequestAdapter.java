@@ -46,6 +46,9 @@ public class OffDayRequestAdapter extends RecyclerView.Adapter<OffDayRequestAdap
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         OffDayRequest request = requests.get(position);
         
+        // Populate Off Day ID
+        holder.tvOffDayId.setText("#" + request.getOffDayId());
+        
         // Reset dynamic fields to avoid showing old data during recycling
         holder.tvEmployeeName.setText("Loading...");
         holder.tvEmployeeUsername.setText("...");
@@ -145,13 +148,14 @@ public class OffDayRequestAdapter extends RecyclerView.Adapter<OffDayRequestAdap
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvEmployeeName, tvEmployeeUsername, tvEmployeeUid, tvDate, tvTime, tvVoteAcceptCount, tvVoteDeclineCount, tvUserVoteStatus, tvStatusBadge;
+        TextView tvEmployeeName, tvEmployeeUsername, tvEmployeeUid, tvDate, tvTime, tvVoteAcceptCount, tvVoteDeclineCount, tvUserVoteStatus, tvStatusBadge, tvOffDayId;
         TextInputEditText etReason;
         ImageView ivProfileImage;
         View llVoteActions, llAdminActions, btnVoteAccept, btnVoteDecline, btnAdminApprove, btnAdminReject;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
+            tvOffDayId = itemView.findViewById(R.id.tv_item_off_day_id);
             tvEmployeeName = itemView.findViewById(R.id.tv_item_employee_name);
             tvEmployeeUsername = itemView.findViewById(R.id.tv_item_employee_username);
             tvEmployeeUid = itemView.findViewById(R.id.tv_item_employee_uid);

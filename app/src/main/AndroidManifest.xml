@@ -140,6 +140,11 @@
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".EmployeeNotificationsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <uses-native-library
             android:name="libOpenCL.so"
             android:required="false" />

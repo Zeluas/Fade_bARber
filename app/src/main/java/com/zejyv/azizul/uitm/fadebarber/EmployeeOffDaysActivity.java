@@ -424,7 +424,12 @@ public class EmployeeOffDaysActivity extends AppCompatActivity {
             @Override
             public void onAdminDecision(OffDayRequest request, boolean approve) {
                 db.collection("off_day_requests").document(request.getOffDayId())
-                        .update("status", approve ? "APPROVED" : "REJECTED");
+                        .update("status", approve ? "APPROVED" : "REJECTED")
+                        .addOnSuccessListener(aVoid -> {
+                            if (approve) {
+                                BookingUtils.cancelBookingsForApprovedOffDay(request);
+                            }
+                        });
             }
         });
         rvOffDays.setLayoutManager(new LinearLayoutManager(this));

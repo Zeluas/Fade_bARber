@@ -69,6 +69,8 @@ public class BookingActivity extends AppCompatActivity {
     private RecyclerView rvStylists;
     private ProgressBar pbStylists;
     private TextView tvNoStylists;
+    private com.google.android.material.textfield.TextInputLayout tilEditReason;
+    private com.google.android.material.textfield.TextInputEditText etEditReason;
     private StylistAdapter stylistAdapter;
     private List<Employee> stylistList = new ArrayList<>();
     private View loadingOverlay;
@@ -153,6 +155,21 @@ public class BookingActivity extends AppCompatActivity {
         // Display fields
         tvDate = findViewById(R.id.tv_booking_date);
         tvTime = findViewById(R.id.tv_booking_time);
+
+        tilEditReason = findViewById(R.id.til_edit_reason);
+        etEditReason = findViewById(R.id.et_edit_reason);
+        if (etEditReason != null) {
+            etEditReason.setRawInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+            etEditReason.setOnEditorActionListener((v, actionId, event) -> {
+                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                    etEditReason.clearFocus();
+                    android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                    if (imm != null) imm.hideSoftInputFromWindow(etEditReason.getWindowToken(), 0);
+                    return true;
+                }
+                return false;
+            });
+        }
 
         // Stylist Selection Components
         rvStylists = findViewById(R.id.rv_stylist_list);
@@ -1321,8 +1338,21 @@ public class BookingActivity extends AppCompatActivity {
         stylistAdapter = new StylistAdapter(stylistList, employee -> {
             selectedEmployee = employee;
             fetchBookedTimes();
+            updateReasonFieldVisibility();
         });
         rvStylists.setAdapter(stylistAdapter);
+    }
+
+    private void updateReasonFieldVisibility() {
+        if (tilEditReason != null) {
+            if (isEmployeeEdit && selectedEmployee != null &&
+                    originalEmployeeId != null && !originalEmployeeId.isEmpty() &&
+                    !selectedEmployee.getUid().equals(originalEmployeeId)) {
+                tilEditReason.setVisibility(View.VISIBLE);
+            } else {
+                tilEditReason.setVisibility(View.GONE);
+            }
+        }
     }
 
     /**
@@ -1462,6 +1492,9 @@ public class BookingActivity extends AppCompatActivity {
     private void sendEditNotification(String customerId, String employeeId, String date, String time) {
         if (customerId == null || employeeId == null) return;
 
+        String reason = (etEditReason != null && etEditReason.getVisibility() == View.VISIBLE) 
+                ? etEditReason.getText().toString().trim() : "";
+
         if (isEmployeeEdit) {
             String employeeName = selectedEmployee != null ? selectedEmployee.getFullname() : "";
             String messagePrefix = employeeName.isEmpty() ? "your hairstylist" : "your hairstylist, " + employeeName;
@@ -1475,9 +1508,10 @@ public class BookingActivity extends AppCompatActivity {
             notification.put("bookingId", editingBookingId);
             notification.put("isRead", false);
             notification.put("isSeen", false);
+            notification.put("reason", reason);
             
             // Sender Info (for callback)
-            notification.put("senderId", employeeId); // The hairstylist who updated it
+            notification.put("senderId", mAuth.getUid()); // The employee who performed the update
             
             // Before/After Data
             notification.put("oldDate", originalDate);
@@ -1493,6 +1527,14 @@ public class BookingActivity extends AppCompatActivity {
             notification.put("newHairstyleId", selectedHairstyleId);
 
             db.collection("notifications").add(notification);
+
+            // Also notify the new employee if they were changed
+            if (!employeeId.equals(originalEmployeeId)) {
+                java.util.Map<String, Object> empNotification = new java.util.HashMap<>(notification);
+                empNotification.put("receiverId", employeeId);
+                empNotification.put("message", "You have been assigned to a new booking (re-assigned from another hairstylist) for " + date + " at " + time + ".");
+                db.collection("notifications").add(empNotification);
+            }
         } else {
             db.collection("customers").document(customerId).get().addOnSuccessListener(doc -> {
                 String customerName = doc.exists() ? doc.getString("name") : "A customer";

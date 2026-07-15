@@ -4,10 +4,17 @@ import android.util.Log;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.zejyv.azizul.uitm.fadebarber.models.OffDayRequest;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 
 /**
@@ -135,6 +142,107 @@ public class BookingUtils {
             employeeNotif.put("isRead", false);
             employeeNotif.put("isSeen", false);
             db.collection("notifications").add(employeeNotif);
+        }
+    }
+
+    /**
+     * Automatically cancels bookings affected by an approved off-day request.
+     */
+    public static void cancelBookingsForApprovedOffDay(OffDayRequest request) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        String employeeId = request.getEmployeeId();
+        String dateRequest = request.getOffDateRequest();
+        boolean isWholeDay = request.isWholeDay();
+        String offStartTime = request.getStartTime();
+        String offEndTime = request.getEndTime();
+
+        List<String> affectedDates = new ArrayList<>();
+        if (dateRequest.contains(" to ")) {
+            String[] parts = dateRequest.split(" to ");
+            affectedDates = getDatesInRange(parts[0], parts[1]);
+        } else {
+            affectedDates.add(dateRequest);
+        }
+
+        for (String date : affectedDates) {
+            db.collection("bookings")
+                .whereEqualTo("employeeId", employeeId)
+                .whereEqualTo("date", date)
+                .whereEqualTo("status", "Pending")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        String bookingTime = doc.getString("time");
+                        if (bookingTime == null) continue;
+
+                        boolean shouldCancel = isWholeDay || isTimeInRange(bookingTime, offStartTime, offEndTime);
+
+                        if (shouldCancel) {
+                            String customerId = doc.getString("customerId");
+                            String finalDate = date; // for closure
+                            
+                            doc.getReference().update(
+                                    "status", "Cancelled",
+                                    "updatedAt", FieldValue.serverTimestamp()
+                            ).addOnSuccessListener(aVoid -> {
+                                if (customerId != null) {
+                                    sendOffDayCancellationNotification(db, doc.getId(), customerId, employeeId, finalDate, bookingTime);
+                                }
+                            });
+                        }
+                    }
+                });
+        }
+    }
+
+    private static void sendOffDayCancellationNotification(FirebaseFirestore db, String bookingId, String customerId, String employeeId, String date, String time) {
+        String message = "We are sorry, but your booking on " + date + " at " + time + " has been cancelled because the hairstylist is off-duty.";
+        
+        Map<String, Object> notif = new HashMap<>();
+        notif.put("receiverId", customerId);
+        notif.put("senderId", employeeId != null ? employeeId : "SYSTEM");
+        notif.put("title", "Booking Cancelled");
+        notif.put("message", message);
+        notif.put("timestamp", FieldValue.serverTimestamp());
+        notif.put("type", "OFF_DAY_CANCELLATION");
+        notif.put("bookingId", bookingId);
+        notif.put("isRead", false);
+        notif.put("isSeen", false);
+        db.collection("notifications").add(notif);
+    }
+
+    private static List<String> getDatesInRange(String start, String end) {
+        List<String> dates = new ArrayList<>();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yy", Locale.getDefault());
+        sdf.setTimeZone(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+        try {
+            Date startDate = sdf.parse(start);
+            Date endDate = sdf.parse(end);
+            Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+            cal.setTime(startDate);
+            while (!cal.getTime().after(endDate)) {
+                dates.add(sdf.format(cal.getTime()));
+                cal.add(Calendar.DATE, 1);
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return dates;
+    }
+
+    private static boolean isTimeInRange(String targetTime, String start, String end) {
+        SimpleDateFormat timeSdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+        timeSdf.setTimeZone(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+        try {
+            Date target = timeSdf.parse(targetTime);
+            Date startTime = timeSdf.parse(start);
+            Date endTime = timeSdf.parse(end);
+            if (target == null || startTime == null || endTime == null) return false;
+            
+            // Check if target is between start and end (inclusive)
+            return !target.before(startTime) && !target.after(endTime);
+        } catch (ParseException e) {
+            return false;
         }
     }
 }

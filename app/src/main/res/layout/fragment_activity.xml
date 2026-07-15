@@ -31,6 +31,21 @@
             android:layout_height="70dp"
             android:background="@drawable/bg_top_bar">
 
+            <ImageView
+                android:id="@+id/iv_back_activity"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center_vertical|start"
+                android:layout_marginStart="5dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="Back"
+                android:focusable="true"
+                android:padding="12dp"
+                android:src="@drawable/ic_back"
+                android:visibility="gone"
+                app:tint="@color/white" />
+
             <TextView
                 android:id="@+id/tv_title_activity"
                 android:layout_width="wrap_content"

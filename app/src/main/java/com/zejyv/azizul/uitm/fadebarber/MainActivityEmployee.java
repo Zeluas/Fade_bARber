@@ -39,6 +39,7 @@ import com.google.firebase.firestore.ListenerRegistration;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Calendar;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -72,6 +73,9 @@ public class MainActivityEmployee extends AppCompatActivity {
     private android.net.ConnectivityManager.NetworkCallback networkCallback;
 
     private ListenerRegistration notificationListener;
+    private ListenerRegistration offDayBadgeListener;
+    private int pendingOffDayCount = 0;
+    private int unreadNotificationCount = 0;
     private static final String CHANNEL_ID = "booking_notifications";
 
     // --- Profile Image Preview Components ---
@@ -118,6 +122,8 @@ public class MainActivityEmployee extends AppCompatActivity {
         FCMUtils.updateTokenInFirestore();
         startNotificationService();
         initializeViews();
+        setupBadge();
+        setupNotificationBadge();
         setupNavigationSync();
         setupFab();
         setupExitDialog();
@@ -214,6 +220,89 @@ public class MainActivityEmployee extends AppCompatActivity {
 
         EmployeePagerAdapter adapter = new EmployeePagerAdapter(this);
         viewPager.setAdapter(adapter);
+    }
+
+    private void setupBadge() {
+        final com.google.android.material.badge.BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.navigation_profile);
+        badge.setBackgroundColor(android.graphics.Color.parseColor("#D81B60"));
+        badge.setBadgeTextColor(android.graphics.Color.WHITE);
+
+        int offset = (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, 4, getResources().getDisplayMetrics());
+        badge.setVerticalOffset(offset);
+        badge.setHorizontalOffset(offset);
+
+        if (offDayBadgeListener != null) offDayBadgeListener.remove();
+        String currentUid = FirebaseAuth.getInstance().getUid();
+        offDayBadgeListener = FirebaseFirestore.getInstance().collection("off_day_requests")
+                .whereEqualTo("status", "PENDING")
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) return;
+                    if (value != null) {
+                        int count = 0;
+                        for (com.google.firebase.firestore.DocumentSnapshot doc : value.getDocuments()) {
+                            String empId = doc.getString("employeeId");
+                            Map<String, Object> votes = (Map<String, Object>) doc.get("votes");
+                            
+                            // 1. Skip if it's the current employee's own request
+                            if (currentUid != null && currentUid.equals(empId)) continue;
+                            
+                            // 2. Skip if the current employee has already voted
+                            if (currentUid != null && votes != null && votes.containsKey(currentUid)) continue;
+                            
+                            count++;
+                        }
+                        
+                        pendingOffDayCount = count;
+                        updateMainProfileBadge();
+                        // Notify fragments if they are listening or just refresh the UI
+                        refreshFragmentBadges();
+                    }
+                });
+    }
+
+    private void setupNotificationBadge() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        FirebaseFirestore.getInstance().collection("notifications")
+                .whereEqualTo("receiverId", uid)
+                .whereEqualTo("isRead", false)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) return;
+                    if (value != null) {
+                        unreadNotificationCount = value.size();
+                        updateMainProfileBadge();
+                        refreshFragmentBadges();
+                    }
+                });
+    }
+
+    private void updateMainProfileBadge() {
+        final com.google.android.material.badge.BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.navigation_profile);
+        int total = pendingOffDayCount + unreadNotificationCount;
+        if (total > 0) {
+            badge.setVisible(true);
+            badge.setNumber(total);
+        } else {
+            badge.setVisible(false);
+        }
+    }
+
+    public int getPendingOffDayCount() {
+        return pendingOffDayCount;
+    }
+
+    public int getUnreadNotificationCount() {
+        return unreadNotificationCount;
+    }
+
+    private void refreshFragmentBadges() {
+        // Find current fragment and update if it's ProfileFragment
+        androidx.fragment.app.Fragment fragment = getSupportFragmentManager().findFragmentByTag("f" + viewPager.getCurrentItem());
+        if (fragment instanceof ProfileFragment) {
+            ((ProfileFragment) fragment).updateOffDayBadge(pendingOffDayCount);
+            ((ProfileFragment) fragment).updateNotificationBadge(unreadNotificationCount);
+        }
     }
 
     private void setupNavigationSync() {
@@ -914,6 +1003,7 @@ public class MainActivityEmployee extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        if (offDayBadgeListener != null) offDayBadgeListener.remove();
         super.onDestroy();
         if (networkCallback != null) {
             android.net.ConnectivityManager connectivityManager = (android.net.ConnectivityManager) getSystemService(android.content.Context.CONNECTIVITY_SERVICE);

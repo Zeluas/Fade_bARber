@@ -334,6 +334,36 @@
                             android:id="@+id/layout_after_update"
                             layout="@layout/layout_booking_detail_mini" />
 
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/til_employee_reason"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="16dp"
+                            android:layout_marginTop="8dp"
+                            android:hint="Reason for update"
+                            android:visibility="gone"
+                            app:boxBackgroundColor="@color/white"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp"
+                            tools:visibility="visible">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/et_employee_reason"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="6dp"
+                                android:enabled="false"
+                                android:focusable="false"
+                                android:gravity="top"
+                                android:inputType="textMultiLine"
+                                android:maxLines="6"
+                                android:minLines="3"
+                                android:textColor="@color/black" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
                         <View
                             android:layout_width="match_parent"
                             android:layout_height="8dp" />

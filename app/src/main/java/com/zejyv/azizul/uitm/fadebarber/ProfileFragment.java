@@ -47,6 +47,7 @@ public class ProfileFragment extends Fragment {
     private MaterialCardView mcvTopBar;
     private TextView tvUserName, tvUserId;
     private ImageView ivProfileLarge;
+    private TextView tvOffDayBadge, tvNotificationBadge;
     private String currentImageUrl = "";
 
     // --- State & Constants ---
@@ -71,6 +72,34 @@ public class ProfileFragment extends Fragment {
         setupCollapsingTopBar();
         setupLogoutAction(view);
         adjustLayoutForRole();
+        syncInitialBadges();
+    }
+
+    private void syncInitialBadges() {
+        if (getActivity() instanceof MainActivityEmployee) {
+            updateOffDayBadge(((MainActivityEmployee) getActivity()).getPendingOffDayCount());
+            updateNotificationBadge(((MainActivityEmployee) getActivity()).getUnreadNotificationCount());
+        }
+    }
+
+    public void updateOffDayBadge(int count) {
+        if (tvOffDayBadge == null) return;
+        if (count > 0) {
+            tvOffDayBadge.setVisibility(View.VISIBLE);
+            tvOffDayBadge.setText(String.valueOf(count));
+        } else {
+            tvOffDayBadge.setVisibility(View.GONE);
+        }
+    }
+
+    public void updateNotificationBadge(int count) {
+        if (tvNotificationBadge == null) return;
+        if (count > 0) {
+            tvNotificationBadge.setVisibility(View.VISIBLE);
+            tvNotificationBadge.setText(String.valueOf(count));
+        } else {
+            tvNotificationBadge.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -91,6 +120,7 @@ public class ProfileFragment extends Fragment {
         View userAgreement = view.findViewById(R.id.mcv_user_agreement);
         View colleagues = view.findViewById(R.id.mcv_colleagues);
         View offDays = view.findViewById(R.id.mcv_employee_off_days);
+        View notifications = view.findViewById(R.id.mcv_notifications);
         TextView tvColleagues = view.findViewById(R.id.tv_colleagues);
 
         if (getActivity() instanceof MainActivityEmployee) {
@@ -99,12 +129,14 @@ public class ProfileFragment extends Fragment {
             if (userAgreement != null) userAgreement.setVisibility(View.GONE);
             if (colleagues != null) colleagues.setVisibility(View.VISIBLE);
             if (offDays != null) offDays.setVisibility(View.VISIBLE);
+            if (notifications != null) notifications.setVisibility(View.VISIBLE);
             if (tvColleagues != null) tvColleagues.setText(R.string.profile_item_colleagues_admins);
         } else if (getActivity() instanceof MainActivityAdmin) {
             if (cutHistory != null) cutHistory.setVisibility(View.GONE);
             if (privacyPolicy != null) privacyPolicy.setVisibility(View.GONE);
             if (userAgreement != null) userAgreement.setVisibility(View.GONE);
             if (colleagues != null) colleagues.setVisibility(View.VISIBLE);
+            if (notifications != null) notifications.setVisibility(View.GONE);
             if (tvColleagues != null) tvColleagues.setText(R.string.profile_item_employees_admins);
         } else {
             // Customer
@@ -112,6 +144,7 @@ public class ProfileFragment extends Fragment {
             if (privacyPolicy != null) privacyPolicy.setVisibility(View.VISIBLE);
             if (userAgreement != null) userAgreement.setVisibility(View.VISIBLE);
             if (colleagues != null) colleagues.setVisibility(View.GONE);
+            if (notifications != null) notifications.setVisibility(View.GONE);
         }
     }
 
@@ -126,6 +159,8 @@ public class ProfileFragment extends Fragment {
         tvUserName = view.findViewById(R.id.tv_user_name);
         tvUserId = view.findViewById(R.id.tv_user_id);
         ivProfileLarge = view.findViewById(R.id.iv_profile_large);
+        tvOffDayBadge = view.findViewById(R.id.tv_off_day_badge);
+        tvNotificationBadge = view.findViewById(R.id.tv_notification_badge);
 
         // Click listeners for menu items
         view.findViewById(R.id.layout_cut_history).setOnClickListener(v -> {
@@ -353,7 +388,7 @@ public class ProfileFragment extends Fragment {
         if (scrollContent != null) scrollContent.setOnTouchListener(swipeListener);
         
         // Apply to all card items in the scroll view
-        int[] cardIds = {R.id.mcv_cut_history, R.id.mcv_settings, R.id.mcv_privacy_policy, R.id.mcv_user_agreement, R.id.mcv_colleagues, R.id.mcv_employee_off_days, R.id.mcv_about};
+        int[] cardIds = {R.id.mcv_cut_history, R.id.mcv_settings, R.id.mcv_privacy_policy, R.id.mcv_user_agreement, R.id.mcv_colleagues, R.id.mcv_employee_off_days, R.id.mcv_notifications, R.id.mcv_about};
         for (int id : cardIds) {
             View card = rootView.findViewById(id);
             if (card != null) card.setOnTouchListener(swipeListener);
@@ -494,6 +529,15 @@ public class ProfileFragment extends Fragment {
         if (layoutOffDays != null) {
             layoutOffDays.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), EmployeeOffDaysActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        // --- Notifications Action ---
+        View layoutNotifications = view.findViewById(R.id.layout_notifications);
+        if (layoutNotifications != null) {
+            layoutNotifications.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), EmployeeNotificationsActivity.class);
                 startActivity(intent);
             });
         }

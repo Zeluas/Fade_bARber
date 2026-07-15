@@ -448,33 +448,119 @@
                     app:strokeWidth="1dp"
                     tools:visibility="visible">
 
-                    <LinearLayout
-                        android:id="@+id/layout_employee_off_days"
+                    <FrameLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="16dp">
+                        android:layout_height="wrap_content">
 
-                        <ImageView
-                            android:id="@+id/iv_ic_off_days"
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:src="@drawable/ic_calendar"
-                            app:tint="@color/primary_color" />
-
-                        <TextView
-                            android:id="@+id/tv_employee_off_days"
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:id="@+id/layout_employee_off_days"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:text="@string/profile_item_employee_off_days"
-                            android:textColor="@color/black"
-                            android:textStyle="bold" />
-                    </LinearLayout>
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="16dp">
+
+                            <ImageView
+                                android:id="@+id/iv_ic_off_days"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_calendar"
+                                app:tint="@color/primary_color" />
+
+                            <TextView
+                                android:id="@+id/tv_employee_off_days"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="16dp"
+                                android:text="@string/profile_item_employee_off_days"
+                                android:textColor="@color/black"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- Pending Badge -->
+                        <TextView
+                            android:id="@+id/tv_off_day_badge"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="end|center_vertical"
+                            android:layout_marginEnd="16dp"
+                            android:background="@drawable/bg_badge_circle"
+                            android:gravity="center"
+                            android:text="0"
+                            android:textColor="@color/white"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:visibility="gone"
+                            tools:visibility="visible" />
+                    </FrameLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Option Item: Notifications (Employee/Admin Only) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/mcv_notifications"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="12dp"
+                    android:layout_marginBottom="12dp"
+                    android:visibility="gone"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:strokeColor="@color/primary_color"
+                    app:strokeWidth="1dp"
+                    tools:visibility="visible">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <LinearLayout
+                            android:id="@+id/layout_notifications"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="16dp">
+
+                            <ImageView
+                                android:id="@+id/iv_ic_notifications"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_notification"
+                                app:tint="@color/primary_color" />
+
+                            <TextView
+                                android:id="@+id/tv_notifications"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="16dp"
+                                android:text="@string/profile_item_notifications"
+                                android:textColor="@color/black"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- Unread Badge -->
+                        <TextView
+                            android:id="@+id/tv_notification_badge"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="end|center_vertical"
+                            android:layout_marginEnd="16dp"
+                            android:background="@drawable/bg_badge_circle"
+                            android:gravity="center"
+                            android:text="0"
+                            android:textColor="@color/white"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:visibility="gone"
+                            tools:visibility="visible" />
+                    </FrameLayout>
                 </com.google.android.material.card.MaterialCardView>
 
                 <!-- Option Item: About -->
