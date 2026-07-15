@@ -23,6 +23,10 @@ public class AdminPanelFragment extends Fragment {
             startActivity(new Intent(getContext(), CustomerSentimentActivity.class));
         });
 
+        view.findViewById(R.id.card_employee_offdays).setOnClickListener(v -> {
+            startActivity(new Intent(getContext(), EmployeeOffDaysActivity.class));
+        });
+
         view.findViewById(R.id.card_employee_mgmt).setOnClickListener(v -> {
             startActivity(new Intent(getContext(), EmployeeManagementActivity.class));
         });

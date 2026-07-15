@@ -232,14 +232,105 @@
                 app:cardElevation="2dp"
                 app:strokeColor="@color/primary_color"
                 app:strokeWidth="1dp">
-                <TextView
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="16dp"
-                    android:justificationMode="inter_word"
-                    android:text="Fade bARber is an enterprise-grade barber shop ecosystem designed for the modern era. Key features include:\n\n• Advanced AR 'Try-On' experience using the DeepAR engine.\n• Real-time booking synchronization powered by Firebase.\n• Personalized AI coaching and style advice via Gemini AI.\n• Integrated professional payment and session management workflow."
-                    android:textColor="@color/black"
-                    android:textSize="14sp" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:justificationMode="inter_word"
+                        android:text="Fade bARber is an Android-based mobile application developed as a Final Year Project to improve the operational efficiency of traditional barbershops through digital transformation. The application addresses common challenges such as manual appointment handling, inefficient queue management and limited customer consultation by providing an integrated platform that enhances service quality, customer convenience and overall barbershop operations."
+                        android:textColor="@color/black"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:layout_marginBottom="12dp"
+                        android:text="Core Features"
+                        android:textColor="@color/black"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <!-- Row 1 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="24dp"
+                            android:layout_height="wrap_content"
+                            android:text="1."
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:justificationMode="inter_word"
+                            android:text="Appointment Booking &amp; Queue Management – Schedule appointments, select a preferred hairstylist and hairstyle, and monitor the booking status in real time."
+                            android:textColor="@color/black"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <!-- Row 2 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="24dp"
+                            android:layout_height="wrap_content"
+                            android:text="2."
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:justificationMode="inter_word"
+                            android:text="AR Hairstyle Visualization – Preview different hairstyles on your own face using Augmented Reality before getting a haircut."
+                            android:textColor="@color/black"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <!-- Row 3 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="24dp"
+                            android:layout_height="wrap_content"
+                            android:text="3."
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:justificationMode="inter_word"
+                            android:text="Centralized Communication Platform – Enable seamless communication between barbers and customers through a unified platform for appointment updates, service preferences and important notifications."
+                            android:textColor="@color/black"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <TextView
@@ -393,13 +484,13 @@
                 app:cardElevation="2dp"
                 app:strokeColor="@color/primary_color"
                 app:strokeWidth="1dp">
+
                 <ImageView
                     android:id="@+id/iv_download_qr"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:padding="20dp"
-                    android:src="@drawable/ic_qrcode"
-                    app:tint="@color/black" />
+                    android:padding="5dp"
+                    android:src="@drawable/img_download_app_qr_code" />
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView

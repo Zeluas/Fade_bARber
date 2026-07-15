@@ -157,11 +157,14 @@ public class BusinessRevenueActivity extends AppCompatActivity {
         String monthSuffix = String.format(Locale.getDefault(), "/%02d/%02d", cal.get(Calendar.MONTH) + 1, cal.get(Calendar.YEAR) % 100);
 
         Calendar weekStart = (Calendar) cal.clone();
-        weekStart.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
         weekStart.set(Calendar.HOUR_OF_DAY, 0);
         weekStart.set(Calendar.MINUTE, 0);
         weekStart.set(Calendar.SECOND, 0);
         weekStart.set(Calendar.MILLISECOND, 0);
+        // Robust way to get the start of the current week (Sunday) locale-independently
+        while (weekStart.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
+            weekStart.add(Calendar.DAY_OF_YEAR, -1);
+        }
 
         db.collection("bookings").get().addOnSuccessListener(bookingDocs -> {
             Map<String, BookingInfo> bookingMap = new HashMap<>();
@@ -320,8 +323,12 @@ public class BusinessRevenueActivity extends AppCompatActivity {
             double val = weekly.getOrDefault(i, 0.0);
             String date = dates.getOrDefault(i, "");
             View bar = new View(this);
-            int heightPx = (int) ((val / max) * dpToPx(160));
+            int maxHeightPx = dpToPx(160);
+            int heightPx = (int) ((val / max) * maxHeightPx);
+            
+            // Ensure minimum visibility for non-zero values and prevent overflow
             if (heightPx < dpToPx(4) && val > 0) heightPx = dpToPx(4);
+            if (heightPx > maxHeightPx) heightPx = maxHeightPx;
             
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, heightPx);
             params.weight = 1;

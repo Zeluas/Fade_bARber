@@ -90,6 +90,7 @@ public class ProfileFragment extends Fragment {
         View privacyPolicy = view.findViewById(R.id.mcv_privacy_policy);
         View userAgreement = view.findViewById(R.id.mcv_user_agreement);
         View colleagues = view.findViewById(R.id.mcv_colleagues);
+        View offDays = view.findViewById(R.id.mcv_employee_off_days);
         TextView tvColleagues = view.findViewById(R.id.tv_colleagues);
 
         if (getActivity() instanceof MainActivityEmployee) {
@@ -97,6 +98,7 @@ public class ProfileFragment extends Fragment {
             if (privacyPolicy != null) privacyPolicy.setVisibility(View.GONE);
             if (userAgreement != null) userAgreement.setVisibility(View.GONE);
             if (colleagues != null) colleagues.setVisibility(View.VISIBLE);
+            if (offDays != null) offDays.setVisibility(View.VISIBLE);
             if (tvColleagues != null) tvColleagues.setText(R.string.profile_item_colleagues_admins);
         } else if (getActivity() instanceof MainActivityAdmin) {
             if (cutHistory != null) cutHistory.setVisibility(View.GONE);
@@ -351,7 +353,7 @@ public class ProfileFragment extends Fragment {
         if (scrollContent != null) scrollContent.setOnTouchListener(swipeListener);
         
         // Apply to all card items in the scroll view
-        int[] cardIds = {R.id.mcv_cut_history, R.id.mcv_settings, R.id.mcv_privacy_policy, R.id.mcv_user_agreement, R.id.mcv_colleagues, R.id.mcv_about};
+        int[] cardIds = {R.id.mcv_cut_history, R.id.mcv_settings, R.id.mcv_privacy_policy, R.id.mcv_user_agreement, R.id.mcv_colleagues, R.id.mcv_employee_off_days, R.id.mcv_about};
         for (int id : cardIds) {
             View card = rootView.findViewById(id);
             if (card != null) card.setOnTouchListener(swipeListener);
@@ -483,6 +485,15 @@ public class ProfileFragment extends Fragment {
         if (layoutColleagues != null) {
             layoutColleagues.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), ColleaguesActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        // --- Employee Off Days Action ---
+        View layoutOffDays = view.findViewById(R.id.layout_employee_off_days);
+        if (layoutOffDays != null) {
+            layoutOffDays.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), EmployeeOffDaysActivity.class);
                 startActivity(intent);
             });
         }

@@ -93,6 +93,8 @@ public class BookingActivity extends AppCompatActivity {
     private String originalHairstyleId = "";
     private List<String> bookedTimes = new ArrayList<>();
     private List<String> fullDates = new ArrayList<>();
+    private java.util.Set<String> unavailableEmployees = new java.util.HashSet<>();
+    private java.util.Set<String> offTimes = new java.util.HashSet<>();
     private long serverTimeOffset = 0;
 
     // --- Time Picker State (Dynamic UI) ---
@@ -788,17 +790,30 @@ public class BookingActivity extends AppCompatActivity {
 
         for (int i = 0; i < 12; i++) {
             int hour = i + 1;
+            String timeStr = String.format(Locale.getDefault(), "%02d:00 %s", hour, currentSelectedAmPm);
+            boolean isOff = offTimes.contains(timeStr);
             boolean isDisabled = isSlotDisabled(hour, currentSelectedAmPm);
 
             if (dialogHourButtons[i] != null) {
                 dialogHourButtons[i].setEnabled(!isDisabled);
-                dialogHourButtons[i].setAlpha(isDisabled ? 0.3f : 1.0f);
                 
                 boolean isSelected = (hour == currentSelectedHour);
                 if (isSelected && isDisabled) {
                     currentIsInvalid = true;
                 }
-                updateTimeButtonStyle(dialogHourButtons[i], isSelected && !isDisabled);
+                
+                if (isOff) {
+                    dialogHourButtons[i].setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.warning_red_icon));
+                    dialogHourButtons[i].setTextColor(Color.WHITE);
+                    dialogHourButtons[i].setStrokeColorResource(R.color.warning_red_icon);
+                    dialogHourButtons[i].setStrokeWidth((int) (1 * getResources().getDisplayMetrics().density));
+                    dialogHourButtons[i].setAlpha(1.0f);
+                } else {
+                    // Reset to standard appearance first to clear red styling
+                    dialogHourButtons[i].setStrokeColorResource(R.color.primary_color);
+                    dialogHourButtons[i].setAlpha(isDisabled ? 0.3f : 1.0f);
+                    updateTimeButtonStyle(dialogHourButtons[i], isSelected && !isDisabled);
+                }
             }
         }
         
@@ -872,7 +887,7 @@ public class BookingActivity extends AppCompatActivity {
             return false;
         }
 
-        return bookedTimes.contains(timeStr) || !isWithinBusinessHours(hour, amPm) || isSlotInPast(hour, amPm);
+        return bookedTimes.contains(timeStr) || offTimes.contains(timeStr) || !isWithinBusinessHours(hour, amPm) || isSlotInPast(hour, amPm);
     }
 
     /**
@@ -983,14 +998,15 @@ public class BookingActivity extends AppCompatActivity {
     }
 
     private void fetchBookedTimes() {
-        if (selectedEmployee == null) return;
-        
         if (!isNetworkAvailable()) {
             Toast.makeText(this, "No internet. Availability might be outdated.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         String date = tvDate.getText().toString();
+        fetchUnavailableStylists(date);
+
+        if (selectedEmployee == null) return;
         
         if (bookedTimesListener != null) {
             bookedTimesListener.remove();
@@ -1067,6 +1083,117 @@ public class BookingActivity extends AppCompatActivity {
                 });
 
         fetchFullDates();
+    }
+
+    private ListenerRegistration unavailableStylistsListener;
+
+    private void fetchUnavailableStylists(String date) {
+        if (unavailableStylistsListener != null) {
+            unavailableStylistsListener.remove();
+        }
+        unavailableStylistsListener = db.collection("off_day_requests")
+                .whereEqualTo("status", "APPROVED")
+                .addSnapshotListener((value, error) -> {
+                    if (error != null || value == null) return;
+                    
+                    java.util.Set<String> newlyUnavailable = new java.util.HashSet<>();
+                    java.util.Set<String> newlyOffTimes = new java.util.HashSet<>();
+                    
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : value) {
+                        String reqDateStr = doc.getString("offDateRequest");
+                        String empId = doc.getString("employeeId");
+                        
+                        if (reqDateStr == null || empId == null) continue;
+                        
+                        boolean dateMatches = false;
+                        if (reqDateStr.contains(" to ")) {
+                            String[] parts = reqDateStr.split(" to ");
+                            if (isDateInRange(date, parts[0], parts[1])) dateMatches = true;
+                        } else if (reqDateStr.equals(date)) {
+                            dateMatches = true;
+                        }
+                        
+                        if (dateMatches) {
+                            boolean isWholeDay = Boolean.TRUE.equals(doc.getBoolean("wholeDay"));
+                            if (isWholeDay) {
+                                newlyUnavailable.add(empId);
+                                if (selectedEmployee != null && empId.equals(selectedEmployee.getUid())) {
+                                    // If current selected is off the whole day, add all slots (not perfectly efficient but clear)
+                                    // Actually we handle whole day check separately in UI if possible
+                                }
+                            } else {
+                                // Partial off day
+                                if (selectedEmployee != null && empId.equals(selectedEmployee.getUid())) {
+                                    String start = doc.getString("startTime");
+                                    String end = doc.getString("endTime");
+                                    // Check each business hour slot
+                                    addOffTimesInRange(newlyOffTimes, start, end);
+                                }
+                            }
+                        }
+                    }
+                    
+                    unavailableEmployees = newlyUnavailable;
+                    offTimes = newlyOffTimes;
+                    
+                    if (stylistAdapter != null) {
+                        stylistAdapter.setUnavailableStylists(unavailableEmployees);
+                    }
+                    
+                    // If selected stylist just became unavailable for the whole day
+                    if (selectedEmployee != null && unavailableEmployees.contains(selectedEmployee.getUid())) {
+                        selectedEmployee = null;
+                        Toast.makeText(BookingActivity.this, "Your selected stylist is now unavailable for today.", Toast.LENGTH_LONG).show();
+                    }
+                    
+                    // Re-run revalidation if current time is now "OFF"
+                    String currentTime = tvTime.getText().toString();
+                    if (offTimes.contains(currentTime)) {
+                         findFirstAvailableSlot();
+                         tvTime.setText(String.format(Locale.getDefault(), "%02d:00 %s", currentSelectedHour, currentSelectedAmPm));
+                         Toast.makeText(BookingActivity.this, "The selected slot is now an off-period for this stylist.", Toast.LENGTH_SHORT).show();
+                    }
+
+                    if (timePickerDialog != null && timePickerDialog.isShowing()) {
+                        updateDialogHourButtons();
+                    }
+                });
+    }
+
+    private void addOffTimesInRange(java.util.Set<String> set, String start, String end) {
+        // Business slots: 10AM, 11AM, 12PM, 1PM, 3PM, 4PM, 5PM, 6PM, 8PM, 9PM, 10PM, 11PM
+        String[] slots = {
+            "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "03:00 PM", "04:00 PM",
+            "05:00 PM", "06:00 PM", "08:00 PM", "09:00 PM", "10:00 PM", "11:00 PM"
+        };
+        for (String slot : slots) {
+            if (isTimeOverlap(slot, start, end)) {
+                set.add(slot);
+            }
+        }
+    }
+
+    private boolean isDateInRange(String target, String start, String end) {
+        try {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yy", Locale.getDefault());
+            java.util.Date dTarget = sdf.parse(target);
+            java.util.Date dStart = sdf.parse(start);
+            java.util.Date dEnd = sdf.parse(end);
+            return dTarget != null && dStart != null && dEnd != null && 
+                   !dTarget.before(dStart) && !dTarget.after(dEnd);
+        } catch (Exception e) { return false; }
+    }
+
+    private boolean isTimeOverlap(String bookingTime, String start, String end) {
+        try {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("hh:mm a", Locale.getDefault());
+            java.util.Date dBooking = sdf.parse(bookingTime);
+            java.util.Date dStart = sdf.parse(start);
+            java.util.Date dEnd = sdf.parse(end);
+            
+            return dBooking != null && dStart != null && dEnd != null && 
+                   !dBooking.before(dStart) && dBooking.before(dEnd);
+        } catch (Exception e) { return false; }
     }
 
     private void fetchFullDates() {

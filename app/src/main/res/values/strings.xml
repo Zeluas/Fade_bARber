@@ -282,6 +282,23 @@
     <string name="label_sort">Sort:</string>
     <string name="sort_amount">Amount</string>
     <string name="label_date">Date:</string>
+    <string name="profile_item_employee_off_days">Employee Off Days</string>
+    <string name="off_days_title">Employee Off Days</string>
+    <string name="off_days_request_header">Request New Off Day</string>
+    <string name="off_days_manage_header">Manage Off Days</string>
+    <string name="off_days_date_label">Pick\nDate</string>
+    <string name="off_days_start_date_label">Start\nDate</string>
+    <string name="off_days_end_date_label">End\nDate</string>
+    <string name="off_days_start_time_label">Start\nTime</string>
+    <string name="off_days_end_time_label">End\nTime</string>
+    <string name="off_days_all_day_label">Whole Day</string>
+    <string name="off_days_single_day_label">Single Day</string>
+    <string name="off_days_reason_hint">Reason for off day (Optional)</string>
+    <string name="off_days_btn_submit">Submit Request</string>
+    <string name="off_days_vote_accept">Accept</string>
+    <string name="off_days_vote_decline">Decline</string>
+    <string name="off_days_admin_decision">Final Decision</string>
+    <string name="off_days_no_requests">No off-day requests at the moment.</string>
     <string name="fade_emp_domain">\@fade.emp</string>
     <string name="fade_adm_domain">\@fade.adm</string>
 </resources>

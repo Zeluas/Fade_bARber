@@ -22,6 +22,7 @@ import java.util.List;
 public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistViewHolder> {
 
     private final List<Employee> stylistList;
+    private java.util.Set<String> unavailableStylistIds = new java.util.HashSet<>();
     private int selectedPosition = -1;
     private OnStylistSelectedListener listener;
     private final boolean isSelectionEnabled;
@@ -50,13 +51,36 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
     @Override
     public void onBindViewHolder(@NonNull StylistViewHolder holder, int position) {
         Employee employee = stylistList.get(position);
+        boolean isUnavailable = unavailableStylistIds.contains(employee.getUid());
+
         holder.tvName.setText(employee.getFullname());
-        String specialty = employee.getSpecialty();
-        if (specialty == null || specialty.trim().isEmpty()) {
-            holder.tvSpecialty.setText(Html.fromHtml("Specialty: <i>None</i>", Html.FROM_HTML_MODE_LEGACY));
+
+        if (isUnavailable) {
+            holder.rootContainer.setBackgroundColor(0xFFFFEBEE); // Warning Red background (light)
+            holder.cbSelected.setEnabled(false);
+            holder.cbSelected.setAlpha(0.3f);
+            holder.rootContainer.setClickable(false);
+            holder.rootContainer.setFocusable(false);
+            holder.tvSpecialty.setText("UNAVAILABLE");
+            holder.tvSpecialty.setTypeface(null, android.graphics.Typeface.BOLD);
+            holder.tvSpecialty.setTextColor(0xFFD32F2F);
         } else {
-            holder.tvSpecialty.setText(String.format("Specialty: %s", specialty));
+            holder.rootContainer.setBackgroundResource(R.drawable.bg_ripple_primary);
+            holder.cbSelected.setEnabled(true);
+            holder.cbSelected.setAlpha(1.0f);
+            holder.rootContainer.setClickable(isSelectionEnabled);
+            holder.rootContainer.setFocusable(isSelectionEnabled);
+            holder.tvSpecialty.setTypeface(null, android.graphics.Typeface.NORMAL);
+            holder.tvSpecialty.setTextColor(0xFF757575); // Standard grey
+
+            String specialty = employee.getSpecialty();
+            if (specialty == null || specialty.trim().isEmpty()) {
+                holder.tvSpecialty.setText(Html.fromHtml("Specialty: <i>None</i>", Html.FROM_HTML_MODE_LEGACY));
+            } else {
+                holder.tvSpecialty.setText(String.format("Specialty: %s", specialty));
+            }
         }
+
         holder.rbRating.setRating(0); // Default rating as 0 for now
         holder.tvRatingVal.setText("0.0");
 
@@ -79,15 +103,11 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
                 })
                 .addOnFailureListener(e -> holder.ivStylist.setImageResource(R.drawable.ic_profile));
 
-        // Fetch and calculate average rating for the stylist in real-time
+        // Fetch and calculate average rating for the stylist
         FirebaseFirestore.getInstance().collection("hairstylist_ratings")
                 .whereEqualTo("employeeId", employee.getUid())
-                .addSnapshotListener((queryDocumentSnapshots, e) -> {
-                    if (e != null) {
-                        holder.rbRating.setRating(0);
-                        holder.tvRatingVal.setText("0.0");
-                        return;
-                    }
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
                         double totalRating = 0;
                         int count = queryDocumentSnapshots.size();
@@ -104,7 +124,7 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
                     }
                 });
 
-        if (isSelectionEnabled) {
+        if (isSelectionEnabled && !isUnavailable) {
             holder.cbSelected.setVisibility(View.VISIBLE);
             holder.cbSelected.setChecked(position == selectedPosition);
             holder.rootContainer.setOnClickListener(v -> {
@@ -121,7 +141,8 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
                 }
             });
         } else {
-            holder.cbSelected.setVisibility(View.GONE);
+            holder.cbSelected.setVisibility(isUnavailable ? View.VISIBLE : View.GONE);
+            holder.cbSelected.setChecked(false);
             holder.rootContainer.setOnClickListener(null);
             holder.rootContainer.setClickable(false);
             holder.rootContainer.setFocusable(false);
@@ -145,6 +166,19 @@ public class StylistAdapter extends RecyclerView.Adapter<StylistAdapter.StylistV
             }
             notifyItemChanged(selectedPosition);
         }
+    }
+
+    public void setUnavailableStylists(java.util.Set<String> uids) {
+        if (this.unavailableStylistIds.equals(uids)) return; // No change, avoid flicker
+        this.unavailableStylistIds = uids;
+        // If current selected is now unavailable, deselect it
+        if (selectedPosition != -1 && selectedPosition < stylistList.size()) {
+            if (uids.contains(stylistList.get(selectedPosition).getUid())) {
+                selectedPosition = -1;
+                if (listener != null) listener.onStylistSelected(null);
+            }
+        }
+        notifyDataSetChanged();
     }
 
     public Employee getSelectedStylist() {

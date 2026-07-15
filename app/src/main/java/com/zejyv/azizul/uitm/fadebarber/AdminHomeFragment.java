@@ -38,6 +38,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.zejyv.azizul.uitm.fadebarber.models.OffDayRequest;
 import com.google.ai.client.generativeai.GenerativeModel;
 import com.google.ai.client.generativeai.java.GenerativeModelFutures;
 import com.google.ai.client.generativeai.type.Content;
@@ -96,6 +97,9 @@ public class AdminHomeFragment extends Fragment {
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private List<ListenerRegistration> listeners = new ArrayList<>();
+    private String currentTodayDateStr, currentMonthSuffix;
+    private com.google.firebase.firestore.QuerySnapshot lastBookingsSnapshot;
+    private List<QueryDocumentSnapshot> lastApprovedOffDays = new ArrayList<>();
 
     // AI Jab related state
     private static List<String> jabPool = new ArrayList<>();
@@ -108,6 +112,10 @@ public class AdminHomeFragment extends Fragment {
         @Override
         public void run() {
             updateTimeStatus();
+            // Trigger real-time status re-evaluation for all barbers
+            if (barberAdapter != null) {
+                barberAdapter.notifyDataSetChanged();
+            }
             if (handler != null) handler.postDelayed(this, 60000);
         }
     };
@@ -180,16 +188,6 @@ public class AdminHomeFragment extends Fragment {
         tvAdminTotalReviewsCount = view.findViewById(R.id.tv_admin_total_reviews_count);
         tvAdminNoReviewsPlaceholder = view.findViewById(R.id.tv_admin_no_reviews_placeholder);
         llAdminRecentReviewsList = view.findViewById(R.id.ll_admin_recent_reviews_list);
-
-        // Management Buttons
-        view.findViewById(R.id.btn_admin_manage_staff).setOnClickListener(v -> {
-            startActivity(new android.content.Intent(getContext(), EmployeeManagementActivity.class));
-        });
-        view.findViewById(R.id.btn_admin_manage_services).setOnClickListener(v -> Toast.makeText(getContext(), "Service Management Activity planned", Toast.LENGTH_SHORT).show());
-        view.findViewById(R.id.btn_admin_reports).setOnClickListener(v -> {
-            startActivity(new android.content.Intent(getContext(), BusinessRevenueActivity.class));
-        });
-        view.findViewById(R.id.btn_admin_announcements).setOnClickListener(v -> Toast.makeText(getContext(), "Ads & Announcements Activity planned", Toast.LENGTH_SHORT).show());
     }
 
     private void setupClickLogic() {
@@ -264,9 +262,9 @@ public class AdminHomeFragment extends Fragment {
         long now = NetworkTimeManager.getInstance().getCurrentTime();
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
         cal.setTimeInMillis(now);
-        String todayDateStr = String.format(Locale.getDefault(), "%02d/%02d/%02d",
+        currentTodayDateStr = String.format(Locale.getDefault(), "%02d/%02d/%02d",
                 cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.YEAR) % 100);
-        String monthSuffix = String.format(Locale.getDefault(), "/%02d/%02d", cal.get(Calendar.MONTH) + 1, cal.get(Calendar.YEAR) % 100);
+        currentMonthSuffix = String.format(Locale.getDefault(), "/%02d/%02d", cal.get(Calendar.MONTH) + 1, cal.get(Calendar.YEAR) % 100);
 
         String monthName = cal.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault());
         if (tvLabelTopStyleMonth != null) {
@@ -282,30 +280,37 @@ public class AdminHomeFragment extends Fragment {
                     for (QueryDocumentSnapshot doc : userSnapshot) {
                         activeEmployeeIds.add(doc.getId());
                     }
-                    // Trigger refresh if we have bookings snapshot already
-                    // This is handled by fetchTeamPerformance being called from bookings listener
+                    if (lastBookingsSnapshot != null) {
+                        fetchTeamPerformance(currentTodayDateStr, currentMonthSuffix, lastBookingsSnapshot);
+                    }
+                }));
+
+        // 0.1 Listen for Approved Off Days (Real-time Status)
+        listeners.add(db.collection("off_day_requests")
+                .whereEqualTo("status", "APPROVED")
+                .addSnapshotListener((offDaySnapshot, offDayError) -> {
+                    if (offDayError != null || offDaySnapshot == null) return;
+                    lastApprovedOffDays.clear();
+                    for (QueryDocumentSnapshot doc : offDaySnapshot) {
+                        lastApprovedOffDays.add(doc);
+                    }
+                    if (lastBookingsSnapshot != null) {
+                        fetchTeamPerformance(currentTodayDateStr, currentMonthSuffix, lastBookingsSnapshot);
+                    }
                 }));
 
         // 1. Listen for Today's & Monthly Revenue
         listeners.add(db.collection("session_payments")
                 .addSnapshotListener((value, error) -> {
                     if (error != null || value == null) return;
-                    
-                    double revToday = 0;
-                    double revMonth = 0;
-                    
-                    for (QueryDocumentSnapshot doc : value) {
-                        // Assuming payments have a 'bookingId' and we fetch the booking to check date
-                        // But for performance, let's assume session_payments might have a timestamp or we join
-                        // Since we don't have date in payments, we fetch bookings first
-                    }
-                    fetchDetailedRevenue(todayDateStr, monthSuffix);
+                    fetchDetailedRevenue(currentTodayDateStr, currentMonthSuffix);
                 }));
 
         // 2. Listen for Bookings (Pulse & Styles)
         listeners.add(db.collection("bookings")
                 .addSnapshotListener((value, error) -> {
                     if (error != null || value == null) return;
+                    lastBookingsSnapshot = value;
                     
                     int active = 0, pending = 0, cancelled = 0, completed = 0;
                     Map<String, Integer> stylesToday = new HashMap<>();
@@ -322,11 +327,11 @@ public class AdminHomeFragment extends Fragment {
                             styleNameToId.put(style, styleId);
                         }
 
-                        if (todayDateStr.equals(date)) {
+                        if (currentTodayDateStr.equals(date)) {
                             if ("Completed".equalsIgnoreCase(status)) completed++;
                             else if ("Pending".equalsIgnoreCase(status)) pending++;
                             else if ("Cancelled".equalsIgnoreCase(status)) cancelled++;
-                            else active++; // Covers Starting, Paying, Rating, etc.
+                            else active++; // Covers Starting, Paying, etc.
                             
                             // Top Style Today: every status except Cancelled
                             if (!"Cancelled".equalsIgnoreCase(status)) {
@@ -334,7 +339,7 @@ public class AdminHomeFragment extends Fragment {
                             }
                         }
                         
-                        if (date != null && date.contains(monthSuffix)) {
+                        if (date != null && date.contains(currentMonthSuffix)) {
                             // Top Style Month: only Completed
                             if ("Completed".equalsIgnoreCase(status)) {
                                 if (style != null && !style.isEmpty()) stylesMonth.put(style, stylesMonth.getOrDefault(style, 0) + 1);
@@ -359,7 +364,7 @@ public class AdminHomeFragment extends Fragment {
                             updateLoadIndicator(finalActive, finalPending);
 
                             // Update Team Performance in real-time
-                            fetchTeamPerformance(todayDateStr, monthSuffix, value);
+                            fetchTeamPerformance(currentTodayDateStr, currentMonthSuffix, value);
                         });
                     }
                 }));
@@ -573,6 +578,13 @@ public class AdminHomeFragment extends Fragment {
 
                             BarberPerformance barber = new BarberPerformance(name, eId, avgRating, compToday, activeToday, pendToday, cancToday, totalToday, countMonth, revToday);
                             
+                            // Collect approved off days for this barber from the real-time listener cache
+                            for (QueryDocumentSnapshot od : lastApprovedOffDays) {
+                                if (eId.equals(od.getString("employeeId"))) {
+                                    barber.approvedOffRequests.add(od.toObject(OffDayRequest.class));
+                                }
+                            }
+
                             // Collect booked times for this barber today and calc service time
                             for (QueryDocumentSnapshot b : realtimeBookings) {
                                 if (eId.equals(b.getString("employeeId")) && today.equals(b.getString("date"))) {
@@ -646,6 +658,7 @@ public class AdminHomeFragment extends Fragment {
         boolean isExpanded = false;
         String selectedAmPm = "PM"; // Default to PM
         Map<String, String> slotStatuses = new HashMap<>(); // time -> status
+        List<OffDayRequest> approvedOffRequests = new ArrayList<>();
 
         BarberPerformance(String name, String id, double rating, int completed, int active, int pending, int cancelled, int totalToday, int completedMonth, double revenueToday) {
             this.name = name; this.id = id; this.rating = rating;
@@ -822,35 +835,82 @@ public class AdminHomeFragment extends Fragment {
             long now = NetworkTimeManager.getInstance().getCurrentTime();
             Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
             cal.setTimeInMillis(now);
+            
+            SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yy", Locale.getDefault());
+            dateFmt.setTimeZone(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+            String todayStr = dateFmt.format(cal.getTime());
+            
+            SimpleDateFormat timeFmt = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+            timeFmt.setTimeZone(TimeZone.getTimeZone("Asia/Kuala_Lumpur"));
+            String nowTimeStr = timeFmt.format(cal.getTime());
+
             int hour = cal.get(Calendar.HOUR_OF_DAY);
 
-            String actionText;
-            int bgColorRes;
+            String actionText = null;
+            int bgColorRes = -1;
+            boolean isOff = false;
 
-            boolean isShopBreak = (hour == 14 || hour == 19);
-            
-            // Check if any booking is currently "Starting" (Active)
-            boolean hasActiveBooking = false;
-            for (String status : b.slotStatuses.values()) {
-                if ("Starting".equalsIgnoreCase(status)) {
-                    hasActiveBooking = true;
-                    break;
+            // Priority 1: OFF (Approved Off-Day)
+            for (OffDayRequest req : b.approvedOffRequests) {
+                String reqDateStr = req.getOffDateRequest();
+                if (reqDateStr == null) continue;
+                
+                boolean dateMatches = false;
+                if (reqDateStr.contains(" to ")) {
+                    String[] parts = reqDateStr.split(" to ");
+                    if (isDateInRange(todayStr, parts[0], parts[1])) dateMatches = true;
+                } else if (reqDateStr.equals(todayStr)) {
+                    dateMatches = true;
+                }
+                
+                if (dateMatches) {
+                    if (req.isWholeDay()) {
+                        actionText = "OFF";
+                        bgColorRes = R.color.warning_red_icon;
+                        isOff = true;
+                        break;
+                    } else if (isTimeOverlap(nowTimeStr, req.getStartTime(), req.getEndTime())) {
+                        actionText = "OFF";
+                        bgColorRes = R.color.warning_red_icon;
+                        isOff = true;
+                        break;
+                    }
                 }
             }
 
-            // Priority: Active > On Break > Idle
-            if (hasActiveBooking) {
-                actionText = "Active";
-                bgColorRes = R.color.primary_color;
-            } else if (isShopBreak) {
-                actionText = "On Break";
-                bgColorRes = R.color.alert_yellow_icon;
-            } else {
-                actionText = "Idle";
-                bgColorRes = R.color.info_blue_icon;
+            if (actionText == null) {
+                boolean isShopBreak = (hour == 14 || hour == 19);
+                
+                // Check if any booking is currently "Starting" (Active)
+                boolean hasActiveBooking = false;
+                for (String status : b.slotStatuses.values()) {
+                    if ("Starting".equalsIgnoreCase(status)) {
+                        hasActiveBooking = true;
+                        break;
+                    }
+                }
+
+                // Priority: Active > On Break > Idle
+                if (hasActiveBooking) {
+                    actionText = "Active";
+                    bgColorRes = R.color.primary_color;
+                } else if (isShopBreak) {
+                    actionText = "On Break";
+                    bgColorRes = R.color.alert_yellow_icon;
+                } else {
+                    actionText = "Idle";
+                    bgColorRes = R.color.info_blue_icon;
+                }
             }
 
             holder.tvStatus.setText(actionText);
+            
+            // Set root container background
+            if (isOff) {
+                holder.llRoot.setBackgroundColor(0xFFFFEBEE); // Light Warning Red for the whole card
+            } else {
+                holder.llRoot.setBackgroundColor(Color.TRANSPARENT);
+            }
             
             // Set card background for rounded status badge
             if (holder.mcvStatus != null) {
@@ -951,7 +1011,7 @@ public class AdminHomeFragment extends Fragment {
             TextView tvName, tvRating, tvRevenue, tvComp, tvActive, tvPend, tvCanc, tvCounter, tvRevTodayCard, tvAvgTime, tvStatus;
             MaterialCardView mcvStatus;
             ImageView ivBarber, ivArrow;
-            LinearLayout llHeader, llExpandable;
+            LinearLayout llHeader, llExpandable, llRoot;
             View vDivider;
             
             // Slots UI
@@ -960,6 +1020,7 @@ public class AdminHomeFragment extends Fragment {
 
             ViewHolder(View v) {
                 super(v);
+                llRoot = v.findViewById(R.id.ll_barber_perf_root);
                 tvName = v.findViewById(R.id.tv_barber_performance_name);
                 tvRating = v.findViewById(R.id.tv_barber_performance_rating);
                 tvRevenue = v.findViewById(R.id.tv_barber_perf_revenue_val);
@@ -1329,6 +1390,29 @@ public class AdminHomeFragment extends Fragment {
                 if (url != null) Glide.with(this).load(url).placeholder(R.drawable.ic_profile).into(ivProfile);
             }
         });
+    }
+
+    private boolean isDateInRange(String target, String start, String end) {
+        try {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yy", Locale.getDefault());
+            java.util.Date dTarget = sdf.parse(target);
+            java.util.Date dStart = sdf.parse(start);
+            java.util.Date dEnd = sdf.parse(end);
+            return dTarget != null && dStart != null && dEnd != null &&
+                    !dTarget.before(dStart) && !dTarget.after(dEnd);
+        } catch (Exception e) { return false; }
+    }
+
+    private boolean isTimeOverlap(String bookingTime, String start, String end) {
+        try {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("hh:mm a", Locale.getDefault());
+            java.util.Date dBooking = sdf.parse(bookingTime);
+            java.util.Date dStart = sdf.parse(start);
+            java.util.Date dEnd = sdf.parse(end);
+
+            return dBooking != null && dStart != null && dEnd != null &&
+                    !dBooking.before(dStart) && dBooking.before(dEnd);
+        } catch (Exception e) { return false; }
     }
 
     @Override
