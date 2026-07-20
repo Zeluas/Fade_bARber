@@ -37,6 +37,10 @@ import com.google.firebase.auth.FirebaseUser;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.Transaction;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.Source;
@@ -144,8 +148,10 @@ public class BookingActivity extends AppCompatActivity {
 
         // Navigation and Header elements
         ImageView ivBack = findViewById(R.id.iv_back_booking);
+        TextView tvTitle = findViewById(R.id.tv_title_booking);
         if (isEditMode) {
             ivBack.setVisibility(View.GONE);
+            if (tvTitle != null) tvTitle.setText(R.string.edit_booking);
         }
         
         // Picker triggers
@@ -469,25 +475,54 @@ public class BookingActivity extends AppCompatActivity {
             bookingMap.put("updatedAt", FieldValue.serverTimestamp());
         }
 
-        db.collection("bookings").document(bookingId).set(bookingMap, com.google.firebase.firestore.SetOptions.merge())
+        if (!isEditMode) {
+            // Concurrency Control for New Bookings (prevents double booking at the exact same millisecond)
+            String slotKey = employeeId + "_" + date.replace("/", "") + "_" + time.replace(":", "").replace(" ", "");
+            DocumentReference slotRef = db.collection("booked_slots").document(slotKey);
+            DocumentReference bookingRef = db.collection("bookings").document(bookingId);
+
+            db.runTransaction(transaction -> {
+                DocumentSnapshot slotSnap = transaction.get(slotRef);
+                if (slotSnap.exists()) {
+                    throw new FirebaseFirestoreException("Slot already taken", FirebaseFirestoreException.Code.ABORTED);
+                }
+
+                transaction.set(bookingRef, bookingMap, com.google.firebase.firestore.SetOptions.merge());
+                transaction.set(slotRef, new java.util.HashMap<String, Object>() {{
+                    put("bookingId", bookingId);
+                    put("lockedAt", FieldValue.serverTimestamp());
+                }});
+                return null;
+            }).addOnSuccessListener(aVoid -> {
+                if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
+                showStatusDialog(true, "Booking Successful!", "Your appointment has been scheduled. We look forward to seeing you!", true);
+            }).addOnFailureListener(e -> {
+                if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
+                confirmButton.setEnabled(true);
+                String errorMsg;
+                if (e instanceof FirebaseFirestoreException && ((FirebaseFirestoreException) e).getCode() == FirebaseFirestoreException.Code.ABORTED) {
+                    errorMsg = "This time slot was just taken by another customer. Please choose a different time.";
+                } else {
+                    errorMsg = getFriendlyError(e.getMessage());
+                }
+                showStatusDialog(false, "Booking Failed", errorMsg, false);
+                android.util.Log.e("BookingActivity", "Transaction Error: " + e.getMessage());
+            });
+        } else {
+            // Standard update for Edit Mode (as requested: concurrency control only for new bookings)
+            db.collection("bookings").document(bookingId).set(bookingMap, com.google.firebase.firestore.SetOptions.merge())
                 .addOnSuccessListener(aVoid -> {
                     if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
-
-                    if (isEditMode) {
-                        sendEditNotification(customerId, employeeId, date, time);
-                    }
-
-                    String successTitle = isEditMode ? "Booking Updated!" : "Booking Successful!";
-                    showStatusDialog(true, successTitle, "Your appointment has been scheduled. We look forward to seeing you!", true);
+                    sendEditNotification(customerId, employeeId, date, time);
+                    showStatusDialog(true, "Booking Updated!", "Your appointment has been scheduled. We look forward to seeing you!", true);
                 })
                 .addOnFailureListener(e -> {
                     if (loadingOverlay != null) loadingOverlay.setVisibility(View.GONE);
                     confirmButton.setEnabled(true);
-                    String errorMsg = getFriendlyError(e.getMessage());
-                    String failTitle = isEditMode ? "Update Failed" : "Booking Failed";
-                    showStatusDialog(false, failTitle, errorMsg, false);
+                    showStatusDialog(false, "Update Failed", getFriendlyError(e.getMessage()), false);
                     android.util.Log.e("BookingActivity", "Firebase Error: " + e.getMessage());
                 });
+        }
     }
 
     private void showStatusDialog(boolean isSuccess, String title, String message, boolean shouldExit) {
